@@ -4,7 +4,6 @@ import { useAuth } from "./AuthContext";
 import AuthPage from "./AuthPage";
 import UserProfilePage from "./UserProfilePage";
 import OrganizationProfilePage from "./OrganizationProfilePage";
-import CaregiverProfilePage from "./CaregiverProfilePage";
 import CaregiverDashboardPage from "./CaregiverDashboardPage";
 import CaregiverListPage from "./CaregiverListPage";
 import BookingFormPage from "./BookingFormPage";

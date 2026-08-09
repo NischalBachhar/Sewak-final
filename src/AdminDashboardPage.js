@@ -153,7 +153,7 @@ export default function AdminDashboardPage() {
   }, [location.pathname, activeTab]);
 
   // ============ LOAD ALL DATA ============
-  const calculateAnalytics = useCallback(async () => {
+  const calculateAnalytics = useCallback(async (organizationsData = []) => {
     try {
       const vendorSnap = await getDocs(collection(db, "vendors"));
       const vendorsData = vendorSnap.docs.map((d) => d.data());
@@ -170,8 +170,8 @@ export default function AdminDashboardPage() {
         .reduce((sum, b) => sum + (b.platformCommission || 0), 0);
 
       setAnalytics({
-        totalOrganizations: organizations.length,
-        approvedOrganizations: organizations.filter((o) => o.isApproved).length,
+        totalOrganizations: organizationsData.length,
+        approvedOrganizations: organizationsData.filter((o) => o.isApproved).length,
         totalCaregivers: vendorsData.length,
         approvedCaregivers: vendorsData.filter((v) => v.isApproved).length,
         totalBookings: bookingsData.length,
@@ -188,12 +188,14 @@ export default function AdminDashboardPage() {
   }, []);
 
   const loadAllData = useCallback(async () => {
+    let orgsData = [];
+
     try {
       // Organizations
       try {
         setLoadingOrganizations(true);
         const orgSnap = await getDocs(collection(db, "organizations"));
-        const orgsData = orgSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        orgsData = orgSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setOrganizations(orgsData);
         setLoadingOrganizations(false);
       } catch (err) {
@@ -292,7 +294,7 @@ export default function AdminDashboardPage() {
       }
 
       // Analytics
-      await calculateAnalytics();
+      await calculateAnalytics(orgsData);
     } catch (err) {
       console.error("Unexpected error loading dashboard:", err);
       setError("Failed to load dashboard data");
@@ -357,7 +359,7 @@ export default function AdminDashboardPage() {
       cancelled = true;
       unsubscribe();
     };
-  }, [auth, loadAllData]);
+  }, [loadAllData]);
 
   // ============ CREATE FIRST SUPERADMIN (OPTIONAL) ============
   const createFirstSuperAdminIfNeeded = async () => {
@@ -864,18 +866,6 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error("Error deleting caregiver:", err);
       setError("Failed to delete caregiver: " + err.message);
-    }
-  };
-
-  const handleEditCaregiver = async (caregiverId, updatedData) => {
-    try {
-      await updateDoc(doc(db, "vendors", caregiverId), updatedData);
-      setSuccessMessage("Caregiver updated successfully!");
-      if (selectedOrg) await handleOrgClick(selectedOrg);
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (err) {
-      console.error("Error updating caregiver:", err);
-      setError("Failed to update caregiver: " + err.message);
     }
   };
 

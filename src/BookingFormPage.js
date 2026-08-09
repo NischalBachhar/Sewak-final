@@ -89,7 +89,7 @@ export default function BookingFormPage({ caregiver, onBooked }) {
     try {
       setSubmitting(true);
 
-      const docRef = await addDoc(collection(db, "bookings"), {
+      await addDoc(collection(db, "bookings"), {
         ...bookingData,
         paymentMethod: "cash",
         paymentStatus: "pending",

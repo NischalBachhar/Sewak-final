@@ -95,8 +95,6 @@ export default function OrganizationProfilePage() {
       </p>
     );
 
-  const isProfileComplete =
-    organizationName && businessPhone && businessAddress && businessCity;
 
   return (
     <div className="app-shell">

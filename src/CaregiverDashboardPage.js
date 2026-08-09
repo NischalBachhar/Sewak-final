@@ -16,7 +16,7 @@ import {
   reauthenticateWithCredential,
 } from "firebase/auth";
 import { useNavigate, useLocation } from "react-router-dom";
-import { db, auth } from "./firebaseConfig";
+import { db } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
 import "./OrganizationDashboard.css";
 

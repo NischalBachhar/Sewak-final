@@ -251,7 +251,6 @@ export default function UserProfilePage() {
       </p>
     );
 
-  const isProfileComplete = name && phone && address && city;
 
   return (
     <div className="app-shell">
