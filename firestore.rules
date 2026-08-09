@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============ HELPERS ============
+    
+    function isSuperAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
+    }
+
+    function isOrgAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'orgadmin';
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // ============ COLLECTIONS ============
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && (isOwner(userId) || isSuperAdmin());
+      allow list: if request.auth != null; 
+    }
+
+    match /organizations/{orgId} {
+      allow read, write: if request.auth != null && (isOwner(orgId) || isSuperAdmin());
+      allow list: if request.auth != null && isSuperAdmin();
+    }
+
+    match /vendors/{vendorId} {
+      allow read: if (
+        request.auth != null && (
+          isOwner(vendorId) ||
+          isSuperAdmin() ||
+          (resource != null && resource.data.organizationId == request.auth.uid)
+        )
+      ) ||
+      (resource != null && resource.data.isApproved == true && resource.data.isSuspended == false);
+      allow write: if request.auth != null && (isOwner(vendorId) || isSuperAdmin());
+      allow list: if request.auth != null ||
+        (request.query.where('isApproved', '==', true) && request.query.where('isSuspended', '==', false));
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if request.auth != null && (
+        isSuperAdmin() ||
+        resource.data.userId == request.auth.uid || 
+        resource.data.caregiverId == request.auth.uid ||
+        (isOrgAdmin() && resource.data.organizationId == request.auth.uid)
+      );
+      allow write: if request.auth != null;
+      allow list: if request.auth != null && (isSuperAdmin() || isOrgAdmin());
+    }
+
+    match /services/{serviceId} {
+      allow read, list: if true;
+      allow write: if request.auth != null && isSuperAdmin();
+    }
+
+    match /blacklistReports/{reportId} {
+      allow create: if request.auth != null;
+      allow read, write, list: if request.auth != null && isSuperAdmin();
+    }
+
+    match /blacklist/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write, list: if request.auth != null && isSuperAdmin();
+    }
+
+    match /organizationBlacklist/{blacklistId} {
+      allow read, write: if request.auth != null && (
+        isSuperAdmin() || 
+        (resource != null && resource.data.organizationId == request.auth.uid) ||
+        (request.resource != null && request.resource.data.organizationId == request.auth.uid)
+      );
+    }
+
+    match /settings/{settingId} {
+      allow read: if request.auth != null;
+      allow write, list: if request.auth != null && isSuperAdmin();
+    }
+  }
+}

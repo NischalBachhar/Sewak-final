@@ -1,0 +1,249 @@
+.auth-shell {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 40px;
+  padding: 32px 20px;
+  background: var(--theme-background);
+  box-sizing: border-box;
+}
+
+.auth-hero {
+  flex: 1;
+  max-width: 420px;
+  color: var(--theme-text);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-title {
+  font-size: 44px;
+  color: var(--theme-accent);
+  margin: 0 0 12px 0;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.auth-tagline {
+  font-size: 16px;
+  color: var(--theme-text-muted);
+  margin: 0 0 20px 0;
+}
+
+.auth-points {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.auth-points li {
+  font-size: 14px;
+  color: var(--theme-text);
+  margin: 10px 0;
+  padding-left: 22px;
+  position: relative;
+}
+
+.auth-points li:before {
+  content: "✔";
+  position: absolute;
+  left: 0;
+  color: var(--theme-positive);
+}
+
+/* Card side */
+
+.auth-card {
+  flex: 1;
+  max-width: 420px;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  box-shadow: 0 16px 32px rgba(113, 84, 41, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-card h2 {
+  color: var(--theme-text);
+  font-size: 22px;
+  margin: 0 0 6px 0;
+}
+
+.auth-card p {
+  color: var(--theme-text-muted);
+  font-size: 13px;
+  margin: 0 0 18px 0;
+}
+
+.error-message {
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--theme-danger);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+/* Form */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form label {
+  color: var(--theme-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.form input,
+.form textarea,
+.form select {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid var(--theme-border);
+  border-radius: 6px;
+  padding: 9px 11px;
+  color: var(--theme-text);
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form input:focus,
+.form textarea:focus,
+.form select:focus {
+  border-color: var(--theme-accent);
+  background: #ffffff;
+}
+
+/* Role selection */
+
+.role-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.role-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+  cursor: pointer;
+  color: var(--theme-text);
+  transition: all 0.2s ease;
+  font-size: 13px;
+}
+
+.role-option:hover {
+  border-color: var(--theme-accent);
+  background: var(--theme-surface-alt);
+}
+
+.role-option input[type="radio"] {
+  cursor: pointer;
+}
+
+/* Buttons */
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--theme-gradient-primary);
+  color: var(--theme-button-text);
+  border: none;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(140, 94, 45, 0.22);
+}
+
+/* Toggle */
+
+.auth-toggle {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.auth-toggle p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-text-muted);
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--theme-accent);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 12px;
+}
+
+.link-button:hover {
+  color: var(--theme-help);
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+  .auth-shell {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 40px;
+    gap: 24px;
+  }
+
+  .auth-hero {
+    max-width: 480px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .auth-points li {
+    text-align: left;
+  }
+
+  .auth-card {
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .auth-title {
+    font-size: 32px;
+  }
+}
