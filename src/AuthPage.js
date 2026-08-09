@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 import "./AuthPage.css";
 
@@ -47,85 +47,42 @@ export default function AuthPage() {
           throw createErr;
         }
 
-        let userData = {
+        // Public registration always creates a customer account. Choosing the
+        // organization option creates a reviewable application, never a
+        // browser-assigned privileged role or organization record.
+        const userData = {
           uid: cred.user.uid,
-          name: fullName,
-          email,
-          role: selectedRole,
-          createdAt: new Date().toISOString(),
+          name: fullName.trim(),
+          email: email.trim().toLowerCase(),
+          role: "user",
+          phone: "",
+          address: "",
+          city: "",
+          createdAt: serverTimestamp(),
           isApproved: false,
           isSuspended: false,
           profileComplete: false,
         };
 
-        // USER/CUSTOMER
-        if (selectedRole === "user") {
-          userData = {
-            ...userData,
-            phone: "",
-            address: "",
-            city: "",
-            profileComplete: false, // Must complete before booking
-          };
-        }
-
-        // ORGANIZATION ADMIN (Partner Vendor)
-        if (selectedRole === "orgadmin") {
-          userData = {
-            ...userData,
-            organizationName: organizationName.trim(),
-            organizationId: cred.user.uid,
-            businessLicense: "",
-            businessPhone: "",
-            businessAddress: "",
-            businessCity: "",
-            totalCaregivers: 0,
-            totalEarnings: 0,
-            totalBookings: 0,
-            commissionRate: 15, // Default, can be changed by superadmin
-            isApproved: false, // Superadmin must approve
-            verified: false,
-            profileComplete: false,
-          };
-
-          // Create organization document
-          try {
-            await setDoc(doc(db, "organizations", cred.user.uid), {
-            organizationId: cred.user.uid,
-            organizationName: organizationName.trim(),
-            adminUid: cred.user.uid,
-            adminName: fullName,
-            adminEmail: email,
-            businessPhone: "",
-            businessAddress: "",
-            businessCity: "",
-            caregivers: [], // Array of caregiver UIDs under this org
-            totalCaregivers: 0,
-            totalEarnings: 0,
-            totalBookings: 0,
-            commissionRate: 15,
-            isApproved: false,
-            verified: false,
-            profileComplete: false,
-            role: "orgadmin",
-            createdAt: new Date().toISOString(),
-            });
-            console.log("Firestore: organization document written:", cred.user.uid);
-          } catch (orgErr) {
-            console.error("Firestore: organization write failed", orgErr);
-            throw orgErr;
-          }
-        }
-
-        // NOTE: Individual caregivers CANNOT sign up directly
-        // They must be added by organization admins
-
         try {
           await setDoc(doc(db, "users", cred.user.uid), userData);
-          console.log("Firestore: user document written:", cred.user.uid, userData);
-        } catch (userErr) {
-          console.error("Firestore: user write failed", userErr);
-          throw userErr;
+
+          if (selectedRole === "orgadmin") {
+            await setDoc(doc(db, "organizationApplications", cred.user.uid), {
+              applicantId: cred.user.uid,
+              applicantName: fullName.trim(),
+              applicantEmail: email.trim().toLowerCase(),
+              organizationName: organizationName.trim(),
+              businessPhone: "",
+              businessAddress: "",
+              businessCity: "",
+              status: "pending",
+              createdAt: serverTimestamp(),
+            });
+          }
+        } catch (registrationWriteError) {
+          console.error("Firestore registration write failed", registrationWriteError);
+          throw registrationWriteError;
         }
 
         // After successful registration, sign the user out so they can sign in manually.
@@ -137,7 +94,11 @@ export default function AuthPage() {
           console.error("Auth: signOut failed", signOutErr);
         }
 
-        setSuccess("Registration complete. Please sign in to continue.");
+        setSuccess(
+          selectedRole === "orgadmin"
+            ? "Organization application submitted. Sewak will review it before issuing organization access."
+            : "Registration complete. Please sign in to continue.",
+        );
         setMode("login");
         setEmail("");
         setPassword("");

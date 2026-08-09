@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebaseConfig";
+import { useAuth } from "./AuthContext";
 
 const REPORT_REASONS = [
   "Non-payment",
@@ -15,184 +16,152 @@ const REPORT_REASONS = [
 export default function CaregiverReportUserPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
-  const [bookingId, setBookingId] = useState("");
-  const [userId, setUserId] = useState("");
-  const [userName, setUserName] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-  const [organizationId, setOrganizationId] = useState("");
+  const { user, userDoc } = useAuth();
+  const bookingId = searchParams.get("bookingId") || "";
+  const [booking, setBooking] = useState(null);
+  const [loadingBooking, setLoadingBooking] = useState(true);
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    // Get params from URL
-    const bookingIdParam = searchParams.get("bookingId");
-    const userIdParam = searchParams.get("userId");
-    const userNameParam = searchParams.get("userName");
-    const employeeIdParam = searchParams.get("employeeId");
-    const organizationIdParam = searchParams.get("organizationId");
+    let active = true;
 
-    if (bookingIdParam) setBookingId(bookingIdParam);
-    if (userIdParam) setUserId(userIdParam);
-    if (userNameParam) setUserName(userNameParam);
-    if (employeeIdParam) setEmployeeId(employeeIdParam);
-    if (organizationIdParam) setOrganizationId(organizationIdParam);
-  }, [searchParams]);
+    const loadAssignedBooking = async () => {
+      setLoadingBooking(true);
+      setError("");
+      if (!user?.uid || !bookingId) {
+        if (active) setError("Open this form from an assigned booking.");
+        if (active) setLoadingBooking(false);
+        return;
+      }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+      try {
+        const snapshot = await getDoc(doc(db, "bookings", bookingId));
+        if (!snapshot.exists()) {
+          throw new Error("This booking is no longer available.");
+        }
+
+        const data = { id: snapshot.id, ...snapshot.data() };
+        if (data.caregiverId !== user.uid) {
+          throw new Error("You can report a customer only from one of your assigned bookings.");
+        }
+
+        if (active) setBooking(data);
+      } catch (loadError) {
+        if (active) setError(loadError.message || "We could not load this booking.");
+      } finally {
+        if (active) setLoadingBooking(false);
+      }
+    };
+
+    loadAssignedBooking();
+    return () => {
+      active = false;
+    };
+  }, [bookingId, user?.uid]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
-
-    if (!reason) {
-      setError("Please select a reason");
+    if (!booking) {
+      setError("The assigned booking could not be verified.");
       return;
     }
-
+    if (!reason) {
+      setError("Choose a reason for this report.");
+      return;
+    }
     if (!description.trim()) {
-      setError("Please provide a description");
+      setError("Describe what happened so the review team has enough context.");
       return;
     }
 
     try {
       setSubmitting(true);
-
       await addDoc(collection(db, "blacklistReports"), {
-        bookingId,
-        userId,
+        bookingId: booking.id,
+        userId: booking.userId,
         userType: "user",
-        userName,
-        reportedBy: employeeId,
-        reportedByName: "Caregiver",
-        reportedByOrgId: organizationId,
+        userName: booking.userName || "Customer",
+        reportedBy: user.uid,
+        reportedByName: userDoc?.name || user.displayName || "Caregiver",
+        reportedByOrgId: booking.organizationId || "",
         reason,
         description: description.trim(),
         status: "pending",
         createdAt: serverTimestamp(),
       });
-
-      alert("Report submitted successfully. Admin will review it.");
-      navigate("/caregiver");
-    } catch (err) {
-      console.error("Error submitting report:", err);
-      setError("Could not submit report. Please try again.");
+      setSubmitted(true);
+    } catch (submitError) {
+      setError(submitError.message || "We could not submit this report. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="app-shell">
-      <div className="app-card" style={{ maxWidth: 600 }}>
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ color: "var(--theme-button-text)", fontSize: 24, marginBottom: 8 }}>
-            🚫 Report User
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--theme-text-muted)", margin: 0 }}>
-            Submit a report to admin about this user
-          </p>
-        </div>
+    <main className="app-shell">
+      <section className="app-card" style={{ maxWidth: 640 }} aria-labelledby="report-user-heading">
+        <p className="booking-form-eyebrow">Safety and conduct</p>
+        <h1 id="report-user-heading" style={{ color: "var(--theme-text)", fontSize: 26, marginTop: 0 }}>
+          Report a customer
+        </h1>
+        <p className="text-muted">
+          This report is tied to the assigned booking below. It is sent for review; submitting it does not automatically restrict the customer.
+        </p>
 
-        {/* Warning */}
-        <div
-          style={{
-            background: "var(--theme-warning-soft)",
-            color: "var(--theme-warning)",
-            padding: 12,
-            borderRadius: 8,
-            fontSize: 13,
-            marginBottom: 16,
-            border: "1px solid var(--theme-warning)",
-          }}
-        >
-          <strong>⚠️ Important:</strong> Only use this feature for serious issues like abuse,
-          non-payment, or safety concerns. False reports may affect your account.
-        </div>
+        {loadingBooking ? <p className="text-muted">Checking the assigned booking…</p> : null}
+        {error ? <p className="error-message" role="alert">{error}</p> : null}
 
-        {error && <div className="error-message">{error}</div>}
+        {booking ? (
+          <>
+            <div className="card" style={{ margin: "18px 0", background: "var(--theme-surface)" }}>
+              <p style={{ margin: "0 0 6px" }}><strong>Customer:</strong> {booking.userName || "Customer"}</p>
+              <p style={{ margin: "0 0 6px" }}><strong>Care date:</strong> {booking.date || "To be confirmed"} {booking.time ? `at ${booking.time}` : ""}</p>
+              <p style={{ margin: 0 }}><strong>Booking reference:</strong> {booking.id.slice(0, 12)}</p>
+            </div>
 
-        {/* User info */}
-        <div className="card" style={{ marginBottom: 16, background: "var(--theme-surface)" }}>
-          <p style={{ fontSize: 13, color: "var(--theme-text-muted)", marginBottom: 6 }}>
-            <strong>User:</strong> {userName || "Unknown"}
-          </p>
-          <p style={{ fontSize: 13, color: "var(--theme-text-muted)", marginBottom: 6 }}>
-            <strong>User ID:</strong> {userId || "N/A"}
-          </p>
-          <p style={{ fontSize: 13, color: "var(--theme-text-muted)", margin: 0 }}>
-            <strong>Booking ID:</strong> {bookingId?.substring(0, 12)}...
-          </p>
-        </div>
+            {submitted ? (
+              <div className="success-message" role="status">
+                Report submitted for review. Thank you for documenting the issue clearly.
+                <div style={{ marginTop: 14 }}>
+                  <button type="button" className="btn btn-primary" onClick={() => navigate("/caregiver/jobs")}>Return to jobs</button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="form">
+                <label htmlFor="report-reason">Reason *</label>
+                <select id="report-reason" value={reason} onChange={(event) => setReason(event.target.value)} required>
+                  <option value="">Select a reason</option>
+                  {REPORT_REASONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
 
-        {/* Report Form */}
-        <form onSubmit={handleSubmit} className="form">
-          <label>Reason for report *</label>
-          <select
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            required
-          >
-            <option value="">Select a reason</option>
-            {REPORT_REASONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
+                <label htmlFor="report-description">What happened? *</label>
+                <textarea
+                  id="report-description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  required
+                  maxLength={2000}
+                  placeholder="Include only the facts needed to review the concern."
+                  rows={6}
+                  style={{ resize: "vertical" }}
+                />
 
-          <label>Description *</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            placeholder="Please provide detailed information about the issue. Include dates, times, and specific incidents."
-            rows={6}
-            style={{ resize: "vertical" }}
-          />
-
-          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={submitting}
-              style={{ flex: 1 }}
-            >
-              {submitting ? "Submitting..." : "Submit Report"}
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => navigate("/caregiver")}
-              style={{
-                flex: 1,
-                background: "var(--theme-surface)",
-                color: "var(--theme-text)",
-                border: "1px solid var(--theme-text)",
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-
-        {/* Disclaimer */}
-        <div
-          style={{
-            marginTop: 24,
-            padding: 12,
-            background: "var(--theme-surface)",
-            border: "1px solid var(--theme-text)",
-            borderRadius: 8,
-            fontSize: 12,
-            color: "var(--theme-text-muted)",
-          }}
-        >
-          <strong style={{ color: "var(--theme-button-text)" }}>Note:</strong> Your report will be reviewed by an
-          admin within 24-48 hours. The user may be blacklisted if the report is verified. You will
-          be notified of the decision.
-        </div>
-      </div>
-    </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>
+                    {submitting ? "Submitting…" : "Submit report for review"}
+                  </button>
+                  <button type="button" className="btn btn-outline" onClick={() => navigate("/caregiver/jobs")}>Cancel</button>
+                </div>
+              </form>
+            )}
+          </>
+        ) : null}
+      </section>
+    </main>
   );
 }

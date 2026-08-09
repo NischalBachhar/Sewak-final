@@ -100,7 +100,7 @@ export default function OrganizationProfilePage() {
     <div className="app-shell">
       <div className="app-card" style={{ maxWidth: 700 }}>
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ color: "var(--theme-button-text)", fontSize: 24, marginBottom: 8 }}>
+          <h1 style={{ color: "var(--theme-text)", fontSize: 24, marginBottom: 8 }}>
             Organization Profile
           </h1>
           <p style={{ fontSize: 13, color: "var(--theme-text-muted)", margin: 0 }}>
@@ -213,7 +213,7 @@ export default function OrganizationProfilePage() {
             borderRadius: 8,
           }}
         >
-          <h4 style={{ color: "var(--theme-button-text)", marginTop: 0, marginBottom: 12 }}>
+          <h4 style={{ color: "var(--theme-text)", marginTop: 0, marginBottom: 12 }}>
             Profile Completion
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

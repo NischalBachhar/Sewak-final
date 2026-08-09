@@ -9,9 +9,13 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
+import { useNavigate } from "react-router-dom";
+import { getBookingStatus, normalizeBooking } from "./bookingModel";
+import { SkeletonCard, StatusBadge } from "./components/CareExperience";
 
 export default function MyBookingsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
@@ -37,7 +41,7 @@ export default function MyBookingsPage() {
         q,
         (snap) => {
           const docs = snap.docs
-            .map((d) => ({
+            .map((d) => normalizeBooking({
               id: d.id,
               ...d.data(),
             }))
@@ -108,12 +112,7 @@ export default function MyBookingsPage() {
     return matchStatus && matchPayment;
   });
 
-  if (loading)
-    return (
-      <p style={{ color: "var(--theme-text-muted)", textAlign: "center", padding: 20 }}>
-        Loading your bookings...
-      </p>
-    );
+  if (loading) return <SkeletonCard />;
 
   if (error)
     return (
@@ -247,18 +246,7 @@ export default function MyBookingsPage() {
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <span
-                  style={{
-                    background: "var(--theme-positive-soft)",
-                    color: "var(--theme-positive)",
-                    padding: "4px 8px",
-                    borderRadius: "4px",
-                    fontSize: 11,
-                    fontWeight: "600",
-                  }}
-                >
-                  {(b.status || "pending").toUpperCase()}
-                </span>
+                <StatusBadge status={b.status} />
                 {b.paymentMethod === "fonepay" && (
                   <span
                     style={{
@@ -370,8 +358,20 @@ export default function MyBookingsPage() {
               {b.createdAt?.toDate?.().toLocaleDateString?.() || "N/A"}
             </div>
 
+            <p style={{ margin: "12px 0 0", color: "var(--theme-text-muted)", fontSize: 12, lineHeight: 1.45 }}>
+              <strong>What happens next:</strong> {getBookingStatus(b.status).nextStep}
+            </p>
+
             {/* Actions */}
             <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => navigate(`/user/bookings/${b.id}`)}
+                style={{ flex: 1 }}
+              >
+                View details
+              </button>
               {b.status === "pending" && (
                 <>
                   <button
@@ -505,4 +505,3 @@ export default function MyBookingsPage() {
     </div>
   );
 }
-

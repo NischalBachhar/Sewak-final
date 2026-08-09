@@ -1,0 +1,32 @@
+.mobile-bottom-navigation { display: none; }
+@media (max-width: 760px) {
+  .mobile-bottom-navigation {
+    position: fixed;
+    z-index: 70;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    min-height: 62px;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid rgba(15,118,110,.16);
+    background: rgba(255,253,248,.98);
+    box-shadow: 0 -8px 20px rgba(17,24,39,.08);
+  }
+  .mobile-bottom-navigation button {
+    display: grid;
+    place-items: center;
+    gap: 3px;
+    min-height: 56px;
+    border: 0;
+    background: transparent;
+    color: var(--theme-text-muted);
+    cursor: pointer;
+    font: inherit;
+  }
+  .mobile-bottom-navigation button span { font-size: 18px; line-height: 1; }
+  .mobile-bottom-navigation button small { font-size: 11px; font-weight: 700; }
+  .mobile-bottom-navigation button.is-active { color: var(--theme-help); }
+  .mobile-bottom-navigation button:focus-visible { outline: 3px solid rgba(15,118,110,.4); outline-offset: -3px; }
+}
