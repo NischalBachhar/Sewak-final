@@ -10,6 +10,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
+import { SkeletonCard } from "./components/CareExperience";
 
 export default function UserProfilePage() {
   const { user, userDoc, refreshUserDoc } = useAuth(); 
@@ -244,12 +245,13 @@ export default function UserProfilePage() {
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <p style={{ color: "var(--theme-text-muted)", textAlign: "center", padding: 20 }}>
-        Loading profile...
-      </p>
+      <main aria-busy="true" aria-label="Loading your profile">
+        <SkeletonCard variant="dashboard" label="Loading your profile" />
+      </main>
     );
+  }
 
 
   return (

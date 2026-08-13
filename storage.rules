@@ -1,0 +1,44 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // The client currently creates immutable, timestamped profile images at
+    // profile_pictures/{uid}_{Date.now()}.jpg. Keeping the ID in the object
+    // name lets the rules enforce ownership without trusting client metadata.
+    function hasSafeUid() {
+      return request.auth != null &&
+        request.auth.uid.matches('^[A-Za-z0-9_-]{1,128}$');
+    }
+
+    function ownsProfilePicture(fileName) {
+      return hasSafeUid() &&
+        fileName.matches(
+          '^' + request.auth.uid + '_[0-9]{13}\\.jpg$'
+        );
+    }
+
+    function isValidProfileImage() {
+      return request.resource.size > 0 &&
+        request.resource.size <= 2 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    match /profile_pictures/{fileName} {
+      // A user may fetch their own image to obtain its download URL. The app
+      // does not need collection listing, public reads, or browser-admin access
+      // to profile images; any audited support access should use the Admin SDK,
+      // which bypasses Security Rules.
+      allow get: if ownsProfilePicture(fileName);
+
+      // Profile photos are write-once objects. The timestamped path prevents an
+      // upload from overwriting an existing file; users can remove only their
+      // own obsolete photos.
+      allow create: if ownsProfilePicture(fileName) && isValidProfileImage();
+      allow delete: if ownsProfilePicture(fileName);
+    }
+
+    // Default deny for all other buckets and paths, including list and update.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

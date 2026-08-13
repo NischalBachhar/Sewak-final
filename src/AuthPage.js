@@ -1,8 +1,48 @@
 import React, { useState } from "react";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 import "./AuthPage.css";
+
+const GENERIC_SIGN_IN_ERROR =
+  "The email or password is incorrect. Please try again.";
+
+const getAuthErrorMessage = (errorCode, mode) => {
+  if (errorCode === "auth/invalid-email") {
+    return "Please enter a valid email address.";
+  }
+
+  // Firebase intentionally returns a single invalid-credential code for many
+  // email/password failures. Keep the older variants generic too so the sign-in
+  // screen never reveals whether an account exists.
+  if (
+    mode === "login" &&
+    [
+      "auth/invalid-credential",
+      "auth/invalid-login-credentials",
+      "auth/user-not-found",
+      "auth/wrong-password",
+    ].includes(errorCode)
+  ) {
+    return GENERIC_SIGN_IN_ERROR;
+  }
+
+  if (errorCode === "auth/email-already-in-use") {
+    return "This email is already registered. Please log in.";
+  }
+
+  if (errorCode === "auth/weak-password") {
+    return "Password must be at least 6 characters long.";
+  }
+
+  if (errorCode === "auth/too-many-requests") {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+
+  return mode === "login"
+    ? "We couldn't sign you in right now. Please try again."
+    : "We couldn't create your account right now. Please try again.";
+};
 
 export default function AuthPage() {
   const [mode, setMode] = useState("login");
@@ -47,85 +87,42 @@ export default function AuthPage() {
           throw createErr;
         }
 
-        let userData = {
+        // Public registration always creates a customer account. Choosing the
+        // organization option creates a reviewable application, never a
+        // browser-assigned privileged role or organization record.
+        const userData = {
           uid: cred.user.uid,
-          name: fullName,
-          email,
-          role: selectedRole,
-          createdAt: new Date().toISOString(),
+          name: fullName.trim(),
+          email: email.trim().toLowerCase(),
+          role: "user",
+          phone: "",
+          address: "",
+          city: "",
+          createdAt: serverTimestamp(),
           isApproved: false,
           isSuspended: false,
           profileComplete: false,
         };
 
-        // USER/CUSTOMER
-        if (selectedRole === "user") {
-          userData = {
-            ...userData,
-            phone: "",
-            address: "",
-            city: "",
-            profileComplete: false, // Must complete before booking
-          };
-        }
-
-        // ORGANIZATION ADMIN (Partner Vendor)
-        if (selectedRole === "orgadmin") {
-          userData = {
-            ...userData,
-            organizationName: organizationName.trim(),
-            organizationId: cred.user.uid,
-            businessLicense: "",
-            businessPhone: "",
-            businessAddress: "",
-            businessCity: "",
-            totalCaregivers: 0,
-            totalEarnings: 0,
-            totalBookings: 0,
-            commissionRate: 15, // Default, can be changed by superadmin
-            isApproved: false, // Superadmin must approve
-            verified: false,
-            profileComplete: false,
-          };
-
-          // Create organization document
-          try {
-            await setDoc(doc(db, "organizations", cred.user.uid), {
-            organizationId: cred.user.uid,
-            organizationName: organizationName.trim(),
-            adminUid: cred.user.uid,
-            adminName: fullName,
-            adminEmail: email,
-            businessPhone: "",
-            businessAddress: "",
-            businessCity: "",
-            caregivers: [], // Array of caregiver UIDs under this org
-            totalCaregivers: 0,
-            totalEarnings: 0,
-            totalBookings: 0,
-            commissionRate: 15,
-            isApproved: false,
-            verified: false,
-            profileComplete: false,
-            role: "orgadmin",
-            createdAt: new Date().toISOString(),
-            });
-            console.log("Firestore: organization document written:", cred.user.uid);
-          } catch (orgErr) {
-            console.error("Firestore: organization write failed", orgErr);
-            throw orgErr;
-          }
-        }
-
-        // NOTE: Individual caregivers CANNOT sign up directly
-        // They must be added by organization admins
-
         try {
           await setDoc(doc(db, "users", cred.user.uid), userData);
-          console.log("Firestore: user document written:", cred.user.uid, userData);
-        } catch (userErr) {
-          console.error("Firestore: user write failed", userErr);
-          throw userErr;
+
+          if (selectedRole === "orgadmin") {
+            await setDoc(doc(db, "organizationApplications", cred.user.uid), {
+              applicantId: cred.user.uid,
+              applicantName: fullName.trim(),
+              applicantEmail: email.trim().toLowerCase(),
+              organizationName: organizationName.trim(),
+              businessPhone: "",
+              businessAddress: "",
+              businessCity: "",
+              status: "pending",
+              createdAt: serverTimestamp(),
+            });
+          }
+        } catch (registrationWriteError) {
+          console.error("Firestore registration write failed", registrationWriteError);
+          throw registrationWriteError;
         }
 
         // After successful registration, sign the user out so they can sign in manually.
@@ -137,27 +134,18 @@ export default function AuthPage() {
           console.error("Auth: signOut failed", signOutErr);
         }
 
-        setSuccess("Registration complete. Please sign in to continue.");
+        setSuccess(
+          selectedRole === "orgadmin"
+            ? "Organization application submitted. Sewak will review it before issuing organization access."
+            : "Registration complete. Please sign in to continue.",
+        );
         setMode("login");
         setEmail("");
         setPassword("");
       }
     } catch (err) {
       console.error("Auth error:", err);
-
-      if (err.code === "auth/email-already-in-use") {
-        setError("This email is already registered. Please log in.");
-      } else if (err.code === "auth/weak-password") {
-        setError("Password must be at least 6 characters long.");
-      } else if (err.code === "auth/invalid-email") {
-        setError("Please enter a valid email address.");
-      } else if (err.code === "auth/user-not-found") {
-        setError("No account found. Please sign up first.");
-      } else if (err.code === "auth/wrong-password") {
-        setError("Incorrect password.");
-      } else {
-        setError(err.message || "Something went wrong.");
-      }
+      setError(getAuthErrorMessage(err?.code, mode));
     } finally {
       setLoading(false);
     }
@@ -186,7 +174,7 @@ export default function AuthPage() {
             : "Join Sewak as a customer or partner organization."}
         </p>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message" role="alert">{error}</div>}
         {success && <div className="success-message">{success}</div>}
 
         <form className="form" onSubmit={handleSubmit}>
@@ -280,7 +268,7 @@ export default function AuthPage() {
 
           <button
             type="submit"
-            className="btn btn-primary"
+            className="btn btn-primary auth-submit"
             disabled={loading}
           >
             {loading

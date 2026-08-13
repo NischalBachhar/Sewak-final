@@ -76,15 +76,15 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
   return (
     <header className="header">
       <div className="header-container">
-        {/* Logo */}
-            <div
-              className="header-logo"
-              onClick={() => handleNavigate("/")}
-              style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}
-            >
-              <img src={logoSvg} alt="Sewak" className="header-logo-img" />
-              <h1 style={{ margin: 0, color: "var(--theme-help)", fontSize: 22 }}>Sewak</h1>
-            </div>
+        <button
+          type="button"
+          className="header-logo"
+          onClick={() => handleNavigate("/")}
+          aria-label="Go to Sewak home"
+        >
+          <img src={logoSvg} alt="" className="header-logo-img" />
+          <span className="header-logo-text">Sewak</span>
+        </button>
 
         {/* User Menu */}
         <div className="header-menu" ref={menuRef}>
@@ -92,6 +92,9 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
             type="button"
             className="header-user-button"
             onClick={() => setShowMenu(!showMenu)}
+            aria-expanded={showMenu}
+            aria-controls="header-account-menu"
+            aria-label={`Account menu for ${userDoc?.name || user.email}`}
           >
             <span className="header-user-avatar">{getRoleIcon(userRole)}</span>
             <span className="header-user-name">{userDoc?.name || user.email}</span>
@@ -121,12 +124,13 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
               <div
                 className="header-backdrop"
                 onClick={() => setShowMenu(false)}
+                aria-hidden="true"
               />
               
-              <div className="header-dropdown">
+              <div id="header-account-menu" className="header-dropdown">
                 {/* User Info */}
                 <div className="dropdown-header">
-                  <p style={{ margin: 0, color: "var(--theme-button-text)", fontSize: 13 }}>
+                  <p style={{ margin: 0, color: "var(--theme-text)", fontSize: 13 }}>
                     <strong>{userDoc?.name}</strong>
                   </p>
                   <p style={{ margin: 0, color: "var(--theme-text-muted)", fontSize: 12 }}>

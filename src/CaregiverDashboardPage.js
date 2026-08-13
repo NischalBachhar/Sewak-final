@@ -8,6 +8,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
 import {
@@ -18,18 +19,55 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { db } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
+import CaregiverShiftWorkflow from "./CaregiverShiftWorkflow";
+import { formatNpr } from "./config/brand";
+import { SkeletonCard } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
 
-const STATUS_OPTIONS = ["pending", "accepted", "completed", "cancelled"];
+const STATUS_OPTIONS = ["pending", "accepted", "in_progress", "completed", "cancelled"];
 const SHIFT_OPTIONS = ["morning", "day", "night"];
 const COMMISSION_RATE = 15;
+const CAREGIVER_TABS = ["home", "jobs", "schedule", "profile", "earnings"];
+
+const localDateKey = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const bookingScheduleDate = (booking) => {
+  const match = String(booking?.date || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+
+  const [, year, month, day] = match;
+  const timeMatch = String(booking?.time || "").trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
+  let hour = 0;
+  let minute = 0;
+
+  if (timeMatch) {
+    hour = Number(timeMatch[1]);
+    minute = Number(timeMatch[2] || 0);
+    const meridiem = timeMatch[3]?.toLowerCase();
+    if (meridiem === "pm" && hour < 12) hour += 12;
+    if (meridiem === "am" && hour === 12) hour = 0;
+  }
+
+  const scheduled = new Date(Number(year), Number(month) - 1, Number(day), hour, minute);
+  return Number.isNaN(scheduled.getTime()) ? null : scheduled;
+};
+
+const bookingSortTime = (booking) =>
+  bookingScheduleDate(booking)?.getTime() || booking?.createdAt?.toDate?.()?.getTime?.() || 0;
 
 export default function CaregiverDashboardPage() {
   const { user, userDoc } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState("jobs");
+  const [activeTab, setActiveTab] = useState("home");
 
   const [bookings, setBookings] = useState([]);
   const [statusFilter, setStatusFilter] = useState("pending");
@@ -72,10 +110,10 @@ export default function CaregiverDashboardPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get("tab");
-    if (["jobs", "profile", "earnings"].includes(tab)) {
+    if (CAREGIVER_TABS.includes(tab)) {
       setActiveTab(tab);
     } else {
-      setActiveTab("jobs");
+      setActiveTab("home");
     }
   }, [location.search]);
 
@@ -188,8 +226,9 @@ export default function CaregiverDashboardPage() {
           );
         }
 
-        // Services
-        const servicesSnap = await getDocs(collection(db, "services"));
+        // Caregivers use the PII-free service projection. Private service
+        // records are intentionally restricted to operations and their owner.
+        const servicesSnap = await getDocs(collection(db, "publicServices"));
         const servicesData = servicesSnap.docs.map((d) => ({
           id: d.id,
           ...d.data(),
@@ -207,6 +246,7 @@ export default function CaregiverDashboardPage() {
     try {
       await updateDoc(doc(db, "bookings", bookingId), {
         status: newStatus,
+        updatedAt: serverTimestamp(),
       });
     } catch (err) {
       console.error("Error updating status", err);
@@ -220,19 +260,7 @@ export default function CaregiverDashboardPage() {
     );
     if (!confirmed) return;
 
-    navigate(
-      `/caregiver/reportuser?bookingId=${encodeURIComponent(
-        b.id
-      )}&userId=${encodeURIComponent(
-        b.userId
-      )}&userName=${encodeURIComponent(
-        b.userName
-      )}&employeeId=${encodeURIComponent(
-        user?.uid || ""
-      )}&organizationId=${encodeURIComponent(
-        userDoc?.organizationId || ""
-      )}`
-    );
+    navigate(`/caregiver/reportuser?bookingId=${encodeURIComponent(b.id)}`);
   };
 
   const isBookingReported = (bookingId) =>
@@ -244,14 +272,6 @@ export default function CaregiverDashboardPage() {
       setEditShifts(editShifts.filter((s) => s !== shift));
     } else {
       setEditShifts([...editShifts, shift]);
-    }
-  };
-
-  const toggleService = (serviceId) => {
-    if (editServices.includes(serviceId)) {
-      setEditServices(editServices.filter((s) => s !== serviceId));
-    } else {
-      setEditServices([...editServices, serviceId]);
     }
   };
 
@@ -277,7 +297,6 @@ export default function CaregiverDashboardPage() {
         category: editCategory,
         workType: editWorkType,
         shifts: finalShifts,
-        servicesOffered: editServices,
         hourlyRate: Number(editHourlyRate) || 0,
         experience: Number(editExperience) || 0,
         isAvailable: editAvailable,
@@ -322,6 +341,25 @@ export default function CaregiverDashboardPage() {
       ? b.status === statusFilter
       : true
   );
+
+  const todayKey = localDateKey();
+  const todaysJobs = bookings.filter((booking) => booking.date === todayKey && booking.status !== "cancelled");
+  const upcomingJobs = bookings
+    .filter((booking) => ["accepted", "in_progress", "pending"].includes(booking.status))
+    .filter((booking) => {
+      const scheduled = bookingScheduleDate(booking);
+      return !scheduled || scheduled.getTime() >= new Date().setHours(0, 0, 0, 0);
+    })
+    .sort((first, second) => bookingSortTime(first) - bookingSortTime(second));
+  const nextJob = upcomingJobs[0] || null;
+  const scheduledJobs = upcomingJobs.filter((booking) => ["accepted", "in_progress"].includes(booking.status));
+  const todayCompletedEarnings = todaysJobs
+    .filter((booking) => booking.status === "completed")
+    .reduce(
+      (total, booking) => total + Number(booking.vendorEarnings ?? (booking.totalAmount || 0) * 0.85),
+      0,
+    );
+  const selectTab = (tab) => navigate(`/caregiver?tab=${tab}`);
 
   // Change password
   const handleChangePassword = async (e) => {
@@ -376,9 +414,10 @@ export default function CaregiverDashboardPage() {
 
   if (loading) {
     return (
-      <p style={{ color: "var(--theme-text-muted)", textAlign: "center", padding: 20 }}>
-        Loading dashboard...
-      </p>
+      <main style={{ padding: 20 }} aria-busy="true" aria-label="Loading caregiver dashboard">
+        <SkeletonCard />
+        <SkeletonCard />
+      </main>
     );
   }
 
@@ -392,7 +431,7 @@ export default function CaregiverDashboardPage() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h2 className="section-title">Caregiver Dashboard</h2>
+      <h2 className="section-title">Good day, {userDoc?.name || profileData?.name || "Caregiver"}</h2>
       <p
         style={{
           fontSize: 13,
@@ -423,30 +462,135 @@ export default function CaregiverDashboardPage() {
 
       {error && <div className="error-message">{error}</div>}
 
+      <section className="caregiver-day-overview" aria-label="Today's work overview">
+        <div><span>Today's jobs</span><strong>{todaysJobs.length}</strong></div>
+        <div><span>Pending requests</span><strong>{bookings.filter((booking) => booking.status === "pending").length}</strong></div>
+        <div><span>Completed jobs</span><strong>{earnings.completed}</strong></div>
+        <div className="caregiver-day-overview__next"><span>Next job</span><strong>{nextJob ? `${nextJob.userName || "Customer"} · ${nextJob.date || "Schedule pending"}` : "No upcoming job"}</strong></div>
+      </section>
+
       {/* Tabs */}
       <div className="choice-buttons" style={{ marginBottom: 24 }}>
         <button
           type="button"
+          style={getTabStyle("home")}
+          onClick={() => selectTab("home")}
+        >
+          Home
+        </button>
+        <button
+          type="button"
           style={getTabStyle("jobs")}
-          onClick={() => setActiveTab("jobs")}
+          onClick={() => selectTab("jobs")}
         >
           Jobs ({bookings.length})
         </button>
         <button
           type="button"
+          style={getTabStyle("schedule")}
+          onClick={() => selectTab("schedule")}
+        >
+          Schedule
+        </button>
+        <button
+          type="button"
           style={getTabStyle("profile")}
-          onClick={() => setActiveTab("profile")}
+          onClick={() => selectTab("profile")}
         >
           My Profile
         </button>
         <button
           type="button"
           style={getTabStyle("earnings")}
-          onClick={() => setActiveTab("earnings")}
+          onClick={() => selectTab("earnings")}
         >
           Earnings
         </button>
       </div>
+
+      {/* HOME TAB */}
+      {activeTab === "home" && (
+        <div>
+          <section className="card" style={{ marginBottom: 16 }} aria-labelledby="caregiver-home-today">
+            <p style={{ color: "var(--theme-text-muted)", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", margin: "0 0 6px" }}>
+              TODAY
+            </p>
+            <h3 id="caregiver-home-today" style={{ color: "var(--theme-text)", margin: "0 0 16px" }}>
+              Your work at a glance
+            </h3>
+            <div className="caregiver-day-overview" style={{ marginBottom: 0 }}>
+              <div>
+                <span>Today&apos;s earnings</span>
+                <strong>{formatNpr(todayCompletedEarnings, "NPR 0")}</strong>
+              </div>
+              <div>
+                <span>Today&apos;s jobs</span>
+                <strong>{todaysJobs.length}</strong>
+              </div>
+              <div>
+                <span>New requests</span>
+                <strong>{bookings.filter((booking) => booking.status === "pending").length}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section className="card" style={{ marginBottom: 16 }} aria-labelledby="caregiver-next-job">
+            <p style={{ color: "var(--theme-text-muted)", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", margin: "0 0 6px" }}>
+              NEXT JOB
+            </p>
+            <h3 id="caregiver-next-job" style={{ color: "var(--theme-text)", margin: "0 0 8px" }}>
+              {nextJob?.userName || "No upcoming care scheduled"}
+            </h3>
+            {nextJob ? (
+              <>
+                <p style={{ color: "var(--theme-text-muted)", fontSize: 13, margin: "0 0 4px" }}>
+                  {nextJob.serviceLabel || "Care support"} · {[nextJob.date, nextJob.time].filter(Boolean).join(" at ") || "Schedule to be confirmed"}
+                </p>
+                {nextJob.address ? (
+                  <p style={{ color: "var(--theme-text-muted)", fontSize: 13, margin: "0 0 14px" }}>
+                    Location: {nextJob.address}
+                  </p>
+                ) : null}
+                <button type="button" className="btn btn-primary" onClick={() => selectTab("jobs")}>
+                  View job
+                </button>
+              </>
+            ) : (
+              <p style={{ color: "var(--theme-text-muted)", fontSize: 13, margin: 0 }}>
+                Keep your availability current so families can find you when you are ready for work.
+              </p>
+            )}
+          </section>
+
+          <section className="card" aria-labelledby="caregiver-home-schedule">
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <div>
+                <p style={{ color: "var(--theme-text-muted)", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", margin: "0 0 6px" }}>
+                  UPCOMING
+                </p>
+                <h3 id="caregiver-home-schedule" style={{ color: "var(--theme-text)", margin: 0 }}>Your schedule</h3>
+              </div>
+              <button type="button" className="btn btn-outline" onClick={() => selectTab("schedule")}>View schedule</button>
+            </div>
+            {scheduledJobs.length ? (
+              <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+                {scheduledJobs.slice(0, 3).map((booking) => (
+                  <div key={booking.id} style={{ borderTop: "1px solid var(--theme-border)", paddingTop: 10 }}>
+                    <strong style={{ color: "var(--theme-text)", fontSize: 14 }}>{booking.userName || "Customer"}</strong>
+                    <p style={{ color: "var(--theme-text-muted)", fontSize: 12, margin: "4px 0 0" }}>
+                      {[booking.date, booking.time].filter(Boolean).join(" · ") || "Schedule to be confirmed"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: "var(--theme-text-muted)", fontSize: 13, margin: "14px 0 0" }}>
+                No accepted care is scheduled yet.
+              </p>
+            )}
+          </section>
+        </div>
+      )}
 
       {/* JOBS TAB */}
       {activeTab === "jobs" && (
@@ -501,7 +645,7 @@ export default function CaregiverDashboardPage() {
                 >
                   <div>
                     <strong
-                      style={{ color: "var(--theme-button-text)", fontSize: 14 }}
+                      style={{ color: "var(--theme-text)", fontSize: 14 }}
                     >
                       {b.userName || "User"}
                     </strong>
@@ -603,7 +747,22 @@ export default function CaregiverDashboardPage() {
                     {b.address || "Not specified"}
                   </p>
 
-                  {/* Notes */}
+                  {/* Customer requirements are collected in the booking flow and
+                      need to be visible before a caregiver accepts. */}
+                  {b.careNeeds && (
+                    <p
+                      style={{
+                        fontSize: 13,
+                        color: "var(--theme-text)",
+                        marginTop: 10,
+                        borderLeft: "3px solid var(--theme-help)",
+                        paddingLeft: 10,
+                      }}
+                    >
+                      <strong>Care needed:</strong> {b.careNeeds}
+                    </p>
+                  )}
+
                   {b.notes && (
                     <p
                       style={{
@@ -639,7 +798,7 @@ export default function CaregiverDashboardPage() {
                     }}
                   >
                     <strong>Total Amount:</strong>{" "}
-                    {b.totalAmount || 0}
+                    {formatNpr(b.totalAmount, "NPR 0")}
                   </p>
                   <p
                     style={{
@@ -649,10 +808,10 @@ export default function CaregiverDashboardPage() {
                     }}
                   >
                     <strong>Your Earnings:</strong>{" "}
-                    {Math.round(
+                    {formatNpr(Math.round(
                       b.vendorEarnings ??
                         (b.totalAmount || 0) * 0.85
-                    )}
+                    ), "NPR 0")}
                   </p>
                   <p
                     style={{
@@ -662,10 +821,10 @@ export default function CaregiverDashboardPage() {
                     }}
                   >
                     Platform fee (approx):{" "}
-                    {Math.round(
+                    {formatNpr(Math.round(
                       b.platformCommission ??
                         (b.totalAmount || 0) * 0.15
-                    )}{" "}
+                    ), "NPR 0")}{" "}
                     ({COMMISSION_RATE}%)
                   </p>
                   <p
@@ -734,31 +893,16 @@ export default function CaregiverDashboardPage() {
                   )}
 
                   {b.status === "accepted" && (
-                    <>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() =>
-                          updateStatus(b.id, "completed")
-                        }
-                        style={{ flex: 1 }}
-                      >
-                        Mark Complete
-                      </button>
-                      <button
-                        className="btn btn-outline"
-                        onClick={() =>
-                          updateStatus(b.id, "cancelled")
-                        }
-                        style={{
-                          flex: 1,
-                          background: "var(--theme-danger)",
-                          color: "var(--theme-button-text)",
-                          borderColor: "var(--theme-danger)",
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </>
+                    <div style={{ display: "grid", gap: 8, flex: 1 }}>
+                      <CaregiverShiftWorkflow booking={b} caregiverId={user?.uid} />
+                      <p style={{ color: "var(--theme-text-muted)", fontSize: 12, lineHeight: 1.45, margin: 0 }}>
+                        Accepted care cannot be cancelled here. Report an issue if the booking needs Sewak&apos;s review.
+                      </p>
+                    </div>
+                  )}
+
+                  {b.status === "in_progress" && (
+                    <CaregiverShiftWorkflow booking={b} caregiverId={user?.uid} />
                   )}
 
                   {b.status === "completed" && (
@@ -818,6 +962,54 @@ export default function CaregiverDashboardPage() {
         </div>
       )}
 
+      {/* SCHEDULE TAB */}
+      {activeTab === "schedule" && (
+        <div>
+          <section className="card" style={{ marginBottom: 16 }} aria-labelledby="caregiver-schedule-heading">
+            <p style={{ color: "var(--theme-text-muted)", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", margin: "0 0 6px" }}>
+              ACCEPTED CARE
+            </p>
+            <h3 id="caregiver-schedule-heading" style={{ color: "var(--theme-text)", margin: "0 0 6px" }}>
+              Upcoming schedule
+            </h3>
+            <p style={{ color: "var(--theme-text-muted)", fontSize: 13, margin: 0 }}>
+              Only accepted or in-progress bookings appear here. New requests stay in Jobs until you accept them.
+            </p>
+          </section>
+
+          {scheduledJobs.length === 0 ? (
+            <div className="empty-state">
+              <p className="empty-state-title">No scheduled care yet</p>
+              <p className="empty-state-text">When you accept a booking, its date and time will appear here.</p>
+              <button type="button" className="btn btn-primary" onClick={() => selectTab("jobs")}>View job requests</button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {scheduledJobs.map((booking) => (
+                <article key={booking.id} className="card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+                    <div>
+                      <p style={{ color: "var(--theme-text-muted)", fontSize: 12, fontWeight: 700, margin: "0 0 4px" }}>
+                        {[booking.date, booking.time].filter(Boolean).join(" · ") || "Schedule to be confirmed"}
+                      </p>
+                      <h3 style={{ color: "var(--theme-text)", fontSize: 17, margin: "0 0 4px" }}>{booking.userName || "Customer"}</h3>
+                      <p style={{ color: "var(--theme-text-muted)", fontSize: 13, margin: 0 }}>
+                        {booking.serviceLabel || "Care support"}{booking.durationHours ? ` · ${booking.durationHours} hour${booking.durationHours === 1 ? "" : "s"}` : ""}
+                      </p>
+                    </div>
+                    <span style={{ background: booking.status === "in_progress" ? "var(--theme-positive-soft)" : "var(--theme-help-soft)", color: booking.status === "in_progress" ? "var(--theme-positive)" : "var(--theme-help)", borderRadius: 999, fontSize: 12, fontWeight: 700, padding: "5px 9px" }}>
+                      {booking.status === "in_progress" ? "Care in progress" : "Accepted"}
+                    </span>
+                  </div>
+                  {booking.address ? <p style={{ color: "var(--theme-text-muted)", fontSize: 13, margin: "12px 0 0" }}>Location: {booking.address}</p> : null}
+                  <button type="button" className="btn btn-outline" style={{ marginTop: 14 }} onClick={() => selectTab("jobs")}>Open job</button>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* PROFILE TAB */}
       {activeTab === "profile" && (
         <div className="profile-section">
@@ -862,7 +1054,7 @@ export default function CaregiverDashboardPage() {
             <div style={{ marginBottom: 16 }}>
               <label
                 style={{
-                  color: "var(--theme-button-text)",
+                  color: "var(--theme-text)",
                   fontWeight: 600,
                   fontSize: 13,
                 }}
@@ -1044,6 +1236,9 @@ export default function CaregiverDashboardPage() {
 
             {/* Services */}
             <label>Services You Offer</label>
+            <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--theme-text-muted)" }}>
+              Services are managed by your organization so care assignments remain verified.
+            </p>
             <div
               style={{
                 display: "flex",
@@ -1052,52 +1247,30 @@ export default function CaregiverDashboardPage() {
                 marginBottom: 12,
               }}
             >
-              {services.length === 0 && (
+              {editServices.length === 0 && (
                 <p style={{ fontSize: 12, color: "var(--theme-text-muted)" }}>
-                  No services available.
+                  No services are assigned yet.
                 </p>
               )}
-              {services
-                .filter((s) => {
-                  if (editCategory === "both") {
-                    return (
-                      s.organizationId === userDoc?.organizationId ||
-                      !s.organizationId
-                    );
-                  }
-                  return (
-                    (s.organizationId ===
-                      userDoc?.organizationId ||
-                      !s.organizationId) &&
-                    (s.category === editCategory ||
-                      s.category === "both")
-                  );
-                })
-                .map((service) => (
-                  <button
-                    key={service.id}
-                    type="button"
-                    onClick={() => toggleService(service.id)}
+              {editServices.map((serviceId) => {
+                const service = services.find((item) => item.id === serviceId);
+                return (
+                  <span
+                    key={serviceId}
                     style={{
                       padding: "6px 12px",
                       borderRadius: 6,
-                      border: editServices.includes(service.id)
-                        ? "none"
-                        : "1px solid var(--theme-text)",
-                      background: editServices.includes(service.id)
-                        ? "var(--theme-positive)"
-                        : "var(--theme-surface)",
-                      color: editServices.includes(service.id)
-                        ? "var(--theme-button-text)"
-                        : "var(--theme-text)",
-                      cursor: "pointer",
+                      border: "1px solid var(--theme-positive)",
+                      background: "var(--theme-positive-soft)",
+                      color: "var(--theme-positive)",
                       fontSize: 12,
                       fontWeight: 600,
                     }}
                   >
-                    {service.label}
-                  </button>
-                ))}
+                    {service?.label || serviceId}
+                  </span>
+                );
+              })}
             </div>
 
             <label>Hourly Rate</label>
@@ -1391,7 +1564,7 @@ export default function CaregiverDashboardPage() {
           >
             <h3
               style={{
-                color: "var(--theme-button-text)",
+                color: "var(--theme-text)",
                 marginTop: 0,
                 marginBottom: 16,
               }}
@@ -1515,7 +1688,7 @@ export default function CaregiverDashboardPage() {
 
           <h4
             style={{
-              color: "var(--theme-button-text)",
+              color: "var(--theme-text)",
               marginBottom: 12,
             }}
           >
@@ -1550,7 +1723,7 @@ export default function CaregiverDashboardPage() {
                           style={{
                             margin: 0,
                             fontSize: 13,
-                            color: "var(--theme-button-text)",
+                            color: "var(--theme-text)",
                           }}
                         >
                           <strong>{b.userName}</strong>

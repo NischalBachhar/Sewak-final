@@ -3,6 +3,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
+import { SkeletonCard } from "./components/CareExperience";
 
 export default function OrganizationProfilePage() {
   const { user, userDoc, refreshUserDoc } = useAuth();
@@ -88,19 +89,16 @@ export default function OrganizationProfilePage() {
     }
   };
 
-  if (loading)
-    return (
-      <p style={{ color: "var(--theme-text-muted)", textAlign: "center", padding: 20 }}>
-        Loading profile...
-      </p>
-    );
+  if (loading) {
+    return <SkeletonCard variant="dashboard" label="Loading organization profile" />;
+  }
 
 
   return (
     <div className="app-shell">
       <div className="app-card" style={{ maxWidth: 700 }}>
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ color: "var(--theme-button-text)", fontSize: 24, marginBottom: 8 }}>
+          <h1 style={{ color: "var(--theme-text)", fontSize: 24, marginBottom: 8 }}>
             Organization Profile
           </h1>
           <p style={{ fontSize: 13, color: "var(--theme-text-muted)", margin: 0 }}>
@@ -213,7 +211,7 @@ export default function OrganizationProfilePage() {
             borderRadius: 8,
           }}
         >
-          <h4 style={{ color: "var(--theme-button-text)", marginTop: 0, marginBottom: 12 }}>
+          <h4 style={{ color: "var(--theme-text)", marginTop: 0, marginBottom: 12 }}>
             Profile Completion
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

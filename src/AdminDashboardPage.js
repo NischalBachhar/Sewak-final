@@ -14,14 +14,18 @@ import {
   addDoc,
 } from "firebase/firestore";
 import {
-  createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
 } from "firebase/auth";
-import { db, auth } from "./firebaseConfig";
-import { saveOrganizationRecord } from "./saveOrganizationRecord";
+import { httpsCallable } from "firebase/functions";
+import { db, auth, functions } from "./firebaseConfig";
+import { normalizeBooking } from "./bookingModel";
+import { formatNpr } from "./config/brand";
+import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
 
 const dashboardTabs = [
+  "overview",
   "organizations",
   "caregivers",
   "bookings",
@@ -30,6 +34,83 @@ const dashboardTabs = [
   "admins",
   "analytics",
 ];
+
+const caregiverVerificationFields = [
+  {
+    key: "identity",
+    label: "Identity",
+    statusKey: "identityVerificationStatus",
+    fallbackBooleanKey: "verified",
+  },
+  {
+    key: "phone",
+    label: "Phone",
+    statusKey: "phoneVerificationStatus",
+  },
+  {
+    key: "training",
+    label: "Training",
+    statusKey: "trainingVerificationStatus",
+    fallbackBooleanKey: "isCertified",
+  },
+  {
+    key: "background",
+    label: "Background",
+    statusKey: "backgroundVerificationStatus",
+    fallbackBooleanKey: "backgroundChecked",
+  },
+  {
+    key: "references",
+    label: "References",
+    statusKey: "referencesVerificationStatus",
+  },
+];
+
+function getCaregiverVerificationItems(caregiver) {
+  return caregiverVerificationFields.map((field) => {
+    const status = caregiver[field.statusKey];
+    const fallback = field.fallbackBooleanKey
+      ? caregiver[field.fallbackBooleanKey]
+      : undefined;
+
+    return {
+      key: field.key,
+      label: field.label,
+      state:
+        status !== undefined && status !== null && status !== ""
+          ? status
+          : typeof fallback === "boolean"
+            ? fallback
+            : undefined,
+    };
+  });
+}
+
+function DashboardLoadingState({ label, cards = 3 }) {
+  return (
+    <section aria-busy="true" aria-live="polite" style={{ padding: "8px 0" }}>
+      <p style={{ color: "var(--theme-text-muted)", margin: "0 0 14px" }}>
+        {label}
+      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: "16px",
+        }}
+      >
+        {Array.from({ length: cards }, (_, index) => (
+          <SkeletonCard
+            key={index}
+            variant="dashboard"
+            lines={3}
+            label={label}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function AdminDashboardPage() {
   // ============ AUTH STATE ============
@@ -40,7 +121,7 @@ export default function AdminDashboardPage() {
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   // ============ UI STATE ============
-  const [activeTab, setActiveTab] = useState("organizations");
+  const [activeTab, setActiveTab] = useState("overview");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -50,16 +131,15 @@ export default function AdminDashboardPage() {
   const [orgStatusFilter, setOrgStatusFilter] = useState("all");
   const [searchOrg, setSearchOrg] = useState("");
   const [selectedOrg, setSelectedOrg] = useState(null);
+  const [organizationApplications, setOrganizationApplications] = useState([]);
 
   const [showAddOrgForm, setShowAddOrgForm] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
   const [newOrgAdminName, setNewOrgAdminName] = useState("");
   const [newOrgEmail, setNewOrgEmail] = useState("");
-  const [newOrgPassword, setNewOrgPassword] = useState("");
   const [newOrgPhone, setNewOrgPhone] = useState("");
   const [newOrgAddress, setNewOrgAddress] = useState("");
   const [newOrgCity, setNewOrgCity] = useState("");
-  const [newOrgCommission, setNewOrgCommission] = useState(15);
   const [addingOrg, setAddingOrg] = useState(false);
 
   const [editingOrg, setEditingOrg] = useState(null);
@@ -73,7 +153,6 @@ export default function AdminDashboardPage() {
   const [showEditOrgModal, setShowEditOrgModal] = useState(false);
   const [showOrgPasswordModal, setShowOrgPasswordModal] = useState(false);
   const [orgPasswordOrg, setOrgPasswordOrg] = useState(null);
-  const [orgNewPassword, setOrgNewPassword] = useState("");
 
   // ============ CAREGIVERS ============
   const [vendors, setVendors] = useState([]);
@@ -85,7 +164,6 @@ export default function AdminDashboardPage() {
   const [showCaregiverPasswordModal, setShowCaregiverPasswordModal] =
     useState(false);
   const [caregiverPasswordUser, setCaregiverPasswordUser] = useState(null);
-  const [caregiverNewPassword, setCaregiverNewPassword] = useState("");
 
   const [showCaregiverBlacklistModal, setShowCaregiverBlacklistModal] =
     useState(false);
@@ -97,8 +175,8 @@ export default function AdminDashboardPage() {
   const [showAddSuperAdminForm, setShowAddSuperAdminForm] = useState(false);
   const [newSuperAdminName, setNewSuperAdminName] = useState("");
   const [newSuperAdminEmail, setNewSuperAdminEmail] = useState("");
-  const [newSuperAdminPassword, setNewSuperAdminPassword] = useState("");
   const [addingSuperAdmin, setAddingSuperAdmin] = useState(false);
+  const [provisioningInvitation, setProvisioningInvitation] = useState("");
 
   // ============ BOOKINGS ============
   const [bookings, setBookings] = useState([]);
@@ -145,7 +223,7 @@ export default function AdminDashboardPage() {
     const lastSegment = parts[parts.length - 1];
     const newTab = dashboardTabs.includes(lastSegment)
       ? lastSegment
-      : "organizations";
+      : "overview";
 
     if (newTab !== activeTab) {
       setActiveTab(newTab);
@@ -205,6 +283,20 @@ export default function AdminDashboardPage() {
         setLoadingOrganizations(false);
       }
 
+      // Pending public partner applications are deliberately separate from
+      // organization accounts until a super-admin issues the org claim.
+      try {
+        const applicationSnap = await getDocs(
+          collection(db, "organizationApplications"),
+        );
+        setOrganizationApplications(
+          applicationSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+        );
+      } catch (err) {
+        console.error("Error loading organization applications:", err);
+        setError("Failed to load organization applications");
+      }
+
       // Vendors
       setLoadingVendors(true);
       try {
@@ -225,10 +317,9 @@ export default function AdminDashboardPage() {
       setLoadingBookings(true);
       try {
         const bookingSnap = await getDocs(collection(db, "bookings"));
-        const bookingsData = bookingSnap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
+        const bookingsData = bookingSnap.docs.map((d) =>
+          normalizeBooking({ id: d.id, ...d.data() }),
+        );
         setBookings(bookingsData);
       } catch (err) {
         console.error("Error loading bookings:", err);
@@ -361,56 +452,6 @@ export default function AdminDashboardPage() {
     };
   }, [loadAllData]);
 
-  // ============ CREATE FIRST SUPERADMIN (OPTIONAL) ============
-  const createFirstSuperAdminIfNeeded = async () => {
-    try {
-      const usersSnap = await getDocs(collection(db, "users"));
-      const allUsers = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const superAdminList = allUsers.filter((u) => u.role === "superadmin");
-
-      if (superAdminList.length === 0) {
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          "admin@gharsathi.com",
-          "admin123",
-        );
-        const uid = userCredential.user.uid;
-
-        const userData = {
-          uid,
-          name: "Super Admin",
-          email: "admin@gharsathi.com",
-          role: "superadmin",
-          createdAt: new Date().toISOString(),
-          isApproved: true,
-          isSuspended: false,
-          profileComplete: true,
-          permissions: [
-            "read",
-            "write",
-            "delete",
-            "approve_vendors",
-            "manage_admins",
-          ],
-        };
-
-        await setDoc(doc(db, "users", uid), userData);
-
-        setSuccessMessage(
-          "First superadmin account created! Please log in with admin@gharsathi.com / admin123",
-        );
-        setTimeout(() => setSuccessMessage(""), 10000);
-      } else {
-        setError(
-          "Superadmin accounts exist. Please log in with a superadmin account.",
-        );
-      }
-    } catch (error) {
-      console.error("Error creating first superadmin:", error);
-      setError("Failed to initialize superadmin: " + error.message);
-    }
-  };
-
   // ============ HANDLERS: ORGANIZATIONS ============
   const handleOrgClick = async (org) => {
     setSelectedOrg(org);
@@ -431,60 +472,30 @@ export default function AdminDashboardPage() {
   const handleCreateOrganization = async (e) => {
     e.preventDefault();
     setError("");
+    setProvisioningInvitation("");
     setAddingOrg(true);
 
     try {
-      const orgCred = await createUserWithEmailAndPassword(
-        auth,
-        newOrgEmail,
-        newOrgPassword,
-      );
-      const orgUid = orgCred.user.uid;
-
-      const userData = {
-        uid: orgUid,
-        name: newOrgAdminName,
+      const provision = httpsCallable(functions, "provisionOrganizationAccount");
+      const result = await provision({
         email: newOrgEmail,
-        role: "orgadmin",
+        displayName: newOrgAdminName,
         organizationName: newOrgName,
-        organizationId: orgUid,
-        businessPhone: newOrgPhone,
-        businessAddress: newOrgAddress,
-        businessCity: newOrgCity,
-        createdAt: new Date().toISOString(),
-        isApproved: true,
-        isSuspended: false,
-        profileComplete: true,
-        createdBy: currentUser?.email || "system",
-      };
-      await setDoc(doc(db, "users", orgUid), userData);
-
-      await saveOrganizationRecord({
-        orgUid,
-        organizationName: newOrgName,
-        adminName: newOrgAdminName,
-        adminEmail: newOrgEmail,
         businessPhone: newOrgPhone,
         businessAddress: newOrgAddress,
         businessCity: newOrgCity,
       });
-
-      await updateDoc(doc(db, "organizations", orgUid), {
-        commissionRate: Number(newOrgCommission) || 15,
-        isApproved: true,
-        verified: true,
-        createdBy: currentUser?.email || "system",
-      });
-
-      setSuccessMessage("Organization created successfully!");
+      const invitation = result.data?.invitation?.passwordResetLink || "";
+      setProvisioningInvitation(invitation);
+      setSuccessMessage(invitation
+        ? "Organization account provisioned. Send the one-time invitation link using an approved secure channel."
+        : "Organization account provisioned. Configure Firebase Auth email delivery before inviting this administrator.");
       setNewOrgName("");
       setNewOrgAdminName("");
       setNewOrgEmail("");
-      setNewOrgPassword("");
       setNewOrgPhone("");
       setNewOrgAddress("");
       setNewOrgCity("");
-      setNewOrgCommission(15);
       setShowAddOrgForm(false);
 
       await loadAllData();
@@ -521,13 +532,12 @@ export default function AdminDashboardPage() {
       await updateDoc(doc(db, "organizations", editingOrg.id), {
         organizationName: editOrgName,
         adminName: editOrgAdminName,
-        email: editOrgEmail,
+        adminEmail: editOrgEmail,
         businessPhone: editOrgPhone,
         businessAddress: editOrgAddress,
         businessCity: editOrgCity,
         commissionRate: Number(editOrgCommission) || 15,
         updatedAt: serverTimestamp(),
-        updatedBy: currentUser?.email || "system",
       });
 
       try {
@@ -539,7 +549,6 @@ export default function AdminDashboardPage() {
           businessAddress: editOrgAddress,
           businessCity: editOrgCity,
           updatedAt: serverTimestamp(),
-          updatedBy: currentUser?.email || "system",
         });
       } catch (userErr) {
         console.warn(
@@ -558,35 +567,17 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleOpenOrgPasswordModal = (org) => {
-    setOrgPasswordOrg(org);
-    setOrgNewPassword("");
-    setShowOrgPasswordModal(true);
-  };
-
-  const handleSubmitOrgPasswordChange = async (e) => {
-    e.preventDefault();
-    if (!orgPasswordOrg || !orgPasswordOrg.email || !orgNewPassword) return;
-
+  const handleOpenOrgPasswordModal = async (org) => {
+    const recipientEmail = org?.adminEmail || org?.email;
+    if (!recipientEmail) {
+      setError("This organization does not have an email address for a password reset.");
+      return;
+    }
     try {
-      await addDoc(collection(db, "adminPasswordResets"), {
-        targetEmail: orgPasswordOrg.email,
-        targetUserId: orgPasswordOrg.id,
-        newPassword: orgNewPassword,
-        createdAt: serverTimestamp(),
-        requestedBy: currentUser?.email || "superadmin",
-        role: "orgadmin",
-      });
-
-      setSuccessMessage(
-        "Password reset request created. Backend admin function must apply the change.",
-      );
-      setShowOrgPasswordModal(false);
-      setOrgPasswordOrg(null);
-      setOrgNewPassword("");
-    } catch (err) {
-      console.error("Error creating password reset request:", err);
-      setError("Failed to create password reset request: " + err.message);
+      await sendPasswordResetEmail(auth, recipientEmail);
+      setSuccessMessage(`A password reset email was sent to ${recipientEmail}. No password was collected or stored by Sewak.`);
+    } catch (resetError) {
+      setError(`Could not send a password reset email: ${resetError.message}`);
     }
   };
 
@@ -596,59 +587,53 @@ export default function AdminDashboardPage() {
     setShowOrgBlacklistModal(true);
   };
 
+  const runAccountSafetyAction = async (payload) => {
+    const applySafetyAction = httpsCallable(
+      functions,
+      "applyAccountSafetyAction",
+    );
+    const response = await applySafetyAction(payload);
+    const result = response?.data || {};
+
+    if (result.authRevocationStatus === "partial") {
+      setError(
+        "Safety restrictions were saved, but Firebase Authentication revocation could not be completed. Retry this action before treating account access as revoked.",
+      );
+      return { complete: false, result };
+    }
+
+    if (result.caregiverCascadeStatus === "partial") {
+      setError(
+        "The organization is blocked from bookings and active care, but some caregiver safety records still need a retry. Re-run this action before treating the staff cascade as complete.",
+      );
+      return { complete: false, result };
+    }
+
+    return { complete: true, result };
+  };
+
   const handleSubmitOrgBlacklist = async (e) => {
     e.preventDefault();
     if (!orgBlacklistOrg) return;
 
     try {
-      const org = orgBlacklistOrg;
-
-      await updateDoc(doc(db, "organizations", org.id), {
-        isBlacklisted: true,
-        blacklistedAt: serverTimestamp(),
-        blacklistedBy: currentUser?.email || "superadmin",
-        blacklistReason: orgBlacklistReason || "Blacklisted by superadmin",
+      const outcome = await runAccountSafetyAction({
+        targetType: "organization",
+        targetId: orgBlacklistOrg.id,
+        reason:
+          orgBlacklistReason.trim() ||
+          "Organization suspended and blacklisted by Sewak operations.",
       });
 
-      await addDoc(collection(db, "blacklist"), {
-        userId: org.id,
-        userType: "organization",
-        reason: orgBlacklistReason || "Blacklisted by superadmin",
-        addedAt: serverTimestamp(),
-        approvedBy: currentUser?.email || "superadmin",
-      });
-
-      const q = query(
-        collection(db, "vendors"),
-        where("organizationId", "==", org.id),
-      );
-      const snap = await getDocs(q);
-
-      for (const d of snap.docs) {
-        const caregiverId = d.id;
-
-        await updateDoc(doc(db, "vendors", caregiverId), {
-          isBlacklisted: true,
-          blacklistedAt: serverTimestamp(),
-          blacklistedBy: currentUser?.email || "superadmin",
-          blacklistReason:
-            orgBlacklistReason ||
-            `Organization ${org.organizationName} blacklisted`,
-        });
-
-        await addDoc(collection(db, "blacklist"), {
-          userId: caregiverId,
-          userType: "caregiver",
-          reason:
-            orgBlacklistReason ||
-            `Organization ${org.organizationName} blacklisted`,
-          addedAt: serverTimestamp(),
-          approvedBy: currentUser?.email || "superadmin",
-        });
+      if (!outcome.complete) {
+        await loadAllData();
+        return;
       }
 
       setSuccessMessage(
-        "Organization and all its caregivers have been blacklisted.",
+        outcome.result.caregiverAuthRevocationDeferred
+          ? "Organization safety action applied. Its admin account is revoked, caregiver work access is blocked, and staff credential revocation is continuing securely in the background."
+          : "Organization safety action applied. Its admin account is revoked and caregiver work access is blocked.",
       );
       setShowOrgBlacklistModal(false);
       setOrgBlacklistOrg(null);
@@ -662,13 +647,9 @@ export default function AdminDashboardPage() {
 
   const handleApproveOrganization = async (orgId) => {
     try {
-      await updateDoc(doc(db, "organizations", orgId), {
-        isApproved: true,
-        verified: true,
-        approvedAt: serverTimestamp(),
-        approvedBy: currentUser?.email || "superadmin",
-      });
-      setSuccessMessage("Organization approved!");
+      const approveOrganization = httpsCallable(functions, "approveOrganizationAccount");
+      await approveOrganization({ organizationId: orgId });
+      setSuccessMessage("Organization approved and its secure organization-admin claim was updated.");
       await loadAllData();
     } catch (err) {
       console.error("Error approving organization:", err);
@@ -676,18 +657,41 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleApproveOrganizationApplication = async (applicationId) => {
+    try {
+      const approveApplication = httpsCallable(
+        functions,
+        "approveOrganizationApplication",
+      );
+      await approveApplication({ applicationId });
+      setSuccessMessage(
+        "Organization application approved and secure organization access was issued.",
+      );
+      await loadAllData();
+    } catch (err) {
+      console.error("Error approving organization application:", err);
+      setError("Failed to approve organization application: " + err.message);
+    }
+  };
+
   const handleRejectOrganization = async (orgId) => {
     const reason = window.prompt("Enter rejection reason");
     if (!reason) return;
     try {
-      await updateDoc(doc(db, "organizations", orgId), {
-        isApproved: false,
-        verified: false,
-        rejectionReason: reason,
-        rejectedAt: serverTimestamp(),
-        rejectedBy: currentUser?.email || "superadmin",
+      const outcome = await runAccountSafetyAction({
+        targetType: "organization",
+        targetId: orgId,
+        reason,
       });
-      setSuccessMessage("Organization rejected!");
+      if (!outcome.complete) {
+        await loadAllData();
+        return;
+      }
+      setSuccessMessage(
+        outcome.result.caregiverAuthRevocationDeferred
+          ? "Organization rejected. Its admin account is revoked, caregiver work access is blocked, and staff credential revocation is continuing securely in the background."
+          : "Organization rejected. Its admin account is revoked and caregiver work access is blocked.",
+      );
       await loadAllData();
     } catch (err) {
       console.error("Error rejecting organization:", err);
@@ -735,27 +739,16 @@ export default function AdminDashboardPage() {
     if (!reason) return;
 
     try {
-      const now = serverTimestamp();
-      await updateDoc(doc(db, "vendors", caregiverId), {
-        isApproved: false,
-        rejectionReason: reason,
-        rejectedAt: now,
-        rejectedBy: currentUser?.email || "superadmin",
+      const outcome = await runAccountSafetyAction({
+        targetType: "caregiver",
+        targetId: caregiverId,
+        reason,
       });
-      setVendors((prev) =>
-        prev.map((vendor) =>
-          vendor.id === caregiverId
-            ? {
-                ...vendor,
-                isApproved: false,
-                rejectionReason: reason,
-                rejectedAt: now,
-                rejectedBy: currentUser?.email || "superadmin",
-              }
-            : vendor,
-        ),
-      );
-      setSuccessMessage("Caregiver rejected!");
+      if (!outcome.complete) {
+        await loadAllData();
+        return;
+      }
+      setSuccessMessage("Caregiver rejected and account access revoked.");
       if (selectedOrg) await handleOrgClick(selectedOrg);
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
@@ -770,41 +763,16 @@ export default function AdminDashboardPage() {
     // You can extend this to open a dedicated edit modal if needed.
   };
 
-  const handleOpenCaregiverPasswordModal = (caregiver) => {
-    setCaregiverPasswordUser(caregiver);
-    setCaregiverNewPassword("");
-    setShowCaregiverPasswordModal(true);
-  };
-
-  const handleSubmitCaregiverPasswordChange = async (e) => {
-    e.preventDefault();
-    if (
-      !caregiverPasswordUser?.id ||
-      !caregiverPasswordUser?.email ||
-      !caregiverNewPassword
-    ) {
+  const handleOpenCaregiverPasswordModal = async (caregiver) => {
+    if (!caregiver?.email) {
+      setError("This caregiver does not have an email address for a password reset.");
       return;
     }
-
     try {
-      await addDoc(collection(db, "adminPasswordResets"), {
-        targetEmail: caregiverPasswordUser.email,
-        targetUserId: caregiverPasswordUser.id,
-        newPassword: caregiverNewPassword,
-        createdAt: serverTimestamp(),
-        requestedBy: currentUser?.email || "superadmin",
-        role: "caregiver",
-      });
-
-      setSuccessMessage(
-        "Caregiver password reset request created. Backend must apply the change.",
-      );
-      setShowCaregiverPasswordModal(false);
-      setCaregiverPasswordUser(null);
-      setCaregiverNewPassword("");
-    } catch (err) {
-      console.error("Error creating caregiver password reset:", err);
-      setError("Failed to create caregiver password reset: " + err.message);
+      await sendPasswordResetEmail(auth, caregiver.email);
+      setSuccessMessage(`A password reset email was sent to ${caregiver.email}. No password was collected or stored by Sewak.`);
+    } catch (resetError) {
+      setError(`Could not send a password reset email: ${resetError.message}`);
     }
   };
 
@@ -819,25 +787,20 @@ export default function AdminDashboardPage() {
     if (!caregiverBlacklistUser?.id) return;
 
     try {
-      const user = caregiverBlacklistUser;
-
-      await updateDoc(doc(db, "vendors", user.id), {
-        isBlacklisted: true,
-        blacklistedAt: serverTimestamp(),
-        blacklistedBy: currentUser?.email || "superadmin",
-        blacklistReason:
-          caregiverBlacklistReason || "Blacklisted by superadmin",
+      const outcome = await runAccountSafetyAction({
+        targetType: "caregiver",
+        targetId: caregiverBlacklistUser.id,
+        reason:
+          caregiverBlacklistReason.trim() ||
+          "Caregiver suspended and blacklisted by Sewak operations.",
       });
 
-      await addDoc(collection(db, "blacklist"), {
-        userId: user.id,
-        userType: "caregiver",
-        reason: caregiverBlacklistReason || "Blacklisted by superadmin",
-        addedAt: serverTimestamp(),
-        approvedBy: currentUser?.email || "superadmin",
-      });
+      if (!outcome.complete) {
+        await loadAllData();
+        return;
+      }
 
-      setSuccessMessage("Caregiver has been blacklisted.");
+      setSuccessMessage("Caregiver safety action applied and account access revoked.");
       setShowCaregiverBlacklistModal(false);
       setCaregiverBlacklistUser(null);
       setCaregiverBlacklistReason("");
@@ -849,64 +812,26 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleDeleteCaregiver = async (caregiverId) => {
-    if (!window.confirm("Are you sure you want to delete this caregiver?"))
-      return;
-
-    try {
-      await deleteDoc(doc(db, "vendors", caregiverId));
-      try {
-        await deleteDoc(doc(db, "users", caregiverId));
-      } catch {
-        // users doc may not exist
-      }
-      setSuccessMessage("Caregiver deleted!");
-      if (selectedOrg) await handleOrgClick(selectedOrg);
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (err) {
-      console.error("Error deleting caregiver:", err);
-      setError("Failed to delete caregiver: " + err.message);
-    }
-  };
-
   // ============ HANDLERS: SUPER ADMINS ============
   const handleCreateSuperAdmin = async (e) => {
     e.preventDefault();
     setError("");
+    setProvisioningInvitation("");
     setAddingSuperAdmin(true);
 
     try {
-      const adminCred = await createUserWithEmailAndPassword(
-        auth,
-        newSuperAdminEmail,
-        newSuperAdminPassword,
-      );
-      const adminUid = adminCred.user.uid;
-
-      const userData = {
-        uid: adminUid,
-        name: newSuperAdminName,
+      const provision = httpsCallable(functions, "provisionSuperAdminAccount");
+      const result = await provision({
         email: newSuperAdminEmail,
-        role: "superadmin",
-        createdAt: new Date().toISOString(),
-        isApproved: true,
-        isSuspended: false,
-        createdBy: currentUser?.email || "system",
-        permissions: [
-          "read",
-          "write",
-          "delete",
-          "approve_vendors",
-          "manage_admins",
-        ],
-      };
-
-      await setDoc(doc(db, "users", adminUid), userData);
-
-      setSuccessMessage("Superadmin created successfully!");
+        displayName: newSuperAdminName,
+      });
+      const invitation = result.data?.invitation?.passwordResetLink || "";
+      setProvisioningInvitation(invitation);
+      setSuccessMessage(invitation
+        ? "Superadmin account provisioned. Send the one-time invitation link using an approved secure channel."
+        : "Superadmin account provisioned. Configure Firebase Auth email delivery before inviting this administrator.");
       setNewSuperAdminName("");
       setNewSuperAdminEmail("");
-      setNewSuperAdminPassword("");
       setShowAddSuperAdminForm(false);
 
       const usersSnap = await getDocs(collection(db, "users"));
@@ -918,28 +843,6 @@ export default function AdminDashboardPage() {
       setError("Failed to create superadmin: " + err.message);
     }
     setAddingSuperAdmin(false);
-  };
-
-  const handleDeleteSuperAdmin = async (adminId) => {
-    if (adminId === currentUser?.uid) {
-      setError("You cannot delete your own account!");
-      return;
-    }
-    if (!window.confirm("Are you sure? This will delete the admin account.")) {
-      return;
-    }
-
-    try {
-      await deleteDoc(doc(db, "users", adminId));
-      setSuccessMessage("Superadmin deleted!");
-      const usersSnap = await getDocs(collection(db, "users"));
-      const allUsers = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setSuperAdmins(allUsers.filter((u) => u.role === "superadmin"));
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (err) {
-      console.error("Error deleting superadmin:", err);
-      setError("Failed to delete superadmin: " + err.message);
-    }
   };
 
   // ============ HANDLERS: SERVICES ============
@@ -1028,32 +931,30 @@ export default function AdminDashboardPage() {
       if (!reportSnap.exists()) return;
 
       const reportData = reportSnap.data();
+      const reason = String(
+        reportData.reason || reportData.description || "",
+      ).trim();
+      if (!reportData.userId || reason.length < 3) {
+        setError(
+          "This report is missing a valid customer and safety reason, so no account restriction was changed.",
+        );
+        return;
+      }
 
-      await addDoc(collection(db, "blacklist"), {
-        userId: reportData.userId,
-        userName: reportData.userName || "",
-        userType: reportData.userType || "user",
-        reportedBy: reportData.reportedBy || "",
-        reportedByName: reportData.reportedByName || "Caregiver",
-        reportedByOrgId: reportData.reportedByOrgId || "",
-        reason: reportData.reason,
-        addedAt: serverTimestamp(),
-        approvedBy: currentUser?.email || "system",
-        blacklistedBy: currentUser?.email || "system",
-        originalReportId: reportId,
+      const outcome = await runAccountSafetyAction({
+        targetType: "customer",
+        targetId: reportData.userId,
+        reason,
+        reportId,
       });
 
-      await updateDoc(doc(db, "blacklistReports", reportId), {
-        status: "approved",
-        approvedAt: serverTimestamp(),
-        approvedBy: currentUser?.email || "system",
-      });
-
-      setSuccessMessage("User blacklisted!");
       const reportsSnap = await getDocs(collection(db, "blacklistReports"));
       setBlacklistReports(
         reportsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
       );
+      if (!outcome.complete) return;
+
+      setSuccessMessage("Customer account suspended and report approved.");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
       console.error("Error approving blacklist report:", err);
@@ -1066,7 +967,7 @@ export default function AdminDashboardPage() {
       await updateDoc(doc(db, "blacklistReports", reportId), {
         status: "rejected",
         rejectedAt: serverTimestamp(),
-        rejectedBy: currentUser?.email || "system",
+        rejectedBy: currentUser?.uid || "",
       });
       setSuccessMessage("Report rejected!");
       const reportsSnap = await getDocs(collection(db, "blacklistReports"));
@@ -1080,33 +981,12 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleRemoveFromBlacklist = async (blacklistId) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to remove this user from blacklist?",
-      )
-    )
-      return;
-
-    try {
-      await deleteDoc(doc(db, "blacklist", blacklistId));
-      setSuccessMessage("User removed from blacklist!");
-      const blacklistSnap = await getDocs(collection(db, "blacklist"));
-      setBlacklist(blacklistSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (err) {
-      console.error("Error removing from blacklist:", err);
-      setError("Failed to remove from blacklist: " + err.message);
-    }
-  };
-
   // ============ UI: LOADING / PERMISSIONS ============
   if (loadingAuth) {
     return (
-      <div style={{ padding: "40px", textAlign: "center" }}>
-        <h2>Loading...</h2>
-        <p>Verifying permissions...</p>
-      </div>
+      <main style={{ padding: "40px", maxWidth: "980px", margin: "0 auto" }}>
+        <DashboardLoadingState label="Verifying permissions…" />
+      </main>
     );
   }
 
@@ -1142,45 +1022,71 @@ export default function AdminDashboardPage() {
         <ol>
           <li>Ensure you are logged in as a superadmin account</li>
           <li>Check Firestore Security Rules in Firebase Console</li>
-          <li>
-            Verify your user role in Firestore &quot;users&quot; collection
-          </li>
+          <li>Have a trusted administrator provision your account with the Admin SDK</li>
           <li>Contact system administrator if you need access</li>
         </ol>
         <p style={{ marginTop: "20px", fontSize: "12px", color: "var(--theme-text-muted)" }}>
           Current User: {currentUser?.email || "Not logged in"}
         </p>
-        <button
-          style={{
-            marginTop: "10px",
-            padding: "8px 12px",
-            cursor: "pointer",
-            borderRadius: 4,
-            border: "1px solid var(--theme-danger)",
-            background: "var(--theme-danger)",
-            color: "var(--theme-button-text)",
-          }}
-          onClick={createFirstSuperAdminIfNeeded}
-        >
-          Initialize First Superadmin
-        </button>
       </div>
     );
   }
 
   // ============ UI: MAIN DASHBOARD ============
   const pendingOrgCount = organizations.filter((org) => !org.isApproved).length;
+  const pendingOrganizationApplicationCount = organizationApplications.filter(
+    (application) => application.status === "pending",
+  ).length;
   const approvedOrgCount = organizations.filter((org) => org.isApproved).length;
   const pendingCaregiverCount = vendors.filter((vendor) => vendor.isApproved !== true).length;
   const approvedCaregiverCount = vendors.filter((vendor) => vendor.isApproved === true).length;
   const pendingBlacklistCount = blacklistReports.filter((report) => report.status === "pending").length;
   const approvedBlacklistCount = blacklistReports.filter((report) => report.status === "approved").length;
   const rejectedBlacklistCount = blacklistReports.filter((report) => report.status === "rejected").length;
+  const activeCareCount = bookings.filter((booking) => booking.status === "in_progress").length;
+  const pendingPaymentVerificationCount = bookings.filter(
+    (booking) => booking.paymentMethod === "fonepay" && booking.paymentStatus === "awaiting_verification",
+  ).length;
+  const unassignedBookingCount = bookings.filter(
+    (booking) => !booking.caregiverId && booking.status !== "cancelled",
+  ).length;
+  const attentionQueues = [
+    pendingOrganizationApplicationCount > 0 && {
+      title: "New partner applications need review",
+      detail: "Approve only after verifying the applicant and organization details.",
+      count: pendingOrganizationApplicationCount,
+      tab: "organizations",
+    },
+    pendingOrgCount > 0 && {
+      title: "Partner applications need review",
+      detail: "Review the organization profile before approval.",
+      count: pendingOrgCount,
+      tab: "organizations",
+    },
+    pendingCaregiverCount > 0 && {
+      title: "Caregiver profiles need review",
+      detail: "Approval is separate from identity, training, and background verification.",
+      count: pendingCaregiverCount,
+      tab: "caregivers",
+    },
+    pendingBlacklistCount > 0 && {
+      title: "Safety reports need review",
+      detail: "Review the booking context before taking any account action.",
+      count: pendingBlacklistCount,
+      tab: "blacklist",
+    },
+    pendingPaymentVerificationCount > 0 && {
+      title: "Payments await server verification",
+      detail: "Do not treat these bookings as paid until the gateway verification is complete.",
+      count: pendingPaymentVerificationCount,
+      tab: "bookings",
+    },
+  ].filter(Boolean);
 
   const getTabLabel = (tab) => {
     const count =
       tab === "organizations"
-        ? pendingOrgCount
+        ? pendingOrgCount + pendingOrganizationApplicationCount
         : tab === "caregivers"
         ? pendingCaregiverCount
         : tab === "blacklist"
@@ -1244,6 +1150,33 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
+      {provisioningInvitation && (
+        <section
+          role="alert"
+          aria-label="One-time account invitation"
+          style={{ padding: "16px", marginBottom: "20px", background: "var(--theme-warning-soft)", border: "1px solid var(--theme-warning)", borderRadius: "8px" }}
+        >
+          <strong>One-time invitation link</strong>
+          <p style={{ margin: "8px 0", color: "var(--theme-text-muted)", fontSize: 13 }}>
+            Send this only through an approved secure channel. It can reset the invited account&apos;s password, so do not add it to notes, screenshots, or chat messages.
+          </p>
+          <textarea readOnly aria-label="One-time account invitation link" value={provisioningInvitation} rows={3} style={{ width: "100%", marginBottom: 10 }} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={async () => {
+                await navigator.clipboard?.writeText(provisioningInvitation);
+                setSuccessMessage("Invitation link copied. Send it only through an approved secure channel.");
+              }}
+            >
+              Copy invitation
+            </button>
+            <button type="button" className="btn btn-outline" onClick={() => setProvisioningInvitation("")}>Hide link</button>
+          </div>
+        </section>
+      )}
+
       {/* Tabs */}
       <div
         style={{
@@ -1253,15 +1186,7 @@ export default function AdminDashboardPage() {
           flexWrap: "wrap",
         }}
       >
-        {[
-          "organizations",
-          "caregivers",
-          "bookings",
-          "services",
-          "blacklist",
-          "admins",
-          "analytics",
-        ].map((tab) => (
+        {dashboardTabs.map((tab) => (
           <button
             type="button"
             key={tab}
@@ -1284,6 +1209,55 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
+      {/* ===== TAB: OPERATIONS OVERVIEW ===== */}
+      {activeTab === "overview" && (
+        <section aria-labelledby="operations-overview-heading">
+          <div style={{ marginBottom: "24px" }}>
+            <p style={{ margin: 0, color: "var(--theme-text-muted)", fontWeight: 700, fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Operations
+            </p>
+            <h2 id="operations-overview-heading" style={{ margin: "6px 0 8px", color: "var(--theme-text)" }}>What needs attention</h2>
+            <p style={{ margin: 0, color: "var(--theme-text-muted)" }}>
+              These counts come from live operational records; they are not performance or trust claims.
+            </p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "14px", marginBottom: "24px" }}>
+            {[
+              ["Active care", activeCareCount, "bookings"],
+              ["New partner applications", pendingOrganizationApplicationCount, "organizations"],
+              ["Pending partner review", pendingOrgCount, "organizations"],
+              ["Pending caregiver review", pendingCaregiverCount, "caregivers"],
+              ["Safety reports", pendingBlacklistCount, "blacklist"],
+              ["Unassigned requests", unassignedBookingCount, "bookings"],
+            ].map(([label, value, tab]) => (
+              <button
+                type="button"
+                key={label}
+                onClick={() => navigate(`/superadmin/${tab}`)}
+                style={{ textAlign: "left", background: "var(--theme-surface)", border: "1px solid var(--theme-border)", borderRadius: "12px", padding: "18px", cursor: "pointer", color: "var(--theme-text)" }}
+              >
+                <span style={{ display: "block", color: "var(--theme-text-muted)", fontSize: "13px" }}>{label}</span>
+                <strong style={{ display: "block", fontSize: "30px", marginTop: "8px" }}>{value}</strong>
+              </button>
+            ))}
+          </div>
+
+          <div style={{ background: "var(--theme-surface)", border: "1px solid var(--theme-border)", borderRadius: "12px", padding: "20px" }}>
+            <h3 style={{ color: "var(--theme-text)", marginTop: 0 }}>Review queue</h3>
+            {attentionQueues.length ? attentionQueues.map((item) => (
+              <div key={item.title} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "14px 0", borderTop: "1px solid var(--theme-border)", flexWrap: "wrap" }}>
+                <div>
+                  <strong>{item.count} {item.title}</strong>
+                  <p style={{ margin: "4px 0 0", color: "var(--theme-text-muted)", fontSize: "13px" }}>{item.detail}</p>
+                </div>
+                <button type="button" className="btn btn-outline" onClick={() => navigate(`/superadmin/${item.tab}`)}>Open queue</button>
+              </div>
+            )) : <p style={{ margin: 0, color: "var(--theme-text-muted)" }}>No records currently need a review action.</p>}
+          </div>
+        </section>
+      )}
+
       {/* ===== TAB: ORGANIZATIONS ===== */}
       {activeTab === "organizations" && (
         <div>
@@ -1304,8 +1278,60 @@ export default function AdminDashboardPage() {
             </button>
           </div>
 
+          {pendingOrganizationApplicationCount > 0 && (
+            <section
+              aria-labelledby="organization-applications-heading"
+              style={{
+                marginBottom: "20px",
+                padding: "16px",
+                background: "var(--theme-warning-soft)",
+                border: "1px solid var(--theme-warning)",
+                borderRadius: "8px",
+              }}
+            >
+              <h3
+                id="organization-applications-heading"
+                style={{ margin: "0 0 10px", color: "var(--theme-text)" }}
+              >
+                Pending partner applications ({pendingOrganizationApplicationCount})
+              </h3>
+              {organizationApplications
+                .filter((application) => application.status === "pending")
+                .map((application) => (
+                  <article
+                    key={application.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                      padding: "10px 0",
+                      borderTop: "1px solid var(--theme-border)",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <strong>{application.organizationName}</strong>
+                      <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--theme-text-muted)" }}>
+                        {application.applicantName} · {application.applicantEmail}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() =>
+                        handleApproveOrganizationApplication(application.id)
+                      }
+                    >
+                      Approve application
+                    </button>
+                  </article>
+                ))}
+            </section>
+          )}
+
           {loadingOrganizations ? (
-            <p>Loading organizations...</p>
+            <DashboardLoadingState label="Loading organizations…" />
           ) : (
             <div>
               <div
@@ -1473,7 +1499,7 @@ export default function AdminDashboardPage() {
                             fontSize: 12,
                           }}
                         >
-                          Change Password
+                          Send reset email
                         </button>
 
                         <button
@@ -1602,24 +1628,9 @@ export default function AdminDashboardPage() {
                       }}
                     />
                   </div>
-                  <div style={{ marginBottom: "15px" }}>
-                    <label style={{ display: "block", marginBottom: "5px" }}>
-                      Password *
-                    </label>
-                    <input
-                      type="password"
-                      value={newOrgPassword}
-                      onChange={(e) => setNewOrgPassword(e.target.value)}
-                      placeholder="Secure password"
-                      required
-                      style={{
-                        width: "100%",
-                        padding: "8px",
-                        borderRadius: "4px",
-                        border: "1px solid var(--theme-neutral-light)",
-                      }}
-                    />
-                  </div>
+                  <p style={{ margin: "0 0 15px", color: "var(--theme-text-muted)", fontSize: 13 }}>
+                    Sewak creates a one-time invitation and never asks an administrator to choose or store another person&apos;s password.
+                  </p>
                   <div style={{ marginBottom: "15px" }}>
                     <label style={{ display: "block", marginBottom: "5px" }}>
                       Phone
@@ -1671,26 +1682,9 @@ export default function AdminDashboardPage() {
                       }}
                     />
                   </div>
-                  <div style={{ marginBottom: "15px" }}>
-                    <label style={{ display: "block", marginBottom: "5px" }}>
-                      Commission Rate (%) *
-                    </label>
-                    <input
-                      type="number"
-                      value={newOrgCommission}
-                      onChange={(e) => setNewOrgCommission(e.target.value)}
-                      placeholder="15"
-                      min="0"
-                      max="100"
-                      required
-                      style={{
-                        width: "100%",
-                        padding: "8px",
-                        borderRadius: "4px",
-                        border: "1px solid var(--theme-neutral-light)",
-                      }}
-                    />
-                  </div>
+                  <p style={{ margin: "0 0 15px", color: "var(--theme-text-muted)", fontSize: 13 }}>
+                    New partner accounts start with the platform&apos;s 15% commission policy. Review it after approval if a different agreement is needed.
+                  </p>
                   <button
                     type="submit"
                     disabled={addingOrg}
@@ -1934,7 +1928,6 @@ export default function AdminDashboardPage() {
               onClick={() => {
                 setShowOrgPasswordModal(false);
                 setOrgPasswordOrg(null);
-                setOrgNewPassword("");
               }}
             >
               <div
@@ -1962,7 +1955,6 @@ export default function AdminDashboardPage() {
                     onClick={() => {
                       setShowOrgPasswordModal(false);
                       setOrgPasswordOrg(null);
-                      setOrgNewPassword("");
                     }}
                     style={{
                       border: "none",
@@ -1975,39 +1967,9 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmitOrgPasswordChange}>
-                  <div style={{ marginBottom: 15 }}>
-                    <label style={{ display: "block", marginBottom: 5 }}>
-                      New Password
-                    </label>
-                    <input
-                      type="password"
-                      value={orgNewPassword}
-                      onChange={(e) => setOrgNewPassword(e.target.value)}
-                      required
-                      style={{
-                        width: "100%",
-                        padding: 8,
-                        borderRadius: 4,
-                        border: "1px solid var(--theme-neutral-light)",
-                      }}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    style={{
-                      padding: "10px 20px",
-                      backgroundColor: "var(--theme-help)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 4,
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Create Reset Request
-                  </button>
-                </form>
+                <p style={{ color: "var(--theme-text-muted)" }}>
+                  Passwords are never collected or stored here. Close this dialog and use the Send reset email action instead.
+                </p>
               </div>
             </div>
           )}
@@ -2136,20 +2098,6 @@ export default function AdminDashboardPage() {
                               </button>
                             </>
                           )}
-                          <button
-                            onClick={() => handleDeleteCaregiver(caregiver.id)}
-                            style={{
-                              padding: "8px 15px",
-                              backgroundColor: "var(--theme-text-muted)",
-                              color: "white",
-                              border: "none",
-                              borderRadius: 4,
-                              cursor: "pointer",
-                              fontSize: 12,
-                            }}
-                          >
-                            Delete
-                          </button>
                         </div>
                       </div>
                     ))}
@@ -2174,7 +2122,6 @@ export default function AdminDashboardPage() {
               onClick={() => {
                 setShowCaregiverPasswordModal(false);
                 setCaregiverPasswordUser(null);
-                setCaregiverNewPassword("");
               }}
             >
               <div
@@ -2202,7 +2149,6 @@ export default function AdminDashboardPage() {
                     onClick={() => {
                       setShowCaregiverPasswordModal(false);
                       setCaregiverPasswordUser(null);
-                      setCaregiverNewPassword("");
                     }}
                     style={{
                       border: "none",
@@ -2215,39 +2161,9 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmitCaregiverPasswordChange}>
-                  <div style={{ marginBottom: 15 }}>
-                    <label style={{ display: "block", marginBottom: 5 }}>
-                      New Password
-                    </label>
-                    <input
-                      type="password"
-                      value={caregiverNewPassword}
-                      onChange={(e) => setCaregiverNewPassword(e.target.value)}
-                      required
-                      style={{
-                        width: "100%",
-                        padding: 8,
-                        borderRadius: 4,
-                        border: "1px solid var(--theme-neutral-light)",
-                      }}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    style={{
-                      padding: "10px 20px",
-                      backgroundColor: "var(--theme-help)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 4,
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Create Reset Request
-                  </button>
-                </form>
+                <p style={{ color: "var(--theme-text-muted)" }}>
+                  Passwords are never collected or stored here. Close this dialog and use the Send reset email action instead.
+                </p>
               </div>
             </div>
           )}
@@ -2456,7 +2372,7 @@ export default function AdminDashboardPage() {
       {activeTab === "caregivers" && (
         <div>
           {loadingVendors ? (
-            <p>Loading caregivers...</p>
+            <DashboardLoadingState label="Loading caregivers…" />
           ) : (
             <div>
               <div
@@ -2530,7 +2446,8 @@ export default function AdminDashboardPage() {
                         <strong>Location:</strong> {vendor.location}
                       </p>
                       <p>
-                        <strong>Hourly Rate:</strong> Rs. {vendor.hourlyRate}
+                        <strong>Hourly Rate:</strong>{" "}
+                        {formatNpr(vendor.hourlyRate, "Rate not set")}
                       </p>
                       <p>
                         <strong>Work Type:</strong> {vendor.workType}
@@ -2542,6 +2459,64 @@ export default function AdminDashboardPage() {
                         <strong>Status:</strong>{" "}
                         {vendor.isApproved ? "✅ Approved" : "⏳ Pending"}
                       </p>
+                      <section
+                        aria-label="Caregiver verification records"
+                        style={{
+                          marginTop: "14px",
+                          paddingTop: "12px",
+                          borderTop: "1px solid var(--theme-border)",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: "0 0 8px",
+                            color: "var(--theme-text-muted)",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            letterSpacing: "0.04em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Verification records
+                        </p>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "8px",
+                          }}
+                        >
+                          {getCaregiverVerificationItems(vendor).map((item) => (
+                            <div
+                              key={item.key}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: "var(--theme-text-muted)",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                {item.label}
+                              </span>
+                              <VerificationBadge state={item.state} compact />
+                            </div>
+                          ))}
+                        </div>
+                        <p
+                          style={{
+                            margin: "10px 0 0",
+                            color: "var(--theme-text-muted)",
+                            fontSize: "12px",
+                          }}
+                        >
+                          Marketplace approval is reviewed separately from these checks.
+                        </p>
+                      </section>
                       <div
                         style={{
                           marginTop: 10,
@@ -2585,21 +2560,6 @@ export default function AdminDashboardPage() {
                         </button>
 
                         <button
-                          onClick={() => handleDeleteCaregiver(vendor.id)}
-                          style={{
-                            padding: "8px 15px",
-                            backgroundColor: "var(--theme-text-muted)",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 4,
-                            cursor: "pointer",
-                            fontSize: 12,
-                          }}
-                        >
-                          Delete
-                        </button>
-
-                        <button
                           onClick={() => handleStartEditCaregiver(vendor)}
                           style={{
                             padding: "8px 15px",
@@ -2628,7 +2588,7 @@ export default function AdminDashboardPage() {
                             fontSize: 12,
                           }}
                         >
-                          Change Password
+                          Send reset email
                         </button>
 
                         <button
@@ -2660,7 +2620,7 @@ export default function AdminDashboardPage() {
       {activeTab === "bookings" && (
         <div>
           {loadingBookings ? (
-            <p>Loading bookings...</p>
+            <DashboardLoadingState label="Loading bookings…" />
           ) : (
             <div>
               <div
@@ -2683,7 +2643,7 @@ export default function AdminDashboardPage() {
                 >
                   <option value="">All Status</option>
                   <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
+                  <option value="accepted">Accepted</option>
                   <option value="in_progress">In Progress</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
@@ -2713,7 +2673,7 @@ export default function AdminDashboardPage() {
                       (bookingStatusFilter === "" ||
                         booking.status === bookingStatusFilter) &&
                       (bookingDateFilter === "" ||
-                        booking.bookingDate?.includes(bookingDateFilter)),
+                        booking.date?.includes(bookingDateFilter)),
                   )
                   .map((booking) => (
                     <div
@@ -2730,7 +2690,7 @@ export default function AdminDashboardPage() {
                               ? "var(--theme-danger)"
                               : booking.status === "in_progress"
                                 ? "var(--theme-help)"
-                                : booking.status === "confirmed"
+                                : booking.status === "accepted"
                                   ? "var(--theme-warning)"
                                   : "var(--theme-text-muted)"
                         }`,
@@ -2741,21 +2701,22 @@ export default function AdminDashboardPage() {
                         <strong>User:</strong> {booking.userName}
                       </p>
                       <p>
-                        <strong>Caregiver:</strong> {booking.vendorName}
+                        <strong>Caregiver:</strong> {booking.caregiverName}
                       </p>
                       <p>
-                        <strong>Date:</strong> {booking.bookingDate}
+                        <strong>Date:</strong> {booking.date || "To be confirmed"}
                       </p>
                       <p>
-                        <strong>Time:</strong> {booking.startTime} -{" "}
-                        {booking.endTime}
+                        <strong>Time:</strong> {booking.time || "To be confirmed"}
+                        {booking.endTime ? ` - ${booking.endTime}` : booking.durationHours ? ` (${booking.durationHours} hours)` : ""}
                       </p>
                       <p>
-                        <strong>Amount:</strong> Rs. {booking.totalAmount}
+                        <strong>Amount:</strong>{" "}
+                        {formatNpr(booking.totalAmount, "Amount unavailable")}
                       </p>
                       <p>
-                        <strong>Platform Commission:</strong> Rs.{" "}
-                        {booking.platformCommission}
+                        <strong>Platform Commission:</strong>{" "}
+                        {formatNpr(booking.platformCommission, "NPR 0")}
                       </p>
                       <p>
                         <strong>Status:</strong>{" "}
@@ -3028,7 +2989,7 @@ export default function AdminDashboardPage() {
                     type="email"
                     value={newSuperAdminEmail}
                     onChange={(e) => setNewSuperAdminEmail(e.target.value)}
-                    placeholder="admin@gharsathi.com"
+                    placeholder="admin@sewak.example"
                     required
                     style={{
                       width: "100%",
@@ -3038,24 +2999,9 @@ export default function AdminDashboardPage() {
                     }}
                   />
                 </div>
-                <div style={{ marginBottom: "15px" }}>
-                  <label style={{ display: "block", marginBottom: "5px" }}>
-                    Password *
-                  </label>
-                  <input
-                    type="password"
-                    value={newSuperAdminPassword}
-                    onChange={(e) => setNewSuperAdminPassword(e.target.value)}
-                    placeholder="Secure password"
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "8px",
-                      borderRadius: "4px",
-                      border: "1px solid var(--theme-neutral-light)",
-                    }}
-                  />
-                </div>
+                <p style={{ margin: "0 0 15px", color: "var(--theme-text-muted)", fontSize: 13 }}>
+                  A secure one-time invitation is generated after provisioning. This screen never collects or stores an administrator&apos;s password.
+                </p>
                 <button
                   type="submit"
                   disabled={addingSuperAdmin}
@@ -3115,23 +3061,6 @@ export default function AdminDashboardPage() {
                   <p style={{ color: "var(--theme-help)", fontWeight: "bold" }}>
                     👤 (You)
                   </p>
-                )}
-                {admin.id !== currentUser?.uid && (
-                  <button
-                    onClick={() => handleDeleteSuperAdmin(admin.id)}
-                    style={{
-                      marginTop: "10px",
-                      padding: "8px 15px",
-                      backgroundColor: "var(--theme-danger)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      fontSize: "12px",
-                    }}
-                  >
-                    Delete Admin
-                  </button>
                 )}
               </div>
             ))}
@@ -3331,21 +3260,15 @@ export default function AdminDashboardPage() {
                       ? entry.addedAt.toDate().toLocaleDateString()
                       : "-"}
                   </p>
-                  <button
-                    onClick={() => handleRemoveFromBlacklist(entry.id)}
+                  <p
                     style={{
-                      marginTop: "10px",
-                      padding: "8px 15px",
-                      backgroundColor: "var(--theme-danger)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer",
+                      margin: "10px 0 0",
+                      color: "var(--theme-text-muted)",
                       fontSize: "12px",
                     }}
                   >
-                    Remove from Blacklist
-                  </button>
+                    Reinstatement requires a trusted server review.
+                  </p>
                 </div>
               ))}
             </div>

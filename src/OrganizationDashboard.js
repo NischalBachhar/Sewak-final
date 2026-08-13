@@ -13,15 +13,15 @@ import {
   where,
   serverTimestamp,
 } from "firebase/firestore";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { db, auth } from "./firebaseConfig";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
 import "./OrganizationDashboard.css";
 
 const validTabs = ["caregivers", "bookings", "services", "blacklist", "profile"];
 
 export default function OrganizationDashboard() {
-  const { user, userDoc } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -45,7 +45,6 @@ export default function OrganizationDashboard() {
   // Add caregiver
   const [caregiverName, setCaregiverName] = useState("");
   const [caregiverEmail, setCaregiverEmail] = useState("");
-  const [caregiverPassword, setCaregiverPassword] = useState("");
   const [caregiverPhone, setCaregiverPhone] = useState("");
   const [caregiverLocation, setCaregiverLocation] = useState("");
   const [caregiverCategory, setCaregiverCategory] = useState("caregiver");
@@ -56,6 +55,8 @@ export default function OrganizationDashboard() {
   const [caregiverExperience, setCaregiverExperience] = useState(0);
   const [addingCaregiver, setAddingCaregiver] = useState(false);
   const [showAddCaregiverModal, setShowAddCaregiverModal] = useState(false);
+  const [caregiverInvitation, setCaregiverInvitation] = useState("");
+  const [notice, setNotice] = useState("");
 
   // Services management
   const [newServiceLabel, setNewServiceLabel] = useState("");
@@ -68,12 +69,6 @@ export default function OrganizationDashboard() {
 
   // Blacklist
   const [orgBlacklist, setOrgBlacklist] = useState([]);
-  const [showBlacklistForm, setShowBlacklistForm] = useState(false);
-  const [selectedCaregiverToBlacklist, setSelectedCaregiverToBlacklist] =
-    useState(null);
-  const [blacklistReason, setBlacklistReason] = useState("");
-  const [blacklistDescription, setBlacklistDescription] = useState("");
-  const [blacklisting, setBlacklisting] = useState(false);
 
   // Org profile editing
   const [editingProfile, setEditingProfile] = useState(false);
@@ -120,12 +115,13 @@ export default function OrganizationDashboard() {
         }));
         setCaregivers(caregiversData);
 
-        // Bookings (limited)
-        const caregiverIds = caregiversData.map((c) => c.id);
-        if (caregiverIds.length > 0) {
+        // Query by the organization ID stored on each booking. This matches the
+        // access rule and includes every team booking rather than only the first
+        // ten caregiver IDs.
+        if (caregiversData.length > 0) {
           const bookingsQuery = query(
             collection(db, "bookings"),
-            where("caregiverId", "in", caregiverIds.slice(0, 10)),
+            where("organizationId", "==", user.uid),
           );
           const bookingsSnap = await getDocs(bookingsQuery);
           const bookingsData = bookingsSnap.docs.map((d) => ({
@@ -137,8 +133,15 @@ export default function OrganizationDashboard() {
           setBookings([]);
         }
 
-        // Services
-        const servicesSnap = await getDocs(collection(db, "services"));
+        // Administrative service records are private. Restrict this dashboard
+        // query to the signed-in organization's own records; public browse
+        // reads the PII-free publicServices projection instead.
+        const servicesSnap = await getDocs(
+          query(
+            collection(db, "services"),
+            where("organizationId", "==", user.uid),
+          ),
+        );
         const servicesData = servicesSnap.docs.map((d) => ({
           id: d.id,
           ...d.data(),
@@ -171,39 +174,15 @@ export default function OrganizationDashboard() {
   const handleAddCaregiver = async (e) => {
     e.preventDefault();
     setError("");
+    setNotice("");
+    setCaregiverInvitation("");
     setAddingCaregiver(true);
 
     try {
-      const caregiverCred = await createUserWithEmailAndPassword(
-        auth,
-        caregiverEmail,
-        caregiverPassword,
-      );
-      const caregiverUid = caregiverCred.user.uid;
-
-      const caregiverUserData = {
-        uid: caregiverUid,
-        name: caregiverName,
+      const provision = httpsCallable(functions, "provisionCaregiverAccount");
+      const result = await provision({
         email: caregiverEmail,
-        role: "caregiver",
-        phone: caregiverPhone,
-        createdAt: new Date().toISOString(),
-        isApproved: false,
-        isSuspended: false,
-        profileComplete: true,
-        organizationId: user.uid,
-        organizationName: organizationData?.organizationName || "",
-        addedBy: user.uid,
-        addedByName: userDoc?.name || "",
-      };
-
-      await setDoc(doc(db, "users", caregiverUid), caregiverUserData);
-
-      const vendorData = {
-        uid: caregiverUid,
-        vendorId: caregiverUid,
-        name: caregiverName,
-        email: caregiverEmail,
+        displayName: caregiverName,
         phone: caregiverPhone,
         location: caregiverLocation,
         category: caregiverCategory,
@@ -212,44 +191,13 @@ export default function OrganizationDashboard() {
         servicesOffered: caregiverServices,
         hourlyRate: Number(caregiverHourlyRate) || 0,
         experience: Number(caregiverExperience) || 0,
-        bio: "",
-        jobsCompleted: 0,
-        rating: 5,
-        reviewCount: 0,
-        verified: false,
-        backgroundChecked: false,
-        isAvailable: true,
-        isApproved: false,
-        isSuspended: false,
-        totalEarnings: 0,
-        pendingEarnings: 0,
-        satisfactionRate: 95,
-        organizationId: user.uid,
-        organizationName: organizationData?.organizationName || "",
-        isIndependent: false,
-        addedBy: user.uid,
-        createdAt: new Date().toISOString(),
-      };
-
-      await setDoc(doc(db, "vendors", caregiverUid), vendorData);
-
-      const orgRef = doc(db, "organizations", user.uid);
-      const orgSnap = await getDoc(orgRef);
-      const currentCaregivers = orgSnap.data()?.caregivers || [];
-      await updateDoc(orgRef, {
-        caregivers: [...currentCaregivers, caregiverUid],
-        totalCaregivers: (currentCaregivers.length || 0) + 1,
-        updatedAt: new Date().toISOString(),
       });
-
-      alert(
-        "Caregiver added successfully! Approval will be handled by platform admin.",
-      );
+      setCaregiverInvitation(result.data?.invitation?.passwordResetLink || "");
+      setNotice("Caregiver account provisioned. It remains unavailable and unverified until an authorized platform review is complete.");
 
       // reset
       setCaregiverName("");
       setCaregiverEmail("");
-      setCaregiverPassword("");
       setCaregiverPhone("");
       setCaregiverLocation("");
       setCaregiverCategory("caregiver");
@@ -273,40 +221,13 @@ export default function OrganizationDashboard() {
       setCaregivers(caregiversData);
     } catch (err) {
       console.error("Error adding caregiver", err);
-      if (err.code === "auth/email-already-in-use") {
+      if (err.code === "already-exists" || err.code === "auth/email-already-in-use") {
         setError("This email is already registered.");
       } else {
         setError(err.message || "Could not add caregiver.");
       }
     } finally {
       setAddingCaregiver(false);
-    }
-  };
-
-  // Delete caregiver
-  const handleDeleteCaregiver = async (caregiverId, caregiverNameToShow) => {
-    if (
-      !window.confirm(`Delete ${caregiverNameToShow}? This cannot be undone.`)
-    ) {
-      return;
-    }
-    try {
-      await deleteDoc(doc(db, "vendors", caregiverId));
-      await deleteDoc(doc(db, "users", caregiverId));
-
-      const orgRef = doc(db, "organizations", user.uid);
-      const orgSnap = await getDoc(orgRef);
-      const currentCaregivers = orgSnap.data()?.caregivers || [];
-      await updateDoc(orgRef, {
-        caregivers: currentCaregivers.filter((id) => id !== caregiverId),
-        totalCaregivers: Math.max(0, (currentCaregivers.length || 1) - 1),
-      });
-
-      setCaregivers((prev) => prev.filter((c) => c.id !== caregiverId));
-      alert("Caregiver removed successfully.");
-    } catch (err) {
-      console.error("Error deleting caregiver", err);
-      alert("Could not delete caregiver.");
     }
   };
 
@@ -339,7 +260,12 @@ export default function OrganizationDashboard() {
       setNewServiceCategory("caregiver");
       setShowAddServiceModal(false);
 
-      const servicesSnap = await getDocs(collection(db, "services"));
+      const servicesSnap = await getDocs(
+        query(
+          collection(db, "services"),
+          where("organizationId", "==", user.uid),
+        ),
+      );
       const servicesData = servicesSnap.docs.map((d) => ({
         id: d.id,
         ...d.data(),
@@ -375,7 +301,12 @@ export default function OrganizationDashboard() {
       setEditServiceLabel("");
       setEditServiceCategory("caregiver");
 
-      const servicesSnap = await getDocs(collection(db, "services"));
+      const servicesSnap = await getDocs(
+        query(
+          collection(db, "services"),
+          where("organizationId", "==", user.uid),
+        ),
+      );
       const servicesData = servicesSnap.docs.map((d) => ({
         id: d.id,
         ...d.data(),
@@ -394,7 +325,12 @@ export default function OrganizationDashboard() {
     try {
       await deleteDoc(doc(db, "services", serviceId));
       alert("Service deleted!");
-      const servicesSnap = await getDocs(collection(db, "services"));
+      const servicesSnap = await getDocs(
+        query(
+          collection(db, "services"),
+          where("organizationId", "==", user.uid),
+        ),
+      );
       const servicesData = servicesSnap.docs.map((d) => ({
         id: d.id,
         ...d.data(),
@@ -403,134 +339,6 @@ export default function OrganizationDashboard() {
     } catch (err) {
       console.error("Error deleting service", err);
       alert("Could not delete service.");
-    }
-  };
-
-  // Blacklist
-  const openBlacklistForm = (caregiver) => {
-    setSelectedCaregiverToBlacklist(caregiver);
-    setShowBlacklistForm(true);
-    setBlacklistReason("");
-    setBlacklistDescription("");
-    setError("");
-  };
-
-  const handleBlacklistCaregiver = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (!blacklistReason || !blacklistDescription.trim()) {
-      setError("Please provide reason and description.");
-      return;
-    }
-    try {
-      setBlacklisting(true);
-      const blacklistId = user.uid + "_" + selectedCaregiverToBlacklist.id;
-
-      await setDoc(doc(db, "organizationBlacklist", blacklistId), {
-        caregiverId: selectedCaregiverToBlacklist.id,
-        caregiverName: selectedCaregiverToBlacklist.name,
-        caregiverEmail: selectedCaregiverToBlacklist.email,
-        organizationId: user.uid,
-        organizationName: organizationData?.organizationName || "",
-        reason: blacklistReason,
-        description: blacklistDescription.trim(),
-        blacklistedAt: serverTimestamp(),
-        blacklistedBy: user.uid,
-        blacklistedByName: userDoc?.name || "",
-      });
-
-      await updateDoc(doc(db, "vendors", selectedCaregiverToBlacklist.id), {
-        isSuspended: true,
-        suspendedBy: user.uid,
-        suspendedReason: blacklistReason,
-        suspendedAt: serverTimestamp(),
-      });
-      await updateDoc(doc(db, "users", selectedCaregiverToBlacklist.id), {
-        isSuspended: true,
-      });
-
-      alert("Caregiver blacklisted and suspended successfully!");
-      setShowBlacklistForm(false);
-      setSelectedCaregiverToBlacklist(null);
-      setBlacklistReason("");
-      setBlacklistDescription("");
-
-      const caregiversQuery = query(
-        collection(db, "vendors"),
-        where("organizationId", "==", user.uid),
-      );
-      const caregiversSnap = await getDocs(caregiversQuery);
-      const caregiversData = caregiversSnap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-      setCaregivers(caregiversData);
-
-      const blacklistQueryRef = query(
-        collection(db, "organizationBlacklist"),
-        where("organizationId", "==", user.uid),
-      );
-      const blacklistSnap = await getDocs(blacklistQueryRef);
-      const blacklistData = blacklistSnap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-      setOrgBlacklist(blacklistData);
-    } catch (err) {
-      console.error("Error blacklisting caregiver", err);
-      setError("Could not blacklist caregiver.");
-    } finally {
-      setBlacklisting(false);
-    }
-  };
-
-  const handleRemoveFromBlacklist = async (blacklistId, caregiverId) => {
-    if (
-      !window.confirm(
-        "Remove this caregiver from blacklist? They will be unsuspended.",
-      )
-    ) {
-      return;
-    }
-    try {
-      await deleteDoc(doc(db, "organizationBlacklist", blacklistId));
-
-      await updateDoc(doc(db, "vendors", caregiverId), {
-        isSuspended: false,
-        suspendedBy: null,
-        suspendedReason: null,
-        suspendedAt: null,
-      });
-      await updateDoc(doc(db, "users", caregiverId), {
-        isSuspended: false,
-      });
-
-      alert("Caregiver removed from blacklist and unsuspended.");
-
-      const blacklistQueryRef = query(
-        collection(db, "organizationBlacklist"),
-        where("organizationId", "==", user.uid),
-      );
-      const blacklistSnap = await getDocs(blacklistQueryRef);
-      const blacklistData = blacklistSnap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-      setOrgBlacklist(blacklistData);
-
-      const caregiversQuery = query(
-        collection(db, "vendors"),
-        where("organizationId", "==", user.uid),
-      );
-      const caregiversSnap = await getDocs(caregiversQuery);
-      const caregiversData = caregiversSnap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-      setCaregivers(caregiversData);
-    } catch (err) {
-      console.error("Error removing from blacklist", err);
-      alert("Could not remove from blacklist.");
     }
   };
 
@@ -605,7 +413,7 @@ export default function OrganizationDashboard() {
         </div>
 
         <div className="card" style={{ marginTop: 16 }}>
-          <h3 style={{ color: "var(--theme-button-text)", marginTop: 0 }}>
+          <h3 style={{ color: "var(--theme-text)", marginTop: 0 }}>
             Organization Details
           </h3>
           <p
@@ -694,7 +502,18 @@ export default function OrganizationDashboard() {
           >
             Manage your caregiver team, services, and track performance.
           </p>
-          {error && <div className="error-message">{error}</div>}
+          {error && <div className="error-message" role="alert">{error}</div>}
+          {notice && <div className="success-message" role="status">{notice}</div>}
+          {caregiverInvitation && (
+            <div className="card" style={{ marginTop: 12, background: "var(--theme-warning-soft)" }}>
+              <strong>One-time caregiver invitation</strong>
+              <p style={{ margin: "6px 0", color: "var(--theme-text-muted)", fontSize: 13 }}>
+                Send this link only through an approved secure channel. Do not place it in notes or screenshots.
+              </p>
+              <textarea readOnly aria-label="One-time caregiver invitation link" value={caregiverInvitation} rows={3} style={{ width: "100%" }} />
+              <button type="button" className="btn btn-outline" onClick={() => setCaregiverInvitation("")} style={{ marginTop: 8 }}>Hide link</button>
+            </div>
+          )}
         </div>
 
         {/* Stats */}
@@ -1102,38 +921,9 @@ export default function OrganizationDashboard() {
                       </span>
                     </div>
 
-                    {caregiver.isApproved && !isBlacklisted && (
-                      <button
-                        className="btn btn-outline"
-                        onClick={() => openBlacklistForm(caregiver)}
-                        style={{
-                          flex: 1,
-                          background: "var(--theme-danger)",
-                          color: "var(--theme-button-text)",
-                          border: "1px solid var(--theme-danger-dark)",
-                        }}
-                      >
-                        Blacklist
-                      </button>
-                    )}
-
-                    <button
-                      className="btn btn-outline"
-                      onClick={() =>
-                        handleDeleteCaregiver(
-                          caregiver.id,
-                          caregiver.name || "this caregiver",
-                        )
-                      }
-                      style={{
-                        flex: 1,
-                        background: "var(--theme-danger)",
-                        color: "var(--theme-button-text)",
-                        border: "1px solid var(--theme-danger-dark)",
-                      }}
-                    >
-                      Remove
-                    </button>
+                    <p style={{ color: "var(--theme-text-muted)", flexBasis: "100%", fontSize: 12, lineHeight: 1.45, margin: "4px 0 0" }}>
+                      Safety actions and account removal are handled by Sewak operations so access, care records, and audit history stay consistent.
+                    </p>
                   </div>
                 </div>
               );
@@ -1226,7 +1016,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1255,41 +1045,15 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
                   </div>
 
-                  <div style={{ marginBottom: 12 }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 12,
-                        color: "var(--theme-text-muted)",
-                        marginBottom: 4,
-                      }}
-                    >
-                      Password for caregiver login
-                    </label>
-                    <input
-                      type="password"
-                      value={caregiverPassword}
-                      onChange={(e) => setCaregiverPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      placeholder="At least 6 characters"
-                      style={{
-                        width: "100%",
-                        padding: "8px 10px",
-                        borderRadius: 6,
-                        border: "1px solid var(--theme-text)",
-                        background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
-                        fontSize: 13,
-                      }}
-                    />
-                  </div>
+                  <p style={{ margin: "0 0 12px", color: "var(--theme-text-muted)", fontSize: 13 }}>
+                    Sewak creates a secure one-time invitation. Never ask for or enter a caregiver&apos;s password here.
+                  </p>
 
                   <div style={{ marginBottom: 12 }}>
                     <label
@@ -1314,7 +1078,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1342,7 +1106,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1369,7 +1133,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     >
@@ -1623,7 +1387,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1654,7 +1418,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1705,7 +1469,7 @@ export default function OrganizationDashboard() {
                   <div>
                     <strong
                       style={{
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 16,
                       }}
                     >
@@ -1757,7 +1521,7 @@ export default function OrganizationDashboard() {
                     paddingTop: 12,
                     borderTop: "1px solid var(--theme-text)",
                     fontSize: 13,
-                    color: "var(--theme-button-text)",
+                    color: "var(--theme-text)",
                   }}
                 >
                   <p style={{ margin: "0 0 6px 0" }}>
@@ -2122,7 +1886,7 @@ export default function OrganizationDashboard() {
       {/* BLACKLIST TAB */}
       {activeTab === "blacklist" && (
         <div>
-          <h3 style={{ color: "var(--theme-button-text)", marginBottom: 12 }}>
+          <h3 style={{ color: "var(--theme-text)", marginBottom: 12 }}>
             Blacklisted Caregivers ({orgBlacklist.length})
           </h3>
           {orgBlacklist.length === 0 ? (
@@ -2153,7 +1917,7 @@ export default function OrganizationDashboard() {
                   <div>
                     <strong
                       style={{
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 16,
                       }}
                     >
@@ -2209,7 +1973,7 @@ export default function OrganizationDashboard() {
                     paddingTop: 12,
                     borderTop: "1px solid var(--theme-text)",
                     fontSize: 13,
-                    color: "var(--theme-button-text)",
+                    color: "var(--theme-text)",
                   }}
                 >
                   <p style={{ margin: "0 0 6px 0" }}>
@@ -2229,23 +1993,9 @@ export default function OrganizationDashboard() {
                   </p>
                 </div>
 
-                <button
-                  className="btn btn-outline"
-                  onClick={() =>
-                    handleRemoveFromBlacklist(
-                      blacklisted.id,
-                      blacklisted.caregiverId,
-                    )
-                  }
-                  style={{
-                    marginTop: 12,
-                    background: "var(--theme-surface)",
-                    color: "var(--theme-button-text)",
-                    border: "1px solid var(--theme-text)",
-                  }}
-                >
-                  Remove from Blacklist
-                </button>
+                <p style={{ color: "var(--theme-text-muted)", fontSize: 12, lineHeight: 1.45, margin: "12px 0 0" }}>
+                  Reinstatement is handled by Sewak operations together with the relevant account and audit updates.
+                </p>
               </div>
             ))
           )}
@@ -2432,9 +2182,7 @@ export default function OrganizationDashboard() {
                           businessAddress:
                             editProfileData.businessAddress || "",
                           businessCity: editProfileData.businessCity || "",
-                          commissionRate:
-                            Number(editProfileData.commissionRate) || 15,
-                          updatedAt: new Date().toISOString(),
+                          updatedAt: serverTimestamp(),
                         },
                         { merge: true },
                       );
@@ -2443,8 +2191,6 @@ export default function OrganizationDashboard() {
                         await updateDoc(
                           doc(db, "users", organizationData.adminUid),
                           {
-                            organizationName:
-                              editProfileData.organizationName || "",
                             businessPhone: editProfileData.businessPhone || "",
                             businessAddress:
                               editProfileData.businessAddress || "",
@@ -2456,8 +2202,7 @@ export default function OrganizationDashboard() {
                       setOrganizationData((prev) => ({
                         ...prev,
                         ...editProfileData,
-                        commissionRate:
-                          Number(editProfileData.commissionRate) || 15,
+                        commissionRate: prev?.commissionRate ?? 15,
                       }));
 
                       setEditingProfile(false);
@@ -2517,18 +2262,10 @@ export default function OrganizationDashboard() {
                       }))
                     }
                   />
-                  <label>Commission Rate (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={editProfileData.commissionRate}
-                    onChange={(e) =>
-                      setEditProfileData((prev) => ({
-                        ...prev,
-                        commissionRate: e.target.value,
-                      }))
-                    }
-                  />
+                  <p className="text-muted" style={{ margin: "4px 0 0" }}>
+                    Commission rate: {organizationData?.commissionRate ?? 15}%
+                    &nbsp;— managed by Sewak operations.
+                  </p>
                   {error && (
                     <p
                       style={{
@@ -2575,139 +2312,6 @@ export default function OrganizationDashboard() {
         </div>
       )}
 
-      {/* Blacklist modal */}
-      {showBlacklistForm && selectedCaregiverToBlacklist && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
-        >
-          <div
-            style={{
-              background: "var(--theme-surface)",
-              borderRadius: 8,
-              padding: 24,
-              maxWidth: 500,
-              width: "90%",
-              boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
-              border: "1px solid var(--theme-text)",
-              maxHeight: "90vh",
-              overflowY: "auto",
-            }}
-          >
-            <h3
-              style={{
-                marginTop: 0,
-                marginBottom: 8,
-                color: "var(--theme-danger-soft)",
-              }}
-            >
-              Blacklist Caregiver
-            </h3>
-            <p
-              style={{
-                fontSize: 14,
-                color: "var(--theme-button-text)",
-                marginBottom: 16,
-              }}
-            >
-              Blacklist <strong>{selectedCaregiverToBlacklist.name}</strong>?
-            </p>
-            <div
-              style={{
-                background: "var(--theme-warning-soft)",
-                color: "var(--theme-warning)",
-                padding: 12,
-                borderRadius: 8,
-                fontSize: 12,
-                marginBottom: 16,
-                border: "1px solid var(--theme-warning)",
-              }}
-            >
-              <strong>Warning:</strong> This will suspend the caregiver and
-              prevent them from receiving new jobs. Use only for serious
-              violations.
-            </div>
-            <form onSubmit={handleBlacklistCaregiver} className="form">
-              <label>Reason</label>
-              <select
-                className="dropdown-select"
-                value={blacklistReason}
-                onChange={(e) => setBlacklistReason(e.target.value)}
-                required
-              >
-                <option value="">Select a reason</option>
-                <option value="Unprofessional behavior">
-                  Unprofessional behavior
-                </option>
-                <option value="Poor performance">Poor performance</option>
-                <option value="Frequent absences">Frequent absences</option>
-                <option value="Customer complaints">Customer complaints</option>
-                <option value="Violation of policy">Violation of policy</option>
-                <option value="Theft or fraud">Theft or fraud</option>
-                <option value="Safety concerns">Safety concerns</option>
-                <option value="Other">Other</option>
-              </select>
-
-              <label>Description</label>
-              <textarea
-                value={blacklistDescription}
-                onChange={(e) => setBlacklistDescription(e.target.value)}
-                required
-                placeholder="Provide detailed information about the issue..."
-                rows={4}
-              />
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  marginTop: 16,
-                }}
-              >
-                <button
-                  type="submit"
-                  className="btn"
-                  disabled={blacklisting}
-                  style={{
-                    flex: 1,
-                    background: "var(--theme-danger)",
-                    color: "var(--theme-button-text)",
-                    border: "none",
-                  }}
-                >
-                  {blacklisting ? "Blacklisting..." : "Blacklist Caregiver"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => {
-                    setShowBlacklistForm(false);
-                    setSelectedCaregiverToBlacklist(null);
-                    setBlacklistReason("");
-                    setBlacklistDescription("");
-                    setError("");
-                  }}
-                  style={{
-                    flex: 1,
-                    background: "var(--theme-surface)",
-                    color: "var(--theme-button-text)",
-                    border: "1px solid var(--theme-text)",
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   </div>
   );

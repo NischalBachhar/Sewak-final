@@ -1,28 +1,31 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { useAuth } from "./AuthContext";
 import AuthPage from "./AuthPage";
 import UserProfilePage from "./UserProfilePage";
 import OrganizationProfilePage from "./OrganizationProfilePage";
 import CaregiverDashboardPage from "./CaregiverDashboardPage";
 import CaregiverListPage from "./CaregiverListPage";
-import BookingFormPage from "./BookingFormPage";
+import BookingRequestPage from "./BookingRequestPage";
+import BookingDetailPage from "./BookingDetailPage";
+import PublicCaregiverProfilePage from "./PublicCaregiverProfilePage";
+import PaymentCallbackPage from "./PaymentCallbackPage";
 import MyBookingsPage from "./MyBookingsPage";
+import CustomerHomePage from "./CustomerHomePage";
 import AdminDashboardPage from "./AdminDashboardPage";
 import OrganizationDashboard from "./OrganizationDashboard";
 import CaregiverReportUserPage from "./CaregiverReportUserPage";
 import BrowsePage from "./BrowsePage";
 import Header from "./components/Header";
-import { signOut } from "firebase/auth";
-import { auth } from "./firebaseConfig";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import MobileBottomNavigation from "./components/MobileBottomNavigation";
+import { SkeletonCard } from "./components/CareExperience";
+import { auth, db } from "./firebaseConfig";
 import "./App.css";
 
 function App() {
   const { user, loading, userRole, userDoc } = useAuth();
-  const [selectedCaregiver, setSelectedCaregiver] = useState(null);
-  const [showMyBookings, setShowMyBookings] = useState(false);
   const [userCategory, setUserCategory] = useState("");
   const [userWorkType, setUserWorkType] = useState("");
   const [userShift, setUserShift] = useState("");
@@ -44,23 +47,16 @@ function App() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      setSelectedCaregiver(null);
-      setShowMyBookings(false);
     } catch (err) {
       console.error("Logout error:", err);
     }
   };
 
   const handleBrowseCaregivers = () => {
-    setSelectedCaregiver(null);
-    setShowMyBookings(false);
     navigate("/user");
   };
 
   const handleMyBookings = () => {
-    setSelectedCaregiver(null);
-    setShowMyBookings(false);
-
     const currentCompletedIds = bookingsSnapshotRef.current
       .filter((booking) => booking.status === "completed")
       .map((booking) => booking.id);
@@ -69,7 +65,9 @@ function App() {
       const storageKey = `seenCompletedBookings_${user.uid}`;
       const stored = localStorage.getItem(storageKey);
       const storedIds = parseSavedIds(stored);
-      const mergedIds = Array.from(new Set([...(storedIds || []), ...currentCompletedIds]));
+      const mergedIds = Array.from(
+        new Set([...(storedIds || []), ...currentCompletedIds])
+      );
       localStorage.setItem(storageKey, JSON.stringify(mergedIds));
       seenCompletedIdsRef.current = mergedIds;
     }
@@ -79,20 +77,23 @@ function App() {
   };
 
   useEffect(() => {
-    if (!user || userRole !== "user") return;
+    if (!user || userRole !== "user") return undefined;
 
     const storageKey = `seenCompletedBookings_${user.uid}`;
     const stored = localStorage.getItem(storageKey);
     seenCompletedIdsRef.current = parseSavedIds(stored);
 
-    const q = query(
+    const bookingsQuery = query(
       collection(db, "bookings"),
       where("userId", "==", user.uid)
     );
 
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const currentCompletedIds = docs
+    const unsubscribe = onSnapshot(bookingsQuery, (snapshot) => {
+      const bookings = snapshot.docs.map((document) => ({
+        id: document.id,
+        ...document.data(),
+      }));
+      const currentCompletedIds = bookings
         .filter((booking) => booking.status === "completed")
         .map((booking) => booking.id);
       const unseenCompleted = currentCompletedIds.filter(
@@ -101,17 +102,15 @@ function App() {
 
       if (!bookingsInitialLoadRef.current) {
         setNotificationCount(unseenCompleted.length);
+      } else if (stored) {
+        setNotificationCount(unseenCompleted.length);
       } else {
-        if (stored) {
-          setNotificationCount(unseenCompleted.length);
-        } else {
-          setNotificationCount(0);
-          seenCompletedIdsRef.current = currentCompletedIds;
-          localStorage.setItem(storageKey, JSON.stringify(currentCompletedIds));
-        }
+        setNotificationCount(0);
+        seenCompletedIdsRef.current = currentCompletedIds;
+        localStorage.setItem(storageKey, JSON.stringify(currentCompletedIds));
       }
 
-      bookingsSnapshotRef.current = docs;
+      bookingsSnapshotRef.current = bookings;
       bookingsInitialLoadRef.current = false;
     });
 
@@ -128,101 +127,126 @@ function App() {
     const path = window.location.pathname;
 
     if (userRole === "orgadmin") {
-      // If profile is complete but on profile page, redirect to dashboard
       if (userDoc?.profileComplete && path === "/organization/profile") {
         navigate("/organization/dashboard", { replace: true });
-      } 
-      // If profile is incomplete but on dashboard, redirect to profile
-      else if (!userDoc?.profileComplete && path === "/organization/dashboard") {
+      } else if (!userDoc?.profileComplete && path === "/organization/dashboard") {
         navigate("/organization/profile", { replace: true });
-      }
-      // If on neutral pages, redirect based on profile status
-      else if (path === "/" || path === "/browse" || path === "/auth") {
-        if (userDoc?.profileComplete) {
-          navigate("/organization/dashboard", { replace: true });
-        } else {
-          navigate("/organization/profile", { replace: true });
-        }
+      } else if (path === "/" || path === "/browse" || path === "/auth") {
+        navigate(
+          userDoc?.profileComplete
+            ? "/organization/dashboard"
+            : "/organization/profile",
+          { replace: true }
+        );
       }
     } else if (userRole === "user") {
-      // If profile is complete but on profile page, redirect to browse
-      if (userDoc?.profileComplete && path === "/user/profile") {
-        navigate("/user", { replace: true });
-      }
-      // If profile is incomplete but on browse/main page, redirect to profile
-      else if (!userDoc?.profileComplete && (path === "/user" || path === "/user/")) {
+      if (!userDoc?.profileComplete && (path === "/user" || path === "/user/")) {
         navigate("/user/profile", { replace: true });
-      }
-      // If on neutral pages, redirect to profile (user must complete profile first)
-      else if (path === "/" || path === "/browse" || path === "/auth") {
-        navigate("/user/profile", { replace: true });
+      } else if (path === "/" || path === "/browse" || path === "/auth") {
+        navigate(
+          userDoc?.profileComplete ? "/user" : "/user/profile",
+          { replace: true },
+        );
       }
     }
   }, [user, userRole, userDoc?.profileComplete, navigate]);
 
   useEffect(() => {
-    if (
-      !user ||
-      userRole !== "user" ||
-      !userDoc?.profileComplete ||
-      selectedCaregiver
-    ) {
-      return;
-    }
+    if (!user || userRole !== "user" || !userDoc?.profileComplete) return;
 
     try {
+      const caregiverId = localStorage.getItem("pendingBookingCaregiverId");
       const savedCaregiver = localStorage.getItem("pendingBookingCaregiver");
-      if (!savedCaregiver) return;
-
-      const caregiver = JSON.parse(savedCaregiver);
+      localStorage.removeItem("pendingBookingCaregiverId");
       localStorage.removeItem("pendingBookingCaregiver");
 
-      if (caregiver && typeof caregiver === "object") {
-        setSelectedCaregiver(caregiver);
-        navigate("/user", { replace: true });
+      if (caregiverId) {
+        navigate(`/user/book/${caregiverId}`, { replace: true });
+      } else if (savedCaregiver) {
+        const caregiver = JSON.parse(savedCaregiver);
+        if (caregiver?.id) {
+          navigate(`/user/book/${caregiver.id}`, { replace: true });
+        }
       }
     } catch {
       localStorage.removeItem("pendingBookingCaregiver");
+      localStorage.removeItem("pendingBookingCaregiverId");
     }
-  }, [user, userRole, userDoc?.profileComplete, selectedCaregiver, navigate]);
+  }, [user, userRole, userDoc?.profileComplete, navigate]);
 
-  // Global loading state while Firebase auth initializes
   if (loading) {
     return (
-      <div className="centered-message">
-        <p>Loading...</p>
-      </div>
+      <main
+        className="app-shell"
+        aria-label="Loading Sewak"
+        style={{ alignItems: "stretch", padding: "20px" }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 1040,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {[0, 1, 2].map((index) => (
+            <SkeletonCard
+              key={index}
+              variant="dashboard"
+              label="Loading your Sewak dashboard"
+            />
+          ))}
+        </div>
+      </main>
     );
   }
 
-  // Prevent routing until Firestore userRole is known
   if (user && !userRole) {
     return (
-      <div className="centered-message">
-        <p>Loading your dashboard...</p>
-      </div>
+      <main
+        className="app-shell"
+        aria-label="Loading your dashboard"
+        style={{ alignItems: "stretch", padding: "20px" }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 720,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {[0, 1].map((index) => (
+            <SkeletonCard
+              key={index}
+              variant="dashboard"
+              label="Loading your dashboard"
+            />
+          ))}
+        </div>
+      </main>
     );
   }
 
-  // NOT LOGGED IN - PUBLIC ROUTES
   if (!user) {
     return (
       <Routes>
-        <Route
-          path="/browse"
-          element={<BrowsePage />}
-        />
+        <Route path="/browse" element={<BrowsePage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route
-          path="/caregiver/reportuser"
-          element={<CaregiverReportUserPage />}
+          path="/caregivers/:caregiverId"
+          element={<PublicCaregiverProfilePage />}
         />
+        <Route path="/payment-callback" element={<PaymentCallbackPage />} />
         <Route path="*" element={<Navigate to="/browse" replace />} />
       </Routes>
     );
   }
 
-  // LOGGED IN - FORCE PROFILE COMPLETION FOR NORMAL USERS
   if (userRole === "user" && !userDoc?.profileComplete) {
     return (
       <>
@@ -242,7 +266,6 @@ function App() {
     );
   }
 
-  // LOGGED IN - FORCE PROFILE COMPLETION FOR ORGANIZATIONS
   if (userRole === "orgadmin" && !userDoc?.profileComplete) {
     return (
       <>
@@ -255,14 +278,19 @@ function App() {
           notificationCount={notificationCount}
         />
         <Routes>
-          <Route path="/organization/profile" element={<OrganizationProfilePage />} />
-          <Route path="*" element={<Navigate to="/organization/profile" replace />} />
+          <Route
+            path="/organization/profile"
+            element={<OrganizationProfilePage />}
+          />
+          <Route
+            path="*"
+            element={<Navigate to="/organization/profile" replace />}
+          />
         </Routes>
       </>
     );
   }
 
-  // LOGGED IN - ROUTES BY ROLE
   return (
     <>
       <Header
@@ -275,10 +303,37 @@ function App() {
         notificationCount={notificationCount}
       />
       <Routes>
-        {/* USER ROUTES */}
+        <Route path="/payment-callback" element={<PaymentCallbackPage />} />
+        <Route
+          path="/caregivers/:caregiverId"
+          element={<PublicCaregiverProfilePage signedIn />}
+        />
+
         {userRole === "user" && (
           <>
+            <Route
+              path="/user/home"
+              element={
+                <div className="app-shell app-shell--compact">
+                  <div className="app-card app-card--compact">
+                    <CustomerHomePage />
+                  </div>
+                </div>
+              }
+            />
             <Route path="/user/profile" element={<UserProfilePage />} />
+            <Route
+              path="/user/caregivers/:caregiverId"
+              element={<PublicCaregiverProfilePage signedIn />}
+            />
+            <Route
+              path="/user/book/:caregiverId"
+              element={<BookingRequestPage />}
+            />
+            <Route
+              path="/user/bookings/:bookingId"
+              element={<BookingDetailPage />}
+            />
             <Route
               path="/user/mybookings"
               element={
@@ -292,162 +347,34 @@ function App() {
             <Route
               path="/user/*"
               element={
-                selectedCaregiver ? (
-                  <div className="app-shell">
-                    <div className="app-card">
-                      <div className="app-header">
-                        <div>
-                          <h1 className="app-title">Sewak – Booking</h1>
-                          <p className="app-subtitle">
-                            Confirm service details
-                          </p>
-                        </div>
-                        <div className="app-header-actions">
-                          <button
-                            className="btn btn-outline"
-                            onClick={() => setSelectedCaregiver(null)}
-                          >
-                            Back
-                          </button>
-                        </div>
-                      </div>
-                      <BookingFormPage
-                        caregiver={selectedCaregiver}
-                        onBooked={() => {
-                          setSelectedCaregiver(null);
-                          navigate("/user/mybookings");
-                        }}
-                      />
-                    </div>
+                <div className="app-shell">
+                  <div className="app-card">
+                    <CaregiverListPage
+                      variant="browse"
+                      onSelectCaregiver={(caregiver) =>
+                        navigate(`/user/book/${caregiver.id}`)
+                      }
+                      preselectedWorkType={userWorkType}
+                      preselectedShift={userShift}
+                      userCategory={userCategory}
+                      onChangeUserCategory={setUserCategory}
+                      onChangeWorkType={setUserWorkType}
+                      onChangeShift={setUserShift}
+                      requireLogin={false}
+                    />
                   </div>
-                ) : showMyBookings ? (
-                  <div className="app-shell">
-                    <div className="app-card">
-                      <div className="app-header">
-                        <div>
-                          <h1 className="app-title">My Bookings</h1>
-                        </div>
-                        <div className="app-header-actions">
-                          <button
-                            className="btn btn-outline"
-                            onClick={() => navigate("/user")}
-                          >
-                            Browse Caregivers
-                          </button>
-                        </div>
-                      </div>
-                      <MyBookingsPage />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="app-shell">
-                    <div className="app-card">
-                      <div className="choice-group">
-                        <h3>What do you need help with?</h3>
-                        <div className="choice-buttons">
-                          <button
-                            type="button"
-                            className={`choice-btn ${
-                              userCategory === "both" ? "active" : ""
-                            }`}
-                            onClick={() => setUserCategory("both")}
-                          >
-                            👥 Both
-                          </button>
-                          <button
-                            type="button"
-                            className={`choice-btn ${
-                              userCategory === "caregiver" ? "active" : ""
-                            }`}
-                            onClick={() => setUserCategory("caregiver")}
-                          >
-                            🏥 Care Giver
-                          </button>
-                          <button
-                            type="button"
-                            className={`choice-btn ${
-                              userCategory === "household" ? "active" : ""
-                            }`}
-                            onClick={() => setUserCategory("household")}
-                          >
-                            🏠 Household
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="choice-group">
-                        <h4>Work type</h4>
-                        <div className="choice-buttons">
-                          <button
-                            type="button"
-                            className={`choice-btn ${
-                              userWorkType === "fulltime" ? "active" : ""
-                            }`}
-                            onClick={() => {
-                              setUserWorkType("fulltime");
-                              setUserShift("");
-                            }}
-                          >
-                            💼 Full time
-                          </button>
-                          <button
-                            type="button"
-                            className={`choice-btn ${
-                              userWorkType === "parttime" ? "active" : ""
-                            }`}
-                            onClick={() => setUserWorkType("parttime")}
-                          >
-                            ⏰ Part time
-                          </button>
-                        </div>
-                      </div>
-
-                      {userWorkType === "parttime" && (
-                        <div className="choice-group">
-                          <h4>Preferred shift</h4>
-                          <div className="choice-buttons">
-                            {["morning", "day", "night"].map((s) => (
-                              <button
-                                key={s}
-                                type="button"
-                                className={`choice-btn ${
-                                  userShift === s ? "active" : ""
-                                }`}
-                                onClick={() => setUserShift(s)}
-                              >
-                                {s === "morning"
-                                  ? "🌅 Morning"
-                                  : s === "day"
-                                    ? "☀️ Day"
-                                    : "🌙 Night"}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <CaregiverListPage
-                        onSelectCaregiver={setSelectedCaregiver}
-                        preselectedWorkType={userWorkType}
-                        preselectedShift={userShift}
-                        userCategory={userCategory}
-                        onChangeUserCategory={setUserCategory}
-                        onChangeWorkType={setUserWorkType}
-                        onChangeShift={setUserShift}
-                        requireLogin={false}
-                      />
-                    </div>
-                  </div>
-                )
+                </div>
               }
             />
           </>
         )}
 
-        {/* ORGANIZATION ADMIN ROUTES */}
         {userRole === "orgadmin" && (
           <>
-            <Route path="/organization/profile" element={<OrganizationProfilePage />} />
+            <Route
+              path="/organization/profile"
+              element={<OrganizationProfilePage />}
+            />
             <Route
               path="/organization/*"
               element={
@@ -461,21 +388,25 @@ function App() {
           </>
         )}
 
-        {/* CAREGIVER ROUTES */}
         {userRole === "caregiver" && (
-          <Route
-            path="/caregiver/*"
-            element={
-              <div className="app-shell">
-                <div className="app-card">
-                  <CaregiverDashboardPage />
+          <>
+            <Route
+              path="/caregiver/reportuser"
+              element={<CaregiverReportUserPage />}
+            />
+            <Route
+              path="/caregiver/*"
+              element={
+                <div className="app-shell">
+                  <div className="app-card">
+                    <CaregiverDashboardPage />
+                  </div>
                 </div>
-              </div>
-            }
-          />
+              }
+            />
+          </>
         )}
 
-        {/* SUPERADMIN ROUTES */}
         {userRole === "superadmin" && (
           <Route
             path="/superadmin/*"
@@ -489,13 +420,6 @@ function App() {
           />
         )}
 
-        {/* Report user page */}
-        <Route
-          path="/caregiver/reportuser"
-          element={<CaregiverReportUserPage />}
-        />
-
-        {/* Fallback redirects */}
         <Route
           path="*"
           element={
@@ -517,6 +441,7 @@ function App() {
           }
         />
       </Routes>
+      <MobileBottomNavigation role={userRole} />
     </>
   );
 }

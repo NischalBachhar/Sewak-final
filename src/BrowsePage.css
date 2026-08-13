@@ -1459,3 +1459,136 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Trust filters and a mobile-first filter sheet for the caregiver directory. */
+.browse-card-actions {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+}
+
+.browse-card-actions .browse-card-action {
+  flex: 1;
+  min-width: 0;
+}
+
+.browse-card-action--secondary {
+  border: 1px solid rgba(15, 118, 110, 0.32) !important;
+  background: #fff !important;
+  color: #0f766e !important;
+}
+
+.browse-verified-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  color: #294047;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.browse-verified-filter input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0f766e;
+}
+
+.browse-mobile-filter-toggle,
+.browse-filter-sheet-backdrop {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .browse-mobile-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin: 0 0 12px;
+    padding: 0 16px;
+    border: 1px solid rgba(15, 118, 110, 0.3);
+    border-radius: 10px;
+    background: #fff;
+    color: #0f766e;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .browse-filter-panel .browse-filter-grid {
+    display: none;
+  }
+
+  .browse-filter-sheet-backdrop {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(17, 24, 39, 0.42);
+  }
+
+  .browse-filter-sheet {
+    box-sizing: border-box;
+    width: 100%;
+    max-height: min(88vh, 700px);
+    overflow-y: auto;
+    display: grid;
+    gap: 15px;
+    padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    background: #fffdf8;
+    box-shadow: 0 -18px 40px rgba(17, 24, 39, 0.2);
+  }
+
+  .browse-filter-sheet__heading,
+  .browse-filter-sheet__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .browse-filter-sheet__heading h2 {
+    margin: 0;
+    color: #172554;
+    font-size: 20px;
+  }
+
+  .browse-filter-sheet__heading button {
+    border: 0;
+    background: transparent;
+    color: #0f766e;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 800;
+  }
+
+  .browse-filter-sheet > label:not(.browse-verified-filter) {
+    display: grid;
+    gap: 7px;
+    color: #294047;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .browse-filter-sheet select,
+  .browse-filter-sheet input:not([type="checkbox"]) {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid rgba(15, 118, 110, 0.2);
+    border-radius: 9px;
+    background: #fff;
+    color: #172554;
+    font: inherit;
+    padding: 0 10px;
+  }
+
+  .browse-filter-sheet__actions .browse-card-action {
+    width: auto;
+    min-height: 44px;
+  }
+}
