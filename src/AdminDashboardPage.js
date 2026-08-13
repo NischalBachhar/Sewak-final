@@ -8,6 +8,7 @@ import {
   updateDoc,
   setDoc,
   deleteDoc,
+  writeBatch,
   serverTimestamp,
   query,
   where,
@@ -18,7 +19,7 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
-import { appCheck, db, auth, functions } from "./firebaseConfig";
+import { db, auth, functions } from "./firebaseConfig";
 import { normalizeBooking } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
@@ -35,8 +36,7 @@ const dashboardTabs = [
   "analytics",
 ];
 
-const PUBLIC_CAREGIVER_SYNC_BATCH_SIZE = 200;
-const MAX_PUBLIC_CAREGIVER_SYNC_PAGES = 1000;
+const PUBLIC_CAREGIVER_WRITE_BATCH_SIZE = 400;
 
 const caregiverVerificationFields = [
   {
@@ -49,6 +49,7 @@ const caregiverVerificationFields = [
     key: "phone",
     label: "Phone",
     statusKey: "phoneVerificationStatus",
+    evidenceKeys: ["phone", "phoneNumber", "mobile"],
   },
   {
     key: "training",
@@ -75,18 +76,114 @@ function getCaregiverVerificationItems(caregiver) {
     const fallback = field.fallbackBooleanKey
       ? caregiver[field.fallbackBooleanKey]
       : undefined;
+    const hasSubmittedEvidence = Array.isArray(field.evidenceKeys)
+      ? field.evidenceKeys.some((key) => {
+          const value = caregiver[key];
+          return typeof value === "string" && value.trim().length > 0;
+        })
+      : false;
+
+    const hasRecordedStatus =
+      status !== undefined && status !== null && status !== "";
 
     return {
       key: field.key,
       label: field.label,
       state:
-        status !== undefined && status !== null && status !== ""
+        hasRecordedStatus
           ? status
           : typeof fallback === "boolean"
             ? fallback
+            : hasSubmittedEvidence
+              ? "pending"
             : undefined,
+      badgeLabel:
+        !hasRecordedStatus &&
+        typeof fallback !== "boolean" &&
+        hasSubmittedEvidence
+          ? "Phone provided — review pending"
+          : undefined,
     };
   });
+}
+
+function publicString(value, maximum) {
+  return typeof value === "string" ? value.slice(0, maximum) : "";
+}
+
+function publicNumber(value, minimum, maximum, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= minimum && number <= maximum
+    ? number
+    : fallback;
+}
+
+function publicList(value, maximum) {
+  return Array.isArray(value) ? value.slice(0, maximum) : [];
+}
+
+function publicVerificationStatus(value) {
+  return ["verified", "pending", "not_verified", "unavailable"].includes(value)
+    ? value
+    : "not_verified";
+}
+
+function isActiveOrganizationForTrial(organization) {
+  return Boolean(
+    organization &&
+      organization.isApproved === true &&
+      organization.isSuspended !== true &&
+      organization.isBlacklisted !== true,
+  );
+}
+
+function buildPublicCaregiverListing(caregiver, organizationActive) {
+  const reviewCount = publicNumber(caregiver.reviewCount, 0, 1000000);
+  const rating = reviewCount > 0
+    ? publicNumber(caregiver.rating, 0, 5)
+    : 0;
+
+  return {
+    caregiverId: caregiver.id,
+    name: publicString(caregiver.name, 120),
+    location: publicString(caregiver.location, 160),
+    category: publicString(caregiver.category, 32),
+    workType: publicString(caregiver.workType, 32),
+    shifts: publicList(caregiver.shifts, 3),
+    servicesOffered: publicList(caregiver.servicesOffered, 20),
+    hourlyRate: publicNumber(caregiver.hourlyRate, 0, 1000000),
+    experience: publicNumber(caregiver.experience, 0, 100),
+    bio: publicString(caregiver.bio, 1000),
+    jobsCompleted: publicNumber(caregiver.jobsCompleted, 0, 1000000),
+    rating,
+    reviewCount,
+    verified: caregiver.verified === true,
+    backgroundChecked: caregiver.backgroundChecked === true,
+    isCertified: caregiver.isCertified === true,
+    isAvailable: caregiver.isAvailable === true,
+    isApproved: true,
+    isSuspended: false,
+    isBlacklisted: false,
+    isOrganizationActive: organizationActive === true,
+    organizationId: publicString(caregiver.organizationId, 128),
+    organizationName: publicString(caregiver.organizationName, 160),
+    identityVerificationStatus: publicVerificationStatus(
+      caregiver.identityVerificationStatus,
+    ),
+    phoneVerificationStatus: publicVerificationStatus(
+      caregiver.phoneVerificationStatus,
+    ),
+    trainingVerificationStatus: publicVerificationStatus(
+      caregiver.trainingVerificationStatus,
+    ),
+    backgroundVerificationStatus: publicVerificationStatus(
+      caregiver.backgroundVerificationStatus,
+    ),
+    referencesVerificationStatus: publicVerificationStatus(
+      caregiver.referencesVerificationStatus,
+    ),
+    updatedAt: serverTimestamp(),
+  };
 }
 
 function DashboardLoadingState({ label, cards = 3 }) {
@@ -656,14 +753,37 @@ export default function AdminDashboardPage() {
   };
 
   const handleApproveOrganization = async (orgId) => {
+    const organization = organizations.find((item) => item.id === orgId);
+    if (organization?.isSuspended || organization?.isBlacklisted) {
+      setError("A suspended or blacklisted organization cannot be approved.");
+      return;
+    }
+
     try {
       const approveOrganization = httpsCallable(functions, "approveOrganizationAccount");
       await approveOrganization({ organizationId: orgId });
       setSuccessMessage("Organization approved and its secure organization-admin claim was updated.");
       await loadAllData();
     } catch (err) {
-      console.error("Error approving organization:", err);
-      setError("Failed to approve organization: " + err.message);
+      // Cloud Functions require Blaze. For the free-tier investor trial a
+      // superadmin may activate only this existing organization record; this
+      // does not issue any custom claim or create a privileged account.
+      try {
+        await updateDoc(doc(db, "organizations", orgId), {
+          isApproved: true,
+          verified: true,
+          approvedAt: serverTimestamp(),
+          approvedBy: currentUser?.email || "superadmin",
+          updatedAt: serverTimestamp(),
+        });
+        setSuccessMessage(
+          "Organization approved for the free-tier trial. Publish its approved caregivers next.",
+        );
+        await loadAllData();
+      } catch (fallbackError) {
+        console.error("Error approving organization:", err, fallbackError);
+        setError("Failed to approve organization: " + fallbackError.message);
+      }
     }
   };
 
@@ -744,18 +864,14 @@ export default function AdminDashboardPage() {
     }
   };
 
+  /* Legacy paid-plan Function sync retained as reference. The Spark trial uses
+     the direct, schema-validated publisher immediately below. */
+  /*
   const handleSyncPublicCaregiverListings = async () => {
     if (!isSuperAdmin) return;
 
-    if (!appCheck) {
-      setError(
-        "Public listing sync needs Firebase App Check. Configure REACT_APP_FIREBASE_APPCHECK_SITE_KEY in the deployed web environment, then sign in again.",
-      );
-      return;
-    }
-
     const confirmed = window.confirm(
-      "Sync the public caregiver directory now? This rebuilds the PII-free listings from caregiver records. Only approved, safe-to-list caregivers will appear publicly.",
+      "Publish the approved caregiver directory now? This copies only safe profile fields; phone, email, earnings, and addresses stay private.",
     );
     if (!confirmed) return;
 
@@ -842,6 +958,100 @@ export default function AdminDashboardPage() {
           "Could not sync public caregiver listings. Check the Firebase Functions and App Check deployment, then try again.",
         );
       }
+    } finally {
+      setSyncingPublicCaregivers(false);
+      setPublicCaregiverSyncProgress("");
+    }
+  };
+
+  */
+  const handlePublishTrialCaregiverListings = async () => {
+    if (!isSuperAdmin) return;
+
+    const confirmed = window.confirm(
+      "Publish the approved caregiver directory now? This copies only safe profile fields; phone, email, earnings, and addresses stay private.",
+    );
+    if (!confirmed) return;
+
+    setError("");
+    setSuccessMessage("");
+    setSyncingPublicCaregivers(true);
+    setPublicCaregiverSyncProgress("Preparing public caregiver listings…");
+
+    try {
+      const organizationsById = new Map(
+        organizations.map((organization) => [organization.id, organization]),
+      );
+      const existingPublicListings = await getDocs(
+        collection(db, "publicCaregivers"),
+      );
+      const writes = [];
+      let published = 0;
+
+      vendors.forEach((caregiver) => {
+        const organizationId = publicString(caregiver.organizationId, 128);
+        const organizationActive = organizationId
+          ? isActiveOrganizationForTrial(organizationsById.get(organizationId))
+          : true;
+        const eligible =
+          caregiver.isApproved === true &&
+          caregiver.isSuspended !== true &&
+          caregiver.isBlacklisted !== true &&
+          organizationActive;
+
+        if (eligible) {
+          writes.push({
+            type: "set",
+            ref: doc(db, "publicCaregivers", caregiver.id),
+            data: buildPublicCaregiverListing(caregiver, organizationActive),
+          });
+          published += 1;
+        }
+      });
+
+      const eligibleIds = new Set(
+        writes.filter((entry) => entry.type === "set").map((entry) => entry.ref.id),
+      );
+      existingPublicListings.docs.forEach((listing) => {
+        if (!eligibleIds.has(listing.id)) {
+          writes.push({ type: "delete", ref: listing.ref });
+        }
+      });
+
+      for (
+        let offset = 0;
+        offset < writes.length;
+        offset += PUBLIC_CAREGIVER_WRITE_BATCH_SIZE
+      ) {
+        const batch = writeBatch(db);
+        const chunk = writes.slice(
+          offset,
+          offset + PUBLIC_CAREGIVER_WRITE_BATCH_SIZE,
+        );
+        chunk.forEach((entry) => {
+          if (entry.type === "set") {
+            batch.set(entry.ref, entry.data);
+          } else {
+            batch.delete(entry.ref);
+          }
+        });
+        await batch.commit();
+        setPublicCaregiverSyncProgress(
+          `Publishing public listings… ${Math.min(offset + chunk.length, writes.length)} of ${writes.length} changes saved.`,
+        );
+      }
+
+      setSuccessMessage(
+        `${published} approved caregiver profile${published === 1 ? "" : "s"} published for Browse.`,
+      );
+      await loadAllData();
+    } catch (err) {
+      console.error("Error publishing trial caregiver listings:", err);
+      setError(
+        err?.code === "permission-denied"
+          ? "Your session is not allowed to publish public caregiver listings. Sign out and back in as a superadmin."
+          : "Could not publish public caregiver listings. Please try again.",
+      );
     } finally {
       setSyncingPublicCaregivers(false);
       setPublicCaregiverSyncProgress("");
@@ -2520,22 +2730,19 @@ export default function AdminDashboardPage() {
                         lineHeight: 1.55,
                       }}
                     >
-                      Rebuild the PII-free public directory from caregiver
-                      records. Only approved, unsuspended, unblacklisted
-                      caregivers from active organizations can be listed.
+                      Publish the PII-free public directory from caregiver
+                      records without Cloud Functions. Only approved,
+                      unsuspended, unblacklisted caregivers from active
+                      organizations can be listed.
                     </p>
                   </div>
                   <button
                     type="button"
                     className="btn btn-primary"
-                    onClick={handleSyncPublicCaregiverListings}
-                    disabled={syncingPublicCaregivers || !appCheck}
+                    onClick={handlePublishTrialCaregiverListings}
+                    disabled={syncingPublicCaregivers}
                     aria-describedby="public-caregiver-sync-help"
-                    title={
-                      appCheck
-                        ? "Rebuild public caregiver listings"
-                        : "Configure Firebase App Check before syncing listings"
-                    }
+                    title="Publish approved public caregiver listings"
                   >
                     {syncingPublicCaregivers
                       ? "Syncing public listings…"
@@ -2543,38 +2750,18 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
 
-                {!appCheck && (
-                  <p
-                    role="alert"
-                    style={{
-                      margin: "14px 0 0",
-                      padding: "10px 12px",
-                      border: "1px solid var(--theme-warning)",
-                      borderRadius: "8px",
-                      background: "var(--theme-warning-soft)",
-                      color: "var(--theme-text)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Firebase App Check is not configured for this web app. Add
-                    the public reCAPTCHA site key to the deployed environment,
-                    then sign in again before using this secure sync.
-                  </p>
-                )}
-
-                {appCheck && (
-                  <p
-                    style={{
-                      margin: "14px 0 0",
-                      color: "var(--theme-text-muted)",
-                      fontSize: "13px",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    This action requires the Cloud Functions API and the public
-                    projection functions to be deployed.
-                  </p>
-                )}
+                <p
+                  style={{
+                    margin: "14px 0 0",
+                    color: "var(--theme-text-muted)",
+                    fontSize: "13px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  For this free-tier trial, publish after approving, rejecting,
+                  or changing a caregiver. The browser never reads private
+                  caregiver records on public pages.
+                </p>
 
                 {publicCaregiverSyncProgress && (
                   <p
@@ -2719,7 +2906,11 @@ export default function AdminDashboardPage() {
                               >
                                 {item.label}
                               </span>
-                              <VerificationBadge state={item.state} compact />
+                              <VerificationBadge
+                                state={item.state}
+                                label={item.badgeLabel}
+                                compact
+                              />
                             </div>
                           ))}
                         </div>

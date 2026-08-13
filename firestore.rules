@@ -457,6 +457,59 @@ service cloud.firestore {
         );
     }
 
+    // A public caregiver record is a deliberately small, PII-free directory
+    // projection. During the Spark-plan trial it may be published only by a
+    // superadmin from the Admin dashboard; the same strict validator applies
+    // to creates and updates.
+    function isPublicVerificationStatus(value) {
+      return value in ['verified', 'pending', 'not_verified', 'unavailable'];
+    }
+
+    function publicCaregiverDocumentIsValid(caregiverId, data) {
+      return data.keys().hasOnly([
+          'caregiverId', 'name', 'location', 'category', 'workType', 'shifts',
+          'servicesOffered', 'hourlyRate', 'experience', 'bio', 'jobsCompleted',
+          'rating', 'reviewCount', 'verified', 'backgroundChecked', 'isCertified',
+          'isAvailable', 'isApproved', 'isSuspended', 'isBlacklisted',
+          'isOrganizationActive', 'organizationId', 'organizationName',
+          'identityVerificationStatus', 'phoneVerificationStatus',
+          'trainingVerificationStatus', 'backgroundVerificationStatus',
+          'referencesVerificationStatus', 'updatedAt'
+        ]) &&
+        data.keys().hasAll([
+          'caregiverId', 'name', 'location', 'category', 'workType', 'shifts',
+          'servicesOffered', 'hourlyRate', 'experience', 'bio', 'jobsCompleted',
+          'rating', 'reviewCount', 'verified', 'backgroundChecked', 'isCertified',
+          'isAvailable', 'isApproved', 'isSuspended', 'isBlacklisted',
+          'isOrganizationActive', 'organizationId', 'organizationName',
+          'identityVerificationStatus', 'phoneVerificationStatus',
+          'trainingVerificationStatus', 'backgroundVerificationStatus',
+          'referencesVerificationStatus', 'updatedAt'
+        ]) &&
+        data.caregiverId == caregiverId && validShortText(data.caregiverId, 128) &&
+        validShortText(data.name, 120) && validShortText(data.location, 160) &&
+        validShortText(data.category, 32) && validShortText(data.workType, 32) &&
+        validShortText(data.bio, 1000) && validShortText(data.organizationId, 128) &&
+        validShortText(data.organizationName, 160) &&
+        data.shifts is list && data.shifts.size() <= 3 &&
+        data.servicesOffered is list && data.servicesOffered.size() <= 20 &&
+        data.hourlyRate is number && data.hourlyRate >= 0 && data.hourlyRate <= 1000000 &&
+        data.experience is number && data.experience >= 0 && data.experience <= 100 &&
+        data.jobsCompleted is number && data.jobsCompleted >= 0 && data.jobsCompleted <= 1000000 &&
+        data.reviewCount is number && data.reviewCount >= 0 && data.reviewCount <= 1000000 &&
+        data.rating is number && data.rating >= 0 && data.rating <= 5 &&
+        (data.reviewCount > 0 || data.rating == 0) &&
+        data.verified is bool && data.backgroundChecked is bool && data.isCertified is bool &&
+        data.isAvailable is bool && data.isApproved == true && data.isSuspended == false &&
+        data.isBlacklisted == false && data.isOrganizationActive == true &&
+        isPublicVerificationStatus(data.identityVerificationStatus) &&
+        isPublicVerificationStatus(data.phoneVerificationStatus) &&
+        isPublicVerificationStatus(data.trainingVerificationStatus) &&
+        isPublicVerificationStatus(data.backgroundVerificationStatus) &&
+        isPublicVerificationStatus(data.referencesVerificationStatus) &&
+        data.updatedAt is timestamp;
+    }
+
     function validBookingCreate() {
       return bookingDocumentIsValid(request.resource.data) && isActiveCustomer() &&
         request.resource.data.userId == request.auth.uid &&
@@ -698,14 +751,17 @@ service cloud.firestore {
 
     match /publicCaregivers/{caregiverId} {
       // This projection contains only display/trust data and is written by
-      // Cloud Functions. The query constraints in the client mirror these
-      // gates so suspended, blacklisted, or organization-disabled caregivers
-      // cannot be listed.
+      // Cloud Functions in production, or by the strict superadmin-only trial
+      // publisher when the project stays on Firebase's free plan. The query
+      // constraints in the client mirror these gates so suspended,
+      // blacklisted, or organization-disabled caregivers cannot be listed.
       allow get, list: if resource.data.isApproved == true &&
         resource.data.isSuspended == false &&
         resource.data.isBlacklisted == false &&
         resource.data.isOrganizationActive == true;
-      allow write: if false;
+      allow create, update: if isSuperAdmin() &&
+        publicCaregiverDocumentIsValid(caregiverId, request.resource.data);
+      allow delete: if isSuperAdmin();
     }
 
     match /bookings/{bookingId} {
