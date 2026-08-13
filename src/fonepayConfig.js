@@ -1,10 +1,13 @@
 export const FONEPAY_CONFIG = {
-  MERCHANT_CODE: process.env.REACT_APP_FONEPAY_MERCHANT_CODE || "GHAR_SATHI_001",
-  PAYMENT_GATEWAY_URL: process.env.REACT_APP_FONEPAY_GATEWAY_URL || "https://fonepay.com/",
+  // Digital payment remains deliberately disabled until a server-side intent
+  // and provider signature verification are configured. Never route a family
+  // to a placeholder merchant or gateway URL.
+  MERCHANT_CODE: process.env.REACT_APP_FONEPAY_MERCHANT_CODE || "",
+  PAYMENT_GATEWAY_URL: process.env.REACT_APP_FONEPAY_GATEWAY_URL || "",
 };
 
 export const generateRefId = () => {
-  return `GHAR_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `SEWAK_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 export const validatePaymentResponse = (response) => {

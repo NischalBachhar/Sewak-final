@@ -360,6 +360,37 @@ function getDateTimeAttribute(value) {
   return date ? date.toISOString() : undefined;
 }
 
+function scheduleDateTime(dateValue, timeValue) {
+  const dateMatch = String(dateValue || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const timeMatch = String(timeValue || "").trim().match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/i);
+  if (!dateMatch || !timeMatch) return null;
+
+  const [, year, month, day] = dateMatch;
+  let hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+  const meridiem = timeMatch[3]?.toLowerCase();
+  if (meridiem === "pm" && hour < 12) hour += 12;
+  if (meridiem === "am" && hour === 12) hour = 0;
+
+  const scheduled = new Date(Number(year), Number(month) - 1, Number(day), hour, minute);
+  return Number.isNaN(scheduled.getTime()) ? null : scheduled;
+}
+
+function resolveScheduledCareWindow(sessionData, scheduledStart, scheduledEnd) {
+  const start = scheduledStart || sessionData.scheduledStart || sessionData.startAt;
+  const end = scheduledEnd || sessionData.scheduledEnd || sessionData.endAt;
+  if (start || end) return { start, end };
+
+  const derivedStart = scheduleDateTime(sessionData.scheduledDate, sessionData.scheduledTime);
+  const durationHours = Number(sessionData.scheduledDurationHours);
+  if (!derivedStart) return { start: "", end: "" };
+
+  const derivedEnd = Number.isFinite(durationHours) && durationHours > 0
+    ? new Date(derivedStart.getTime() + durationHours * 60 * 60 * 1000)
+    : "";
+  return { start: derivedStart, end: derivedEnd };
+}
+
 export function formatCareDateTime(value, options) {
   const date = toValidDate(value);
   if (!date) {
@@ -1516,10 +1547,13 @@ export function ActiveCareCard({
     checkedInAt || sessionData.actualCheckIn || sessionData.checkedInAt;
   const actualCheckedOutAt =
     checkedOutAt || sessionData.actualCheckOut || sessionData.checkedOutAt;
-  const actualScheduledStart =
-    scheduledStart || sessionData.scheduledStart || sessionData.startAt;
-  const actualScheduledEnd =
-    scheduledEnd || sessionData.scheduledEnd || sessionData.endAt;
+  const scheduledWindow = resolveScheduledCareWindow(
+    sessionData,
+    scheduledStart,
+    scheduledEnd,
+  );
+  const actualScheduledStart = scheduledWindow.start;
+  const actualScheduledEnd = scheduledWindow.end;
   const actualTasks = tasks !== undefined ? tasks : sessionData.tasks;
   const actualUpdates = updates !== undefined ? updates : sessionData.updates;
   const resolvedMessageAction = resolveAction(

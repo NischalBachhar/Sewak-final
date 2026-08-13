@@ -5,6 +5,7 @@ import {
   where,
   onSnapshot,
   doc,
+  serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "./firebaseConfig";
@@ -12,6 +13,7 @@ import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import { getBookingStatus, normalizeBooking } from "./bookingModel";
 import { SkeletonCard, StatusBadge } from "./components/CareExperience";
+import { formatNpr } from "./config/brand";
 
 export default function MyBookingsPage() {
   const { user } = useAuth();
@@ -89,15 +91,21 @@ export default function MyBookingsPage() {
     }
   }, [user]);
 
-  const cancelBooking = async (bookingId) => {
+  const cancelBooking = async (booking) => {
+    if (!booking || booking.status !== "pending") {
+      alert("Only requests waiting for a caregiver can be cancelled here. Please contact Sewak Support for help with accepted or active care.");
+      return;
+    }
+
     const confirmCancel = window.confirm(
-      "Are you sure you want to cancel this booking?"
+      "Are you sure you want to cancel this care request? The caregiver has not accepted it yet."
     );
     if (!confirmCancel) return;
 
     try {
-      await updateDoc(doc(db, "bookings", bookingId), {
+      await updateDoc(doc(db, "bookings", booking.id), {
         status: "cancelled",
+        updatedAt: serverTimestamp(),
       });
       alert("Booking cancelled successfully.");
     } catch (err) {
@@ -167,7 +175,7 @@ export default function MyBookingsPage() {
             <div>
               <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Total Spent</p>
               <p style={{ fontSize: 20, color: "var(--theme-positive)", fontWeight: "bold", margin: 0 }}>
-                ₹{totalSpent}
+                {formatNpr(totalSpent, "NPR 0")}
               </p>
             </div>
             <div>
@@ -315,7 +323,7 @@ export default function MyBookingsPage() {
               }}
             >
               <p style={{ fontSize: 13, color: "var(--theme-text)", marginBottom: 6 }}>
-                <strong>💰 Amount:</strong> ₹{b.totalAmount || b.amountDue || "N/A"}
+                <strong>💰 Amount:</strong> {formatNpr(b.totalAmount || b.amountDue, "To be confirmed")}
               </p>
               {b.paymentMethod === "fonepay" && (
                 <>
@@ -331,7 +339,7 @@ export default function MyBookingsPage() {
               )}
               {b.paymentMethod === "cash" && b.status !== "completed" && (
                 <p style={{ fontSize: 12, color: "var(--theme-warning)" }}>
-                  <strong>⚠️ Note:</strong> Please pay ₹{b.totalAmount} in cash to the caregiver
+                  <strong>⚠️ Note:</strong> Please pay {formatNpr(b.totalAmount, "the agreed amount")} in cash to the caregiver
                 </p>
               )}
             </div>
@@ -376,7 +384,7 @@ export default function MyBookingsPage() {
                 <>
                   <button
                     className="btn btn-outline"
-                    onClick={() => cancelBooking(b.id)}
+                    onClick={() => cancelBooking(b)}
                     style={{
                       background: "var(--theme-surface)",
                       color: "var(--theme-text)",
@@ -394,20 +402,8 @@ export default function MyBookingsPage() {
 
               {b.status === "accepted" && (
                 <>
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => cancelBooking(b.id)}
-                    style={{
-                      background: "var(--theme-surface)",
-                      color: "var(--theme-text)",
-                      border: "1px solid var(--theme-text)",
-                      flex: 1,
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <span style={{ fontSize: 12, color: "var(--theme-positive)", alignSelf: "center", flex: 1 }}>
-                    ✓ Accepted - will start soon
+                  <span style={{ fontSize: 12, color: "var(--theme-positive)", alignSelf: "center", flex: 1, lineHeight: 1.45 }}>
+                    ✓ Accepted. Your caregiver can check in when care begins. For a change to an accepted booking, contact Sewak Support.
                   </span>
                 </>
               )}
@@ -475,28 +471,34 @@ export default function MyBookingsPage() {
             <div>
               <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Total spent</p>
               <p style={{ fontSize: 18, color: "var(--theme-help)", fontWeight: "600", margin: 0 }}>
-                ₹
-                {bookings
-                  .filter((b) => b.paymentStatus === "paid" || b.status === "completed")
-                  .reduce((sum, b) => sum + (b.totalAmount || b.amountPaid || 0), 0)}
+                {formatNpr(
+                  bookings
+                    .filter((b) => b.paymentStatus === "paid" || b.status === "completed")
+                    .reduce((sum, b) => sum + (b.totalAmount || b.amountPaid || 0), 0),
+                  "NPR 0",
+                )}
               </p>
             </div>
             <div>
               <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Paid via Fonepay</p>
               <p style={{ fontSize: 18, color: "var(--theme-positive)", fontWeight: "600", margin: 0 }}>
-                ₹
-                {bookings
-                  .filter((b) => b.paymentMethod === "fonepay" && b.paymentStatus === "paid")
-                  .reduce((sum, b) => sum + (b.amountPaid || 0), 0)}
+                {formatNpr(
+                  bookings
+                    .filter((b) => b.paymentMethod === "fonepay" && b.paymentStatus === "paid")
+                    .reduce((sum, b) => sum + (b.amountPaid || 0), 0),
+                  "NPR 0",
+                )}
               </p>
             </div>
             <div>
               <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Cash pending</p>
               <p style={{ fontSize: 18, color: "var(--theme-warning)", fontWeight: "600", margin: 0 }}>
-                ₹
-                {bookings
-                  .filter((b) => b.paymentMethod === "cash" && b.paymentStatus === "pending")
-                  .reduce((sum, b) => sum + (b.totalAmount || 0), 0)}
+                {formatNpr(
+                  bookings
+                    .filter((b) => b.paymentMethod === "cash" && b.paymentStatus === "pending")
+                    .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+                  "NPR 0",
+                )}
               </p>
             </div>
           </div>

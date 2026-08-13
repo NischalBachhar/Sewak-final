@@ -509,7 +509,7 @@ service cloud.firestore {
         (
           (isBookingCustomer() && resource.data.status == 'pending' &&
             request.resource.data.status == 'cancelled' && onlyChanges(['status', 'updatedAt'])) ||
-          (isAssignedCaregiver() && resource.data.status == 'pending' &&
+          (isActiveAssignedCaregiver() && resource.data.status == 'pending' &&
             request.resource.data.status == 'cancelled' && onlyChanges(['status', 'updatedAt'])) ||
           (isActiveAssignedCaregiver() && resource.data.status == 'pending' &&
             request.resource.data.status == 'accepted' &&
@@ -520,7 +520,7 @@ service cloud.firestore {
             onlyChanges(['status', 'careSessionId', 'updatedAt']) &&
             request.resource.data.careSessionId == resource.id &&
             existsAfter(/databases/$(database)/documents/careSessions/$(resource.id))) ||
-          (isAssignedCaregiver() && resource.data.status == 'in_progress' &&
+          (isActiveAssignedCaregiver() && resource.data.status == 'in_progress' &&
             request.resource.data.status == 'completed' && onlyChanges(['status', 'updatedAt']) &&
             getAfter(/databases/$(database)/documents/careSessions/$(resource.id)).data.status == 'completed')
         );
@@ -777,8 +777,12 @@ service cloud.firestore {
 
     match /services/{serviceId} {
       // Administrative service records may include internal creator metadata.
-      // Public browse uses the PII-free publicServices projection below.
-      allow get, list: if signedIn();
+      // Public browse uses the PII-free publicServices projection below. An
+      // active organization may query only its own records; unowned legacy
+      // service records are intentionally visible to super-admins only.
+      allow get, list: if isSuperAdmin() ||
+        (isApprovedOrganizationAdmin() &&
+          resource.data.organizationId == request.auth.uid);
       allow create: if serviceDocumentIsValid(request.resource.data) &&
         (isSuperAdmin() || organizationServiceCreateIsValid());
       allow update: if serviceDocumentIsValid(request.resource.data) &&
@@ -822,8 +826,9 @@ service cloud.firestore {
 
     match /caregiverReports/{reportId} {
       allow get, list: if isSuperAdmin() || (signedIn() && resource.data.reportedBy == request.auth.uid);
-      allow create: if isActiveCaregiver(request.auth.uid) && request.resource.data.reportedBy == request.auth.uid;
-      allow update, delete: if isSuperAdmin();
+      // This legacy collection has no active create flow. Keep it read-only
+      // until reports are moved to a strictly validated booking-linked path.
+      allow create, update, delete: if isSuperAdmin();
     }
 
     match /organizationBlacklist/{blacklistId} {

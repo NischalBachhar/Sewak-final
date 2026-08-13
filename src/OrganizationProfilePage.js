@@ -3,6 +3,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
+import { SkeletonCard } from "./components/CareExperience";
 
 export default function OrganizationProfilePage() {
   const { user, userDoc, refreshUserDoc } = useAuth();
@@ -88,12 +89,9 @@ export default function OrganizationProfilePage() {
     }
   };
 
-  if (loading)
-    return (
-      <p style={{ color: "var(--theme-text-muted)", textAlign: "center", padding: 20 }}>
-        Loading profile...
-      </p>
-    );
+  if (loading) {
+    return <SkeletonCard variant="dashboard" label="Loading organization profile" />;
+  }
 
 
   return (

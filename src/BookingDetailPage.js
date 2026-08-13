@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   collection,
   doc,
@@ -132,12 +132,6 @@ export default function BookingDetailPage() {
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe?.());
   }, [bookingId]);
 
-  const sessionSchedule = useMemo(() => {
-    if (!booking) return {};
-    const start = [booking.date, booking.time].filter(Boolean).join(" ");
-    return { start, end: booking.endTime || "" };
-  }, [booking]);
-
   if (loading) {
     return <main className="booking-detail-page" aria-busy="true"><SkeletonCard /><SkeletonCard /></main>;
   }
@@ -182,8 +176,6 @@ export default function BookingDetailPage() {
               service={booking.serviceLabel}
               checkedInAt={readTimestamp(session.actualCheckIn)}
               checkedOutAt={readTimestamp(session.actualCheckOut)}
-              scheduledStart={sessionSchedule.start}
-              scheduledEnd={sessionSchedule.end}
               tasks={tasks}
               updates={updates}
               showTaskEmptyState

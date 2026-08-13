@@ -15,6 +15,13 @@ const STEP_COPY = [
 
 const serviceLabel = (service) => String(service || "Care support").replace(/_/g, " ");
 
+const localDateKey = (value = new Date()) => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function BookingFormPage({ caregiver, onBooked }) {
   const { user, userDoc } = useAuth();
   const [step, setStep] = useState(0);
@@ -46,6 +53,7 @@ export default function BookingFormPage({ caregiver, onBooked }) {
   const validateCurrentStep = () => {
     if (step === 0 && !careRecipient.trim()) return "Tell us who needs care before continuing.";
     if (step === 1 && (!date || !time || !Number(durationHours))) return "Add the date, start time, and duration for care.";
+    if (step === 1 && date < localDateKey()) return "Choose today or a future date for care.";
     if (step === 2 && (!fullName.trim() || !phone.trim() || !address.trim() || !city.trim())) return "Add your contact and location details before continuing.";
     return "";
   };
@@ -182,7 +190,7 @@ export default function BookingFormPage({ caregiver, onBooked }) {
         <h2>When is care needed?</h2>
         <p>Choose a schedule that the caregiver can review before accepting.</p>
         <div className="booking-form-grid">
-          <label>Date *<input type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(event) => setDate(event.target.value)} /></label>
+          <label>Date *<input type="date" value={date} min={localDateKey()} onChange={(event) => setDate(event.target.value)} /></label>
           <label>Start time *<input type="time" value={time} onChange={(event) => setTime(event.target.value)} /></label>
           <label>Duration (hours) *<input type="number" min="1" max="24" value={durationHours} onChange={(event) => setDurationHours(event.target.value)} /></label>
           <label>Frequency<select value={recurrence} onChange={(event) => setRecurrence(event.target.value)}><option value="one_time">One-time care</option><option value="recurring">Recurring care (confirm with caregiver)</option></select></label>

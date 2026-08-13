@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { db } from "./firebaseConfig";
 import { hasVerifiedRating } from "./bookingModel";
-import { VerificationBadge } from "./components/CareExperience";
+import { formatNpr } from "./config/brand";
+import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
 
 const SHIFTS = ["morning", "day", "night"];
 
@@ -149,7 +150,7 @@ function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, req
       <div className="browse-caregiver-card__footer">
         <div className={`browse-price${caregiver.hourlyRate ? "" : " browse-price--unlisted"}`}>
           <small>{caregiver.hourlyRate ? "Starting at" : "Rate"}</small>
-          <strong>{caregiver.hourlyRate ? `₹${caregiver.hourlyRate}/hour` : "On request"}</strong>
+          <strong>{caregiver.hourlyRate ? `${formatNpr(caregiver.hourlyRate)}/hour` : "On request"}</strong>
         </div>
         <div className="browse-card-actions">
           <button
@@ -431,7 +432,7 @@ function CaregiverCard({ caregiver, services, onSelect, onViewProfile, requireLo
       {/* Pricing */}
       {caregiver.hourlyRate && (
         <div className="price-chip">
-          💰 ₹{caregiver.hourlyRate}/hour
+          💰 {formatNpr(caregiver.hourlyRate)}/hour
         </div>
       )}
 
@@ -494,6 +495,8 @@ export default function CaregiverListPage({
   const [minimumRating, setMinimumRating] = useState("");
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [services, setServices] = useState([]);
+  const filterToggleRef = useRef(null);
+  const filterSheetRef = useRef(null);
   const isBrowse = variant === "browse";
 
   useEffect(() => {
@@ -503,6 +506,64 @@ export default function CaregiverListPage({
   useEffect(() => {
     setShiftFilter(preselectedShift || "");
   }, [preselectedShift]);
+
+  useEffect(() => {
+    if (!filterSheetOpen) return undefined;
+
+    const previousFocusedElement = document.activeElement;
+    const filterTrigger = filterToggleRef.current;
+    const focusableSelector = [
+      "button:not([disabled])",
+      "input:not([disabled])",
+      "select:not([disabled])",
+      "textarea:not([disabled])",
+      "a[href]",
+    ].join(",");
+    const focusDialog = () => {
+      const firstFocusable = filterSheetRef.current?.querySelector(focusableSelector);
+      (firstFocusable || filterSheetRef.current)?.focus();
+    };
+    const focusTimer = window.setTimeout(focusDialog, 0);
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setFilterSheetOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab" || !filterSheetRef.current) return;
+      const focusable = Array.from(
+        filterSheetRef.current.querySelectorAll(focusableSelector),
+      );
+      if (!focusable.length) {
+        event.preventDefault();
+        filterSheetRef.current.focus();
+        return;
+      }
+
+      const firstFocusable = focusable[0];
+      const lastFocusable = focusable[focusable.length - 1];
+      const containsFocus = filterSheetRef.current.contains(document.activeElement);
+      if (event.shiftKey && (!containsFocus || document.activeElement === firstFocusable)) {
+        event.preventDefault();
+        lastFocusable.focus();
+      } else if (!event.shiftKey && (!containsFocus || document.activeElement === lastFocusable)) {
+        event.preventDefault();
+        firstFocusable.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", handleKeyDown);
+      const focusTarget =
+        previousFocusedElement && typeof previousFocusedElement.focus === "function"
+          ? previousFocusedElement
+          : filterTrigger;
+      focusTarget?.focus?.();
+    };
+  }, [filterSheetOpen]);
 
   // Load caregivers (approved + not suspended)
   useEffect(() => {
@@ -606,20 +667,28 @@ export default function CaregiverListPage({
   if (loading) {
     if (isBrowse) {
       return (
-        <section className="browse-list" aria-live="polite">
-          <div className="browse-load-state">
-            <span className="browse-load-state__spinner" aria-hidden="true" />
-            <h3>Finding available caregivers</h3>
-            <p>We&apos;re loading the latest profiles for you.</p>
+        <section
+          className="browse-list"
+          aria-busy="true"
+          aria-label="Loading caregiver profiles"
+        >
+          <div className="browse-caregiver-grid">
+            {[0, 1, 2, 3].map((index) => (
+              <SkeletonCard
+                key={index}
+                variant="caregiver"
+                label="Loading caregiver profile"
+              />
+            ))}
           </div>
         </section>
       );
     }
 
     return (
-      <p style={{ textAlign: "center", color: "var(--theme-text-muted)", marginTop: 20 }}>
-        Loading caregivers...
-      </p>
+      <div aria-busy="true" aria-label="Loading caregiver profiles">
+        <SkeletonCard variant="caregiver" label="Loading caregiver profile" />
+      </div>
     );
   }
 
@@ -705,6 +774,7 @@ export default function CaregiverListPage({
 
         <button
           type="button"
+          ref={filterToggleRef}
           className="browse-mobile-filter-toggle"
           onClick={() => setFilterSheetOpen(true)}
           aria-haspopup="dialog"
@@ -880,7 +950,7 @@ export default function CaregiverListPage({
 
         {filterSheetOpen ? (
           <div className="browse-filter-sheet-backdrop" role="presentation" onMouseDown={() => setFilterSheetOpen(false)}>
-            <section className="browse-filter-sheet" role="dialog" aria-modal="true" aria-label="Caregiver filters" onMouseDown={(event) => event.stopPropagation()}>
+            <section ref={filterSheetRef} className="browse-filter-sheet" role="dialog" aria-modal="true" aria-label="Caregiver filters" tabIndex="-1" onMouseDown={(event) => event.stopPropagation()}>
               <div className="browse-filter-sheet__heading"><h2>Filters</h2><button type="button" onClick={() => setFilterSheetOpen(false)} aria-label="Close filters">Close</button></div>
               <label>Service<select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}><option value="">Any service</option>{visibleServices.map((service) => <option key={service.id} value={service.id}>{service.label || service.serviceName}</option>)}</select></label>
               <label>Location<input value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} placeholder="City or area" /></label>

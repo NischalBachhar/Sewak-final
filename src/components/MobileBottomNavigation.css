@@ -1,5 +1,10 @@
 .mobile-bottom-navigation { display: none; }
 @media (max-width: 760px) {
+  #root.has-mobile-bottom-navigation {
+    /* Keep the final action on every signed-in route above the fixed bar. */
+    padding-bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+
   .mobile-bottom-navigation {
     position: fixed;
     z-index: 70;
@@ -7,7 +12,7 @@
     bottom: 0;
     left: 0;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(var(--mobile-navigation-items, 3), minmax(0, 1fr));
     min-height: 62px;
     padding-bottom: env(safe-area-inset-bottom);
     border-top: 1px solid rgba(15,118,110,.16);

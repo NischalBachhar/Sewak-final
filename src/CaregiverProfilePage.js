@@ -3,6 +3,7 @@ import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
 import { collection, getDocs } from "firebase/firestore";
+import { SkeletonCard } from "./components/CareExperience";
 
 const SHIFT_OPTIONS = ["morning", "day", "night"];
 
@@ -146,12 +147,9 @@ export default function CaregiverProfilePage() {
     }
   };
 
-  if (loading)
-    return (
-      <p style={{ color: "black", textAlign: "center", padding: 20 }}>
-        Loading profile...
-      </p>
-    );
+  if (loading) {
+    return <SkeletonCard variant="dashboard" label="Loading caregiver profile" />;
+  }
 
   return (
     <div>
@@ -207,7 +205,7 @@ export default function CaregiverProfilePage() {
           rows={4}
         />
 
-        <label>Hourly rate (₹)</label>
+        <label>Hourly rate (NPR)</label>
         <input
           type="number"
           value={hourlyRate}
@@ -430,4 +428,3 @@ export default function CaregiverProfilePage() {
     </div>
   );
 }
-

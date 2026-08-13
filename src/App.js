@@ -13,12 +13,14 @@ import BookingDetailPage from "./BookingDetailPage";
 import PublicCaregiverProfilePage from "./PublicCaregiverProfilePage";
 import PaymentCallbackPage from "./PaymentCallbackPage";
 import MyBookingsPage from "./MyBookingsPage";
+import CustomerHomePage from "./CustomerHomePage";
 import AdminDashboardPage from "./AdminDashboardPage";
 import OrganizationDashboard from "./OrganizationDashboard";
 import CaregiverReportUserPage from "./CaregiverReportUserPage";
 import BrowsePage from "./BrowsePage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
+import { SkeletonCard } from "./components/CareExperience";
 import { auth, db } from "./firebaseConfig";
 import "./App.css";
 
@@ -138,12 +140,13 @@ function App() {
         );
       }
     } else if (userRole === "user") {
-      if (userDoc?.profileComplete && path === "/user/profile") {
-        navigate("/user", { replace: true });
-      } else if (!userDoc?.profileComplete && (path === "/user" || path === "/user/")) {
+      if (!userDoc?.profileComplete && (path === "/user" || path === "/user/")) {
         navigate("/user/profile", { replace: true });
       } else if (path === "/" || path === "/browse" || path === "/auth") {
-        navigate("/user/profile", { replace: true });
+        navigate(
+          userDoc?.profileComplete ? "/user" : "/user/profile",
+          { replace: true },
+        );
       }
     }
   }, [user, userRole, userDoc?.profileComplete, navigate]);
@@ -173,17 +176,59 @@ function App() {
 
   if (loading) {
     return (
-      <div className="centered-message">
-        <p>Loading...</p>
-      </div>
+      <main
+        className="app-shell"
+        aria-label="Loading Sewak"
+        style={{ alignItems: "stretch", padding: "20px" }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 1040,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {[0, 1, 2].map((index) => (
+            <SkeletonCard
+              key={index}
+              variant="dashboard"
+              label="Loading your Sewak dashboard"
+            />
+          ))}
+        </div>
+      </main>
     );
   }
 
   if (user && !userRole) {
     return (
-      <div className="centered-message">
-        <p>Loading your dashboard...</p>
-      </div>
+      <main
+        className="app-shell"
+        aria-label="Loading your dashboard"
+        style={{ alignItems: "stretch", padding: "20px" }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 720,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {[0, 1].map((index) => (
+            <SkeletonCard
+              key={index}
+              variant="dashboard"
+              label="Loading your dashboard"
+            />
+          ))}
+        </div>
+      </main>
     );
   }
 
@@ -266,6 +311,16 @@ function App() {
 
         {userRole === "user" && (
           <>
+            <Route
+              path="/user/home"
+              element={
+                <div className="app-shell app-shell--compact">
+                  <div className="app-card app-card--compact">
+                    <CustomerHomePage />
+                  </div>
+                </div>
+              }
+            />
             <Route path="/user/profile" element={<UserProfilePage />} />
             <Route
               path="/user/caregivers/:caregiverId"
@@ -294,91 +349,8 @@ function App() {
               element={
                 <div className="app-shell">
                   <div className="app-card">
-                    <div className="choice-group">
-                      <h3>What do you need help with?</h3>
-                      <div className="choice-buttons">
-                        <button
-                          type="button"
-                          className={`choice-btn ${
-                            userCategory === "both" ? "active" : ""
-                          }`}
-                          onClick={() => setUserCategory("both")}
-                        >
-                          👥 Both
-                        </button>
-                        <button
-                          type="button"
-                          className={`choice-btn ${
-                            userCategory === "caregiver" ? "active" : ""
-                          }`}
-                          onClick={() => setUserCategory("caregiver")}
-                        >
-                          🏥 Care Giver
-                        </button>
-                        <button
-                          type="button"
-                          className={`choice-btn ${
-                            userCategory === "household" ? "active" : ""
-                          }`}
-                          onClick={() => setUserCategory("household")}
-                        >
-                          🏠 Household
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="choice-group">
-                      <h4>Work type</h4>
-                      <div className="choice-buttons">
-                        <button
-                          type="button"
-                          className={`choice-btn ${
-                            userWorkType === "fulltime" ? "active" : ""
-                          }`}
-                          onClick={() => {
-                            setUserWorkType("fulltime");
-                            setUserShift("");
-                          }}
-                        >
-                          💼 Full time
-                        </button>
-                        <button
-                          type="button"
-                          className={`choice-btn ${
-                            userWorkType === "parttime" ? "active" : ""
-                          }`}
-                          onClick={() => setUserWorkType("parttime")}
-                        >
-                          ⏰ Part time
-                        </button>
-                      </div>
-                    </div>
-
-                    {userWorkType === "parttime" && (
-                      <div className="choice-group">
-                        <h4>Preferred shift</h4>
-                        <div className="choice-buttons">
-                          {["morning", "day", "night"].map((shift) => (
-                            <button
-                              key={shift}
-                              type="button"
-                              className={`choice-btn ${
-                                userShift === shift ? "active" : ""
-                              }`}
-                              onClick={() => setUserShift(shift)}
-                            >
-                              {shift === "morning"
-                                ? "🌅 Morning"
-                                : shift === "day"
-                                  ? "☀️ Day"
-                                  : "🌙 Night"}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     <CaregiverListPage
+                      variant="browse"
                       onSelectCaregiver={(caregiver) =>
                         navigate(`/user/book/${caregiver.id}`)
                       }

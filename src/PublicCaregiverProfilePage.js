@@ -125,7 +125,11 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
     .toUpperCase();
 
   return (
-    <main className="caregiver-profile-page">
+    <main
+      className={`caregiver-profile-page${
+        signedIn ? " caregiver-profile-page--with-mobile-nav" : ""
+      }`}
+    >
       <button className="caregiver-profile-page__back" type="button" onClick={() => navigate(-1)}>
         Back to results
       </button>

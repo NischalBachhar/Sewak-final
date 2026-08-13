@@ -69,12 +69,6 @@ export default function OrganizationDashboard() {
 
   // Blacklist
   const [orgBlacklist, setOrgBlacklist] = useState([]);
-  const [showBlacklistForm, setShowBlacklistForm] = useState(false);
-  const [selectedCaregiverToBlacklist, setSelectedCaregiverToBlacklist] =
-    useState(null);
-  const [blacklistReason, setBlacklistReason] = useState("");
-  const [blacklistDescription, setBlacklistDescription] = useState("");
-  const [blacklisting, setBlacklisting] = useState(false);
 
   // Org profile editing
   const [editingProfile, setEditingProfile] = useState(false);
@@ -139,8 +133,15 @@ export default function OrganizationDashboard() {
           setBookings([]);
         }
 
-        // Services
-        const servicesSnap = await getDocs(collection(db, "services"));
+        // Administrative service records are private. Restrict this dashboard
+        // query to the signed-in organization's own records; public browse
+        // reads the PII-free publicServices projection instead.
+        const servicesSnap = await getDocs(
+          query(
+            collection(db, "services"),
+            where("organizationId", "==", user.uid),
+          ),
+        );
         const servicesData = servicesSnap.docs.map((d) => ({
           id: d.id,
           ...d.data(),
@@ -230,12 +231,6 @@ export default function OrganizationDashboard() {
     }
   };
 
-  // Auth accounts and role claims must be revoked together by a trusted server
-  // operation. A browser must not delete only the visible Firestore documents.
-  const handleDeleteCaregiver = (caregiverNameToShow) => {
-    setError(`Removal for ${caregiverNameToShow} requires a secure operations request so the authentication account, claim, and care records stay consistent.`);
-  };
-
   // Add service
   const handleAddService = async (e) => {
     e.preventDefault();
@@ -265,7 +260,12 @@ export default function OrganizationDashboard() {
       setNewServiceCategory("caregiver");
       setShowAddServiceModal(false);
 
-      const servicesSnap = await getDocs(collection(db, "services"));
+      const servicesSnap = await getDocs(
+        query(
+          collection(db, "services"),
+          where("organizationId", "==", user.uid),
+        ),
+      );
       const servicesData = servicesSnap.docs.map((d) => ({
         id: d.id,
         ...d.data(),
@@ -301,7 +301,12 @@ export default function OrganizationDashboard() {
       setEditServiceLabel("");
       setEditServiceCategory("caregiver");
 
-      const servicesSnap = await getDocs(collection(db, "services"));
+      const servicesSnap = await getDocs(
+        query(
+          collection(db, "services"),
+          where("organizationId", "==", user.uid),
+        ),
+      );
       const servicesData = servicesSnap.docs.map((d) => ({
         id: d.id,
         ...d.data(),
@@ -320,7 +325,12 @@ export default function OrganizationDashboard() {
     try {
       await deleteDoc(doc(db, "services", serviceId));
       alert("Service deleted!");
-      const servicesSnap = await getDocs(collection(db, "services"));
+      const servicesSnap = await getDocs(
+        query(
+          collection(db, "services"),
+          where("organizationId", "==", user.uid),
+        ),
+      );
       const servicesData = servicesSnap.docs.map((d) => ({
         id: d.id,
         ...d.data(),
@@ -330,28 +340,6 @@ export default function OrganizationDashboard() {
       console.error("Error deleting service", err);
       alert("Could not delete service.");
     }
-  };
-
-  // Blacklist
-  const openBlacklistForm = (caregiver) => {
-    setError(
-      `A safety review for ${caregiver.name || "this caregiver"} must be submitted through a trusted server workflow. No report, blacklist entry, or account status was changed.`,
-    );
-  };
-
-  const handleBlacklistCaregiver = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (!blacklistReason || !blacklistDescription.trim()) {
-      setError("Please provide reason and description.");
-      return;
-    }
-    setBlacklisting(false);
-    setError("A caregiver suspension must be reviewed and applied by a trusted server operation. No blacklist or account status was changed.");
-  };
-
-  const handleRemoveFromBlacklist = () => {
-    setError("Reinstatement must be completed by a trusted server operation so account status and audit records stay consistent.");
   };
 
   // UI helpers
@@ -933,33 +921,9 @@ export default function OrganizationDashboard() {
                       </span>
                     </div>
 
-                    {caregiver.isApproved && !isBlacklisted && (
-                      <button
-                        className="btn btn-outline"
-                        onClick={() => openBlacklistForm(caregiver)}
-                        style={{
-                          flex: 1,
-                          background: "var(--theme-danger)",
-                          color: "var(--theme-button-text)",
-                          border: "1px solid var(--theme-danger-dark)",
-                        }}
-                      >
-                        Safety workflow required
-                      </button>
-                    )}
-
-                    <button
-                      className="btn btn-outline"
-                      onClick={() => handleDeleteCaregiver(caregiver.name || "this caregiver")}
-                      style={{
-                        flex: 1,
-                        background: "var(--theme-danger)",
-                        color: "var(--theme-button-text)",
-                        border: "1px solid var(--theme-danger-dark)",
-                      }}
-                    >
-                      Request removal
-                    </button>
+                    <p style={{ color: "var(--theme-text-muted)", flexBasis: "100%", fontSize: 12, lineHeight: 1.45, margin: "4px 0 0" }}>
+                      Safety actions and account removal are handled by Sewak operations so access, care records, and audit history stay consistent.
+                    </p>
                   </div>
                 </div>
               );
@@ -1052,7 +1016,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1081,7 +1045,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1114,7 +1078,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1142,7 +1106,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1169,7 +1133,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     >
@@ -1423,7 +1387,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1454,7 +1418,7 @@ export default function OrganizationDashboard() {
                         borderRadius: 6,
                         border: "1px solid var(--theme-text)",
                         background: "var(--theme-surface)",
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 13,
                       }}
                     />
@@ -1505,7 +1469,7 @@ export default function OrganizationDashboard() {
                   <div>
                     <strong
                       style={{
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 16,
                       }}
                     >
@@ -1557,7 +1521,7 @@ export default function OrganizationDashboard() {
                     paddingTop: 12,
                     borderTop: "1px solid var(--theme-text)",
                     fontSize: 13,
-                    color: "var(--theme-button-text)",
+                    color: "var(--theme-text)",
                   }}
                 >
                   <p style={{ margin: "0 0 6px 0" }}>
@@ -1953,7 +1917,7 @@ export default function OrganizationDashboard() {
                   <div>
                     <strong
                       style={{
-                        color: "var(--theme-button-text)",
+                        color: "var(--theme-text)",
                         fontSize: 16,
                       }}
                     >
@@ -2009,7 +1973,7 @@ export default function OrganizationDashboard() {
                     paddingTop: 12,
                     borderTop: "1px solid var(--theme-text)",
                     fontSize: 13,
-                    color: "var(--theme-button-text)",
+                    color: "var(--theme-text)",
                   }}
                 >
                   <p style={{ margin: "0 0 6px 0" }}>
@@ -2029,23 +1993,9 @@ export default function OrganizationDashboard() {
                   </p>
                 </div>
 
-                <button
-                  className="btn btn-outline"
-                  onClick={() =>
-                    handleRemoveFromBlacklist(
-                      blacklisted.id,
-                      blacklisted.caregiverId,
-                    )
-                  }
-                  style={{
-                    marginTop: 12,
-                    background: "var(--theme-surface)",
-                    color: "var(--theme-button-text)",
-                    border: "1px solid var(--theme-text)",
-                  }}
-                >
-                  Reinstatement workflow required
-                </button>
+                <p style={{ color: "var(--theme-text-muted)", fontSize: 12, lineHeight: 1.45, margin: "12px 0 0" }}>
+                  Reinstatement is handled by Sewak operations together with the relevant account and audit updates.
+                </p>
               </div>
             ))
           )}
@@ -2362,139 +2312,6 @@ export default function OrganizationDashboard() {
         </div>
       )}
 
-      {/* Blacklist modal */}
-      {showBlacklistForm && selectedCaregiverToBlacklist && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
-        >
-          <div
-            style={{
-              background: "var(--theme-surface)",
-              borderRadius: 8,
-              padding: 24,
-              maxWidth: 500,
-              width: "90%",
-              boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
-              border: "1px solid var(--theme-text)",
-              maxHeight: "90vh",
-              overflowY: "auto",
-            }}
-          >
-            <h3
-              style={{
-                marginTop: 0,
-                marginBottom: 8,
-                color: "var(--theme-danger-soft)",
-              }}
-            >
-              Blacklist Caregiver
-            </h3>
-            <p
-              style={{
-                fontSize: 14,
-                color: "var(--theme-button-text)",
-                marginBottom: 16,
-              }}
-            >
-              Blacklist <strong>{selectedCaregiverToBlacklist.name}</strong>?
-            </p>
-            <div
-              style={{
-                background: "var(--theme-warning-soft)",
-                color: "var(--theme-warning)",
-                padding: 12,
-                borderRadius: 8,
-                fontSize: 12,
-                marginBottom: 16,
-                border: "1px solid var(--theme-warning)",
-              }}
-            >
-              <strong>Warning:</strong> This will suspend the caregiver and
-              prevent them from receiving new jobs. Use only for serious
-              violations.
-            </div>
-            <form onSubmit={handleBlacklistCaregiver} className="form">
-              <label>Reason</label>
-              <select
-                className="dropdown-select"
-                value={blacklistReason}
-                onChange={(e) => setBlacklistReason(e.target.value)}
-                required
-              >
-                <option value="">Select a reason</option>
-                <option value="Unprofessional behavior">
-                  Unprofessional behavior
-                </option>
-                <option value="Poor performance">Poor performance</option>
-                <option value="Frequent absences">Frequent absences</option>
-                <option value="Customer complaints">Customer complaints</option>
-                <option value="Violation of policy">Violation of policy</option>
-                <option value="Theft or fraud">Theft or fraud</option>
-                <option value="Safety concerns">Safety concerns</option>
-                <option value="Other">Other</option>
-              </select>
-
-              <label>Description</label>
-              <textarea
-                value={blacklistDescription}
-                onChange={(e) => setBlacklistDescription(e.target.value)}
-                required
-                placeholder="Provide detailed information about the issue..."
-                rows={4}
-              />
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  marginTop: 16,
-                }}
-              >
-                <button
-                  type="submit"
-                  className="btn"
-                  disabled={blacklisting}
-                  style={{
-                    flex: 1,
-                    background: "var(--theme-danger)",
-                    color: "var(--theme-button-text)",
-                    border: "none",
-                  }}
-                >
-                  {blacklisting ? "Blacklisting..." : "Blacklist Caregiver"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => {
-                    setShowBlacklistForm(false);
-                    setSelectedCaregiverToBlacklist(null);
-                    setBlacklistReason("");
-                    setBlacklistDescription("");
-                    setError("");
-                  }}
-                  style={{
-                    flex: 1,
-                    background: "var(--theme-surface)",
-                    color: "var(--theme-button-text)",
-                    border: "1px solid var(--theme-text)",
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   </div>
   );

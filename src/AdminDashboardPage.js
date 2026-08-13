@@ -20,6 +20,8 @@ import {
 import { httpsCallable } from "firebase/functions";
 import { db, auth, functions } from "./firebaseConfig";
 import { normalizeBooking } from "./bookingModel";
+import { formatNpr } from "./config/brand";
+import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
 
 const dashboardTabs = [
@@ -32,6 +34,83 @@ const dashboardTabs = [
   "admins",
   "analytics",
 ];
+
+const caregiverVerificationFields = [
+  {
+    key: "identity",
+    label: "Identity",
+    statusKey: "identityVerificationStatus",
+    fallbackBooleanKey: "verified",
+  },
+  {
+    key: "phone",
+    label: "Phone",
+    statusKey: "phoneVerificationStatus",
+  },
+  {
+    key: "training",
+    label: "Training",
+    statusKey: "trainingVerificationStatus",
+    fallbackBooleanKey: "isCertified",
+  },
+  {
+    key: "background",
+    label: "Background",
+    statusKey: "backgroundVerificationStatus",
+    fallbackBooleanKey: "backgroundChecked",
+  },
+  {
+    key: "references",
+    label: "References",
+    statusKey: "referencesVerificationStatus",
+  },
+];
+
+function getCaregiverVerificationItems(caregiver) {
+  return caregiverVerificationFields.map((field) => {
+    const status = caregiver[field.statusKey];
+    const fallback = field.fallbackBooleanKey
+      ? caregiver[field.fallbackBooleanKey]
+      : undefined;
+
+    return {
+      key: field.key,
+      label: field.label,
+      state:
+        status !== undefined && status !== null && status !== ""
+          ? status
+          : typeof fallback === "boolean"
+            ? fallback
+            : undefined,
+    };
+  });
+}
+
+function DashboardLoadingState({ label, cards = 3 }) {
+  return (
+    <section aria-busy="true" aria-live="polite" style={{ padding: "8px 0" }}>
+      <p style={{ color: "var(--theme-text-muted)", margin: "0 0 14px" }}>
+        {label}
+      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: "16px",
+        }}
+      >
+        {Array.from({ length: cards }, (_, index) => (
+          <SkeletonCard
+            key={index}
+            variant="dashboard"
+            lines={3}
+            label={label}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function AdminDashboardPage() {
   // ============ AUTH STATE ============
@@ -905,10 +984,9 @@ export default function AdminDashboardPage() {
   // ============ UI: LOADING / PERMISSIONS ============
   if (loadingAuth) {
     return (
-      <div style={{ padding: "40px", textAlign: "center" }}>
-        <h2>Loading...</h2>
-        <p>Verifying permissions...</p>
-      </div>
+      <main style={{ padding: "40px", maxWidth: "980px", margin: "0 auto" }}>
+        <DashboardLoadingState label="Verifying permissions…" />
+      </main>
     );
   }
 
@@ -1253,7 +1331,7 @@ export default function AdminDashboardPage() {
           )}
 
           {loadingOrganizations ? (
-            <p>Loading organizations...</p>
+            <DashboardLoadingState label="Loading organizations…" />
           ) : (
             <div>
               <div
@@ -2294,7 +2372,7 @@ export default function AdminDashboardPage() {
       {activeTab === "caregivers" && (
         <div>
           {loadingVendors ? (
-            <p>Loading caregivers...</p>
+            <DashboardLoadingState label="Loading caregivers…" />
           ) : (
             <div>
               <div
@@ -2368,7 +2446,8 @@ export default function AdminDashboardPage() {
                         <strong>Location:</strong> {vendor.location}
                       </p>
                       <p>
-                        <strong>Hourly Rate:</strong> Rs. {vendor.hourlyRate}
+                        <strong>Hourly Rate:</strong>{" "}
+                        {formatNpr(vendor.hourlyRate, "Rate not set")}
                       </p>
                       <p>
                         <strong>Work Type:</strong> {vendor.workType}
@@ -2380,6 +2459,64 @@ export default function AdminDashboardPage() {
                         <strong>Status:</strong>{" "}
                         {vendor.isApproved ? "✅ Approved" : "⏳ Pending"}
                       </p>
+                      <section
+                        aria-label="Caregiver verification records"
+                        style={{
+                          marginTop: "14px",
+                          paddingTop: "12px",
+                          borderTop: "1px solid var(--theme-border)",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: "0 0 8px",
+                            color: "var(--theme-text-muted)",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            letterSpacing: "0.04em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Verification records
+                        </p>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "8px",
+                          }}
+                        >
+                          {getCaregiverVerificationItems(vendor).map((item) => (
+                            <div
+                              key={item.key}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: "var(--theme-text-muted)",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                {item.label}
+                              </span>
+                              <VerificationBadge state={item.state} compact />
+                            </div>
+                          ))}
+                        </div>
+                        <p
+                          style={{
+                            margin: "10px 0 0",
+                            color: "var(--theme-text-muted)",
+                            fontSize: "12px",
+                          }}
+                        >
+                          Marketplace approval is reviewed separately from these checks.
+                        </p>
+                      </section>
                       <div
                         style={{
                           marginTop: 10,
@@ -2483,7 +2620,7 @@ export default function AdminDashboardPage() {
       {activeTab === "bookings" && (
         <div>
           {loadingBookings ? (
-            <p>Loading bookings...</p>
+            <DashboardLoadingState label="Loading bookings…" />
           ) : (
             <div>
               <div
@@ -2536,7 +2673,7 @@ export default function AdminDashboardPage() {
                       (bookingStatusFilter === "" ||
                         booking.status === bookingStatusFilter) &&
                       (bookingDateFilter === "" ||
-                        booking.bookingDate?.includes(bookingDateFilter)),
+                        booking.date?.includes(bookingDateFilter)),
                   )
                   .map((booking) => (
                     <div
@@ -2553,7 +2690,7 @@ export default function AdminDashboardPage() {
                               ? "var(--theme-danger)"
                               : booking.status === "in_progress"
                                 ? "var(--theme-help)"
-                                : booking.status === "confirmed"
+                                : booking.status === "accepted"
                                   ? "var(--theme-warning)"
                                   : "var(--theme-text-muted)"
                         }`,
@@ -2564,21 +2701,22 @@ export default function AdminDashboardPage() {
                         <strong>User:</strong> {booking.userName}
                       </p>
                       <p>
-                        <strong>Caregiver:</strong> {booking.vendorName}
+                        <strong>Caregiver:</strong> {booking.caregiverName}
                       </p>
                       <p>
-                        <strong>Date:</strong> {booking.bookingDate}
+                        <strong>Date:</strong> {booking.date || "To be confirmed"}
                       </p>
                       <p>
-                        <strong>Time:</strong> {booking.startTime || "To be confirmed"}
+                        <strong>Time:</strong> {booking.time || "To be confirmed"}
                         {booking.endTime ? ` - ${booking.endTime}` : booking.durationHours ? ` (${booking.durationHours} hours)` : ""}
                       </p>
                       <p>
-                        <strong>Amount:</strong> Rs. {booking.totalAmount}
+                        <strong>Amount:</strong>{" "}
+                        {formatNpr(booking.totalAmount, "Amount unavailable")}
                       </p>
                       <p>
-                        <strong>Platform Commission:</strong> Rs.{" "}
-                        {booking.platformCommission}
+                        <strong>Platform Commission:</strong>{" "}
+                        {formatNpr(booking.platformCommission, "NPR 0")}
                       </p>
                       <p>
                         <strong>Status:</strong>{" "}
@@ -2851,7 +2989,7 @@ export default function AdminDashboardPage() {
                     type="email"
                     value={newSuperAdminEmail}
                     onChange={(e) => setNewSuperAdminEmail(e.target.value)}
-                    placeholder="admin@gharsathi.com"
+                    placeholder="admin@sewak.example"
                     required
                     style={{
                       width: "100%",
