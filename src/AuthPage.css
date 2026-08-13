@@ -190,6 +190,33 @@
   box-shadow: 0 12px 24px rgba(140, 94, 45, 0.22);
 }
 
+/* The auth call to action must remain distinct even if a runtime theme value
+   is unavailable. These fixed, dark browns keep white text at strong contrast. */
+.auth-card .auth-submit {
+  min-height: 44px;
+  background: linear-gradient(135deg, #6f421d 0%, #3d210d 100%);
+  border: 1px solid #3d210d;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(61, 33, 13, 0.22);
+}
+
+.auth-card .auth-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5d3515 0%, #2f1809 100%);
+  border-color: #2f1809;
+}
+
+.auth-card .auth-submit:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+
+.auth-card .auth-submit:disabled {
+  background: #765232;
+  border-color: #765232;
+  color: #ffffff;
+  opacity: 1;
+}
+
 /* Toggle */
 
 .auth-toggle {

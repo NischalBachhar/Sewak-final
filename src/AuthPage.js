@@ -4,6 +4,46 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 import "./AuthPage.css";
 
+const GENERIC_SIGN_IN_ERROR =
+  "The email or password is incorrect. Please try again.";
+
+const getAuthErrorMessage = (errorCode, mode) => {
+  if (errorCode === "auth/invalid-email") {
+    return "Please enter a valid email address.";
+  }
+
+  // Firebase intentionally returns a single invalid-credential code for many
+  // email/password failures. Keep the older variants generic too so the sign-in
+  // screen never reveals whether an account exists.
+  if (
+    mode === "login" &&
+    [
+      "auth/invalid-credential",
+      "auth/invalid-login-credentials",
+      "auth/user-not-found",
+      "auth/wrong-password",
+    ].includes(errorCode)
+  ) {
+    return GENERIC_SIGN_IN_ERROR;
+  }
+
+  if (errorCode === "auth/email-already-in-use") {
+    return "This email is already registered. Please log in.";
+  }
+
+  if (errorCode === "auth/weak-password") {
+    return "Password must be at least 6 characters long.";
+  }
+
+  if (errorCode === "auth/too-many-requests") {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+
+  return mode === "login"
+    ? "We couldn't sign you in right now. Please try again."
+    : "We couldn't create your account right now. Please try again.";
+};
+
 export default function AuthPage() {
   const [mode, setMode] = useState("login");
   const [fullName, setFullName] = useState("");
@@ -105,20 +145,7 @@ export default function AuthPage() {
       }
     } catch (err) {
       console.error("Auth error:", err);
-
-      if (err.code === "auth/email-already-in-use") {
-        setError("This email is already registered. Please log in.");
-      } else if (err.code === "auth/weak-password") {
-        setError("Password must be at least 6 characters long.");
-      } else if (err.code === "auth/invalid-email") {
-        setError("Please enter a valid email address.");
-      } else if (err.code === "auth/user-not-found") {
-        setError("No account found. Please sign up first.");
-      } else if (err.code === "auth/wrong-password") {
-        setError("Incorrect password.");
-      } else {
-        setError(err.message || "Something went wrong.");
-      }
+      setError(getAuthErrorMessage(err?.code, mode));
     } finally {
       setLoading(false);
     }
@@ -147,7 +174,7 @@ export default function AuthPage() {
             : "Join Sewak as a customer or partner organization."}
         </p>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message" role="alert">{error}</div>}
         {success && <div className="success-message">{success}</div>}
 
         <form className="form" onSubmit={handleSubmit}>
@@ -241,7 +268,7 @@ export default function AuthPage() {
 
           <button
             type="submit"
-            className="btn btn-primary"
+            className="btn btn-primary auth-submit"
             disabled={loading}
           >
             {loading

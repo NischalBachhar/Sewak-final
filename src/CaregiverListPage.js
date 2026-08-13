@@ -583,7 +583,11 @@ export default function CaregiverListPage({
         setCaregivers(docs);
       } catch (err) {
         console.error("Error loading caregivers:", err);
-        setError("We couldn't load caregiver profiles just now.");
+        setError(
+          err?.code === "permission-denied"
+            ? "Caregiver profiles are temporarily unavailable while access is being updated. Please try again shortly."
+            : "We couldn't load caregiver profiles just now. Please try again shortly.",
+        );
       } finally {
         setLoading(false);
       }
@@ -699,7 +703,7 @@ export default function CaregiverListPage({
           <div className="browse-load-state">
             <div className="browse-empty-state__icon" aria-hidden="true">!</div>
             <h3>We couldn&apos;t load caregivers</h3>
-            <p>{error} Please check your connection and try again.</p>
+            <p>{error}</p>
             <button
               type="button"
               className="browse-retry-button"
