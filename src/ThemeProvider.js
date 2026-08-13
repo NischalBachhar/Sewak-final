@@ -20,6 +20,14 @@ const setThemeVariables = () => {
   };
 
   Object.entries(theme.colors).forEach(([key, value]) => {
+    // The design tokens in theme.js intentionally point at the authored CSS
+    // variables in App.css. Writing a variable back onto itself (for example,
+    // --theme-help: var(--theme-help)) creates a circular custom-property
+    // reference, leaving browsers with no usable computed color.
+    if (typeof value === "string" && /^var\(--theme-[\w-]+\)$/.test(value)) {
+      return;
+    }
+
     root.style.setProperty(`--theme-${key}`, value);
   });
   Object.entries(alias).forEach(([key, value]) => {

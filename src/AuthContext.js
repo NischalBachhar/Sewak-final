@@ -2,7 +2,15 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
-import { createFallbackUserDoc, resolveInitialUserRole } from "./authUtils";
+import {
+  createFallbackUserDoc,
+  resolveInitialUserRole,
+  resolveTrustedPlatformRole,
+} from "./authUtils";
+
+const PROFILE_COLLECTIONS = ["users", "organizations", "vendors"];
+const ACCOUNT_ACCESS_ERROR =
+  "We couldn't verify your account access. Refresh the page, then sign in again if the problem continues.";
 
 const AuthContext = createContext({
   user: null,
@@ -10,172 +18,195 @@ const AuthContext = createContext({
   userRole: null,
   userDoc: null,
   userData: null,
+  accountError: "",
   refreshUserDoc: null,
 });
+
+const isPermissionDenied = (error) =>
+  error?.code === "permission-denied" ||
+  error?.message?.includes("Missing or insufficient permissions");
+
+async function getTrustedRole(user) {
+  try {
+    const token = await user.getIdTokenResult();
+    return resolveTrustedPlatformRole(token?.claims);
+  } catch (error) {
+    // A temporary token-read failure must not turn a privileged account into a
+    // customer account. We still try its private profile as a legacy fallback.
+    console.warn("[AuthContext] Unable to read platform role claim:", error);
+    return null;
+  }
+}
+
+async function loadFirstExistingProfile(uid) {
+  let permissionDenied = false;
+
+  for (const collectionName of PROFILE_COLLECTIONS) {
+    try {
+      const snapshot = await getDoc(doc(db, collectionName, uid));
+      if (snapshot.exists()) {
+        return {
+          data: snapshot.data(),
+          permissionDenied,
+        };
+      }
+    } catch (error) {
+      permissionDenied = permissionDenied || isPermissionDenied(error);
+      console.warn(
+        `[AuthContext] Unable to read ${collectionName} profile:`,
+        error,
+      );
+    }
+  }
+
+  return { data: null, permissionDenied };
+}
+
+async function mergeOrganizationProfile(user, role, profileData) {
+  const baseProfile = {
+    ...(profileData || createFallbackUserDoc(user, { role })),
+    role,
+  };
+
+  if (role !== "orgadmin") {
+    return baseProfile;
+  }
+
+  try {
+    const organizationSnapshot = await getDoc(
+      doc(db, "organizations", user.uid),
+    );
+    if (organizationSnapshot.exists()) {
+      return {
+        ...baseProfile,
+        ...organizationSnapshot.data(),
+        role,
+      };
+    }
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      console.warn(
+        "[AuthContext] Organization profile is unavailable; using the account profile.",
+      );
+    } else {
+      console.error("[AuthContext] Error fetching organization profile:", error);
+    }
+  }
+
+  return baseProfile;
+}
+
+async function resolveAccountProfile(firebaseUser) {
+  const trustedRole = await getTrustedRole(firebaseUser);
+  const { data: profileData, permissionDenied } =
+    await loadFirstExistingProfile(firebaseUser.uid);
+  const role = trustedRole || resolveInitialUserRole(profileData);
+
+  // A signed custom claim remains the routing source of truth when a private
+  // profile read is temporarily denied. Do not silently send a caregiver or
+  // administrator into the customer browse route.
+  if (!profileData && !trustedRole && permissionDenied) {
+    return { accountError: ACCOUNT_ACCESS_ERROR };
+  }
+
+  const profile = await mergeOrganizationProfile(
+    firebaseUser,
+    role,
+    profileData,
+  );
+
+  return {
+    role,
+    profile,
+    accountError: "",
+  };
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [userDoc, setUserDoc] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [accountError, setAccountError] = useState("");
   const [loading, setLoading] = useState(true);
 
   const refreshUserDoc = async () => {
     if (!user) return;
-    try {
-      let docSnap;
 
-      // Try to determine the collection based on current role
-      if (userRole === "orgadmin") {
-        docSnap = await getDoc(doc(db, "organizations", user.uid));
-      } else if (userRole === "caregiver") {
-        docSnap = await getDoc(doc(db, "vendors", user.uid));
-      } else {
-        docSnap = await getDoc(doc(db, "users", user.uid));
-      }
-
-      // If not found in primary collection, try other collections
-      if (!docSnap.exists()) {
-        docSnap = await getDoc(doc(db, "users", user.uid));
-      }
-      if (!docSnap.exists()) {
-        docSnap = await getDoc(doc(db, "organizations", user.uid));
-      }
-      if (!docSnap.exists()) {
-        docSnap = await getDoc(doc(db, "vendors", user.uid));
-      }
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setUserRole(data.role);
-
-        // For orgadmin, also fetch organization data and merge
-        if (data.role === "orgadmin") {
-          try {
-            const orgSnap = await getDoc(doc(db, "organizations", user.uid));
-            if (orgSnap.exists()) {
-              const orgData = orgSnap.data();
-              const mergedData = { ...data, ...orgData };
-              setUserDoc(mergedData);
-              setUserData(mergedData);
-            } else {
-              setUserDoc(data);
-              setUserData(data);
-            }
-          } catch (err) {
-            if (
-              err.code === "permission-denied" ||
-              err.message?.includes("Missing or insufficient permissions")
-            ) {
-              console.warn(
-                "[AuthContext] Orgadmin cannot read organizations/ doc; using base user data only.",
-              );
-            } else {
-              console.error("Error fetching organization data:", err);
-            }
-            setUserDoc(data);
-            setUserData(data);
-          }
-        } else {
-          setUserDoc(data);
-          setUserData(data);
-        }
-      }
-    } catch (err) {
-      console.error("Error refreshing user data:", err);
+    const resolved = await resolveAccountProfile(user);
+    if (resolved.accountError) {
+      setAccountError(resolved.accountError);
+      return;
     }
+
+    setAccountError("");
+    setUserRole(resolved.role);
+    setUserDoc(resolved.profile);
+    setUserData(resolved.profile);
   };
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        try {
-          let docSnap = null;
-          let resolvedRole = "user";
+    let cancelled = false;
 
-          try {
-            docSnap = await getDoc(doc(db, "users", u.uid));
-          } catch (err) {
-            console.warn("[AuthContext] Unable to read users profile, trying others:", err);
-          }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (cancelled) return;
 
-          if (!docSnap?.exists()) {
-            try {
-              docSnap = await getDoc(doc(db, "organizations", u.uid));
-            } catch (err) {
-              console.warn("[AuthContext] Unable to read organizations profile:", err);
-            }
-          }
+      setUser(firebaseUser);
+      setLoading(true);
+      setAccountError("");
 
-          if (!docSnap?.exists()) {
-            try {
-              docSnap = await getDoc(doc(db, "vendors", u.uid));
-            } catch (err) {
-              console.warn("[AuthContext] Unable to read vendors profile:", err);
-            }
-          }
-
-          if (docSnap?.exists()) {
-            const data = docSnap.data();
-            resolvedRole = resolveInitialUserRole(data);
-            setUserRole(resolvedRole);
-
-            if (resolvedRole === "orgadmin") {
-              try {
-                const orgSnap = await getDoc(doc(db, "organizations", u.uid));
-                if (orgSnap.exists()) {
-                  const orgData = orgSnap.data();
-                  const mergedData = { ...data, ...orgData };
-                  setUserDoc(mergedData);
-                  setUserData(mergedData);
-                } else {
-                  setUserDoc(data);
-                  setUserData(data);
-                }
-              } catch (err) {
-                if (
-                  err.code === "permission-denied" ||
-                  err.message?.includes("Missing or insufficient permissions")
-                ) {
-                  console.warn(
-                    "[AuthContext] Orgadmin cannot read organizations/ doc; using base user data only.",
-                  );
-                } else {
-                  console.error("Error fetching organization data:", err);
-                }
-                setUserDoc(data);
-                setUserData(data);
-              }
-            } else {
-              setUserDoc(data);
-              setUserData(data);
-            }
-          } else {
-            const fallbackDoc = createFallbackUserDoc(u);
-            setUserRole(fallbackDoc.role);
-            setUserDoc(fallbackDoc);
-            setUserData(fallbackDoc);
-          }
-        } catch (err) {
-          console.error("Error fetching user data:", err);
-          const fallbackDoc = createFallbackUserDoc(u);
-          setUserRole(fallbackDoc.role);
-          setUserDoc(fallbackDoc);
-          setUserData(fallbackDoc);
-        }
-      } else {
+      if (!firebaseUser) {
         setUserRole(null);
         setUserDoc(null);
         setUserData(null);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      try {
+        const resolved = await resolveAccountProfile(firebaseUser);
+        if (cancelled) return;
+
+        if (resolved.accountError) {
+          setUserRole(null);
+          setUserDoc(null);
+          setUserData(null);
+          setAccountError(resolved.accountError);
+        } else {
+          setUserRole(resolved.role);
+          setUserDoc(resolved.profile);
+          setUserData(resolved.profile);
+        }
+      } catch (error) {
+        console.error("[AuthContext] Error resolving account profile:", error);
+        if (!cancelled) {
+          setUserRole(null);
+          setUserDoc(null);
+          setUserData(null);
+          setAccountError(ACCOUNT_ACCESS_ERROR);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, userRole, userDoc, userData, refreshUserDoc }}
+      value={{
+        user,
+        loading,
+        userRole,
+        userDoc,
+        userData,
+        accountError,
+        refreshUserDoc,
+      }}
     >
       {children}
     </AuthContext.Provider>

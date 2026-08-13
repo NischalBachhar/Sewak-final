@@ -1,0 +1,338 @@
+/*
+ * Role-dashboard contrast layer
+ *
+ * These tokens are intentionally scoped to authenticated dashboard shells.
+ * They keep operational controls, status messages, and dense data cards
+ * distinct from the surrounding page without changing the public browse or
+ * authentication experiences.
+ */
+.dashboard-shell {
+  --theme-background: #edf5f7;
+  --theme-background-accent: #dcecf0;
+  --theme-surface: #ffffff;
+  --theme-surface-alt: #f3f8fa;
+  --theme-surface-soft: #eaf3f5;
+  --theme-border: #b8ccd4;
+  --theme-border-muted: #d3e0e5;
+  --theme-text: #102a43;
+  --theme-text-secondary: #344e5f;
+  --theme-text-muted: #526a79;
+  --theme-accent: #0e5c6f;
+  --theme-accent-soft: #28778a;
+  --theme-accent-light: #cce8ee;
+  --theme-button: #0b4f62;
+  --theme-button-text: #ffffff;
+  --theme-button-border: #0b4f62;
+  --theme-help: #1d4ed8;
+  --theme-help-accent: #0f766e;
+  --theme-help-light: #9ac6f7;
+  --theme-positive: #137a3d;
+  --theme-warning: #a95708;
+  --theme-danger: #b42318;
+  --theme-danger-dark: #8c1b13;
+  --theme-neutral: #78909c;
+  --theme-help-soft: #e7efff;
+  --theme-positive-soft: #e8f6ec;
+  --theme-warning-soft: #fff2dd;
+  --theme-danger-soft: #fdebea;
+  --theme-primary-gradient: linear-gradient(135deg, #0e6377 0%, #083f52 100%);
+  --theme-gradient-primary: linear-gradient(135deg, #0e6377 0%, #083f52 100%);
+  --theme-help-gradient: linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%);
+  --page-bg: linear-gradient(145deg, #eff7f8 0%, #dbecef 100%);
+  --card-bg: #ffffff;
+  --card-border: #b8ccd4;
+  --text: #102a43;
+  --muted: #344e5f;
+  --accent: #0e5c6f;
+  --accent-soft: #28778a;
+  --surface: #f3f8fa;
+  --surface-2: #eaf3f5;
+  --button-bg: #0b4f62;
+  --button-border: #0b4f62;
+  color: var(--theme-text);
+  background: var(--page-bg);
+}
+
+.dashboard-shell .app-card {
+  background: #f7fbfc;
+  border-color: #b8ccd4;
+  box-shadow: 0 18px 42px rgba(19, 61, 77, 0.12);
+}
+
+.dashboard-shell .org-dashboard-root {
+  background: linear-gradient(180deg, #edf7f8 0%, #f9fcfd 100%);
+}
+
+.dashboard-shell--admin .dashboard-admin-content {
+  border: 1px solid #c7d8de;
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(19, 61, 77, 0.06);
+}
+
+.dashboard-shell .card,
+.dashboard-shell .profile-section,
+.dashboard-shell .org-dashboard-header,
+.dashboard-shell .empty-state {
+  background: #ffffff;
+  border-color: #b8ccd4;
+  box-shadow: 0 10px 28px rgba(19, 61, 77, 0.08);
+}
+
+.dashboard-shell .card:hover {
+  border-color: #6f9eaa;
+  box-shadow: 0 14px 30px rgba(19, 61, 77, 0.13);
+}
+
+.dashboard-shell h1,
+.dashboard-shell h2,
+.dashboard-shell h3,
+.dashboard-shell h4,
+.dashboard-shell h5 {
+  color: var(--theme-text);
+}
+
+.dashboard-shell .section-title,
+.dashboard-shell .org-dashboard-header h1,
+.dashboard-shell .card-title,
+.dashboard-shell .empty-state-title {
+  color: var(--theme-accent) !important;
+}
+
+.dashboard-shell .btn,
+.dashboard-shell .choice-buttons button,
+.dashboard-shell .toggle-btn,
+.dashboard-shell .chip {
+  min-height: 42px;
+  font-weight: 750;
+}
+
+.dashboard-shell .btn-primary {
+  border: 1px solid #083f52;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0e6377 0%, #083f52 100%);
+  box-shadow: 0 7px 16px rgba(8, 63, 82, 0.2);
+}
+
+.dashboard-shell .btn-primary:hover:not(:disabled) {
+  border-color: #062f3d;
+  background: linear-gradient(135deg, #0b5365 0%, #062f3d 100%);
+}
+
+.dashboard-shell .btn-outline {
+  border: 1px solid #6f8e9a;
+  color: #12485a;
+  background: #ffffff;
+}
+
+.dashboard-shell .btn-outline:hover:not(:disabled) {
+  border-color: #0e6377;
+  color: #083f52;
+  background: #eaf5f7;
+}
+
+.dashboard-shell .choice-buttons button,
+.dashboard-shell .toggle-btn,
+.dashboard-shell .chip {
+  border-color: #8ca8b2;
+  color: #173e4d;
+  background: #ffffff;
+}
+
+.dashboard-shell .choice-buttons button:hover,
+.dashboard-shell .toggle-btn:hover,
+.dashboard-shell .chip:hover {
+  border-color: #0e6377;
+  background: #eaf5f7;
+}
+
+.dashboard-shell .choice-buttons button[style*="linear-gradient"],
+.dashboard-shell .toggle-btn.active,
+.dashboard-shell .chip-active,
+.dashboard-shell .chip-service-active {
+  color: #ffffff !important;
+  border-color: #083f52 !important;
+  background: linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%) !important;
+  box-shadow: 0 6px 14px rgba(15, 118, 110, 0.2);
+}
+
+.dashboard-shell .form input:not([type="checkbox"]):not([type="radio"]),
+.dashboard-shell .form textarea,
+.dashboard-shell .form select,
+.dashboard-shell .dropdown-select,
+.dashboard-shell select,
+.dashboard-shell input:not([type="checkbox"]):not([type="radio"]),
+.dashboard-shell textarea {
+  color: var(--theme-text);
+  border-color: #9db5bd;
+  background-color: #ffffff;
+}
+
+.dashboard-shell .form input:not([type="checkbox"]):not([type="radio"])::placeholder,
+.dashboard-shell .form textarea::placeholder,
+.dashboard-shell input:not([type="checkbox"]):not([type="radio"])::placeholder,
+.dashboard-shell textarea::placeholder {
+  color: #617985;
+}
+
+.dashboard-shell .form input:not([type="checkbox"]):not([type="radio"]):focus,
+.dashboard-shell .form textarea:focus,
+.dashboard-shell .form select:focus,
+.dashboard-shell .dropdown-select:focus,
+.dashboard-shell select:focus,
+.dashboard-shell input:not([type="checkbox"]):not([type="radio"]):focus,
+.dashboard-shell textarea:focus {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.16);
+}
+
+.dashboard-shell .error-message {
+  color: #8c1b13;
+  border-color: #e78d84;
+  background: #fff0ee;
+  box-shadow: 0 4px 12px rgba(180, 35, 24, 0.08);
+}
+
+.dashboard-shell .success-message {
+  color: #0d6331;
+  border-color: #8dc8a2;
+  background: #edfaf1;
+  box-shadow: 0 4px 12px rgba(19, 122, 61, 0.08);
+}
+
+.dashboard-shell .badge,
+.dashboard-shell .badge-success,
+.dashboard-shell .badge-warning,
+.dashboard-shell .badge-danger {
+  border: 1px solid currentColor;
+}
+
+.dashboard-shell .empty-state {
+  border-style: dashed;
+  color: var(--theme-text-muted);
+}
+
+.dashboard-shell button:focus-visible,
+.dashboard-shell a:focus-visible,
+.dashboard-shell input:focus-visible,
+.dashboard-shell select:focus-visible,
+.dashboard-shell textarea:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+
+/* Super-admin navigation and operational count cards use explicit classes
+   because their original colors were supplied with inline styles. */
+.dashboard-shell--admin .dashboard-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+  padding: 10px;
+  border: 1px solid #b8ccd4;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.dashboard-shell--admin .dashboard-tab {
+  min-height: 42px;
+  padding: 9px 15px;
+  border: 1px solid #9db5bd;
+  border-radius: 9px;
+  color: #173e4d;
+  background: #f7fbfc;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.dashboard-shell--admin .dashboard-tab:hover {
+  border-color: #0e6377;
+  background: #eaf5f7;
+}
+
+.dashboard-shell--admin .dashboard-tab.is-active {
+  border-color: #083f52;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0e6377 0%, #083f52 100%);
+  box-shadow: 0 7px 15px rgba(8, 63, 82, 0.2);
+}
+
+.dashboard-shell--admin .dashboard-action-card {
+  min-height: 122px;
+  border: 1px solid #b8ccd4 !important;
+  border-radius: 12px;
+  color: var(--theme-text) !important;
+  background: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(19, 61, 77, 0.06);
+}
+
+.dashboard-shell--admin .dashboard-action-card:hover {
+  border-color: #0e6377 !important;
+  background: #edf7f8 !important;
+  box-shadow: 0 10px 22px rgba(19, 61, 77, 0.12);
+}
+
+.dashboard-shell--admin .dashboard-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 15px 16px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+}
+
+.dashboard-shell--admin .dashboard-notice--error {
+  color: #8c1b13 !important;
+  border: 1px solid #e78d84 !important;
+  background: #fff0ee !important;
+}
+
+.dashboard-shell--admin .dashboard-notice--success {
+  color: #0d6331 !important;
+  border: 1px solid #8dc8a2 !important;
+  background: #edfaf1 !important;
+}
+
+.dashboard-shell--admin .dashboard-notice-close {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #bf5e53;
+  border-radius: 7px;
+  color: #8c1b13;
+  background: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.dashboard-shell--admin .dashboard-notice-close:hover {
+  background: #ffe0dc;
+}
+
+@media (max-width: 680px) {
+  .dashboard-shell .app-card {
+    padding: 16px;
+  }
+
+  .dashboard-shell--admin .dashboard-tabs {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .dashboard-shell--admin .dashboard-tab {
+    flex: 1 1 calc(50% - 8px);
+    padding-inline: 10px;
+  }
+
+  .dashboard-shell--admin .dashboard-notice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-shell--admin .dashboard-notice-close {
+    align-self: flex-start;
+  }
+}

@@ -23,12 +23,26 @@ const labelForService = (value, services) => {
   return match?.label || match?.serviceName || raw.replace(/_/g, " ") || "Care support";
 };
 
+const publicProfileLoadError = (loadError) => {
+  if (loadError?.code === "permission-denied") {
+    return "Caregiver profiles are temporarily unavailable while access is being updated. Please try again shortly.";
+  }
+
+  if (loadError?.message === "This caregiver profile is not available.") {
+    return loadError.message;
+  }
+
+  return "We couldn't load this caregiver profile right now. Please try again shortly.";
+};
+
 export default function PublicCaregiverProfilePage({ signedIn = false }) {
   const { caregiverId } = useParams();
   const navigate = useNavigate();
   const [caregiver, setCaregiver] = useState(null);
   const [services, setServices] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [servicesUnavailable, setServicesUnavailable] = useState(false);
+  const [reviewsUnavailable, setReviewsUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -38,37 +52,74 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
     async function loadProfile() {
       setLoading(true);
       setError("");
+      setCaregiver(null);
+      setServices([]);
+      setReviews([]);
+      setServicesUnavailable(false);
+      setReviewsUnavailable(false);
       try {
-        const [caregiverSnap, servicesSnap, reviewsSnap] = await Promise.all([
-          getDoc(doc(db, "publicCaregivers", caregiverId)),
-          getDocs(collection(db, "publicServices")),
-          getDocs(query(collection(db, "publicReviews"), where("caregiverId", "==", caregiverId))),
-        ]);
+        const caregiverSnap = await getDoc(
+          doc(db, "publicCaregivers", caregiverId),
+        );
 
         if (!caregiverSnap.exists()) {
           throw new Error("This caregiver profile is not available.");
         }
 
+        // The main profile is a standalone, PII-free public projection. Do
+        // not hide it just because optional service labels or review cards
+        // are temporarily unavailable during an access-rule rollout.
+        const [servicesResult, reviewsResult] = await Promise.allSettled([
+          getDocs(collection(db, "publicServices")),
+          getDocs(
+            query(
+              collection(db, "publicReviews"),
+              where("caregiverId", "==", caregiverId),
+            ),
+          ),
+        ]);
+
         if (!active) return;
         setCaregiver({ id: caregiverSnap.id, ...caregiverSnap.data() });
-        setServices(servicesSnap.docs.map((item) => ({ id: item.id, ...item.data() })));
-        setReviews(
-          reviewsSnap.docs
-            .map((item) => ({ id: item.id, ...item.data() }))
-            .sort((left, right) => {
-              const leftDate = left.createdAt?.toDate?.() || new Date(0);
-              const rightDate = right.createdAt?.toDate?.() || new Date(0);
-              return rightDate - leftDate;
-            }),
-        );
+        if (servicesResult.status === "fulfilled") {
+          setServices(
+            servicesResult.value.docs.map((item) => ({
+              id: item.id,
+              ...item.data(),
+            })),
+          );
+        } else {
+          console.warn("Error loading public service labels:", servicesResult.reason);
+          setServicesUnavailable(true);
+        }
+
+        if (reviewsResult.status === "fulfilled") {
+          setReviews(
+            reviewsResult.value.docs
+              .map((item) => ({ id: item.id, ...item.data() }))
+              .sort((left, right) => {
+                const leftDate = left.createdAt?.toDate?.() || new Date(0);
+                const rightDate = right.createdAt?.toDate?.() || new Date(0);
+                return rightDate - leftDate;
+              }),
+          );
+        } else {
+          console.warn("Error loading public reviews:", reviewsResult.reason);
+          setReviewsUnavailable(true);
+        }
       } catch (loadError) {
-        if (active) setError(loadError.message || "We could not load this caregiver profile.");
+        if (active) setError(publicProfileLoadError(loadError));
       } finally {
         if (active) setLoading(false);
       }
     }
 
-    if (caregiverId) loadProfile();
+    if (caregiverId) {
+      loadProfile();
+    } else {
+      setError("This caregiver profile could not be found.");
+      setLoading(false);
+    }
     return () => {
       active = false;
     };
@@ -192,7 +243,12 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
           <section className="caregiver-profile-section" aria-labelledby="skills-heading">
             <p className="caregiver-profile-eyebrow">Skills</p>
             <h2 id="skills-heading">Care and support offered</h2>
-            {serviceLabels.length ? (
+            {servicesUnavailable ? (
+              <p className="caregiver-profile-muted">
+                Service details are temporarily unavailable. Confirm the care
+                needed before booking.
+              </p>
+            ) : serviceLabels.length ? (
               <div className="caregiver-profile-skills">
                 {serviceLabels.map((service) => <span key={service}>{service}</span>)}
               </div>
@@ -204,7 +260,12 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
           <section className="caregiver-profile-section" aria-labelledby="reviews-heading">
             <p className="caregiver-profile-eyebrow">Verified reviews</p>
             <h2 id="reviews-heading">Feedback from completed bookings</h2>
-            {verifiedReviews.length ? (
+            {reviewsUnavailable ? (
+              <p className="caregiver-profile-muted">
+                Verified review details are temporarily unavailable. Please try
+                again shortly.
+              </p>
+            ) : verifiedReviews.length ? (
               <div className="caregiver-profile-reviews">
                 {verifiedReviews.slice(0, 4).map((review) => (
                   <article className="caregiver-profile-review" key={review.id}>

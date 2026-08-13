@@ -20,12 +20,13 @@ import CaregiverReportUserPage from "./CaregiverReportUserPage";
 import BrowsePage from "./BrowsePage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
-import { SkeletonCard } from "./components/CareExperience";
+import { ErrorState, SkeletonCard } from "./components/CareExperience";
 import { auth, db } from "./firebaseConfig";
 import "./App.css";
+import "./DashboardExperience.css";
 
 function App() {
-  const { user, loading, userRole, userDoc } = useAuth();
+  const { user, loading, userRole, userDoc, accountError } = useAuth();
   const [userCategory, setUserCategory] = useState("");
   const [userWorkType, setUserWorkType] = useState("");
   const [userShift, setUserShift] = useState("");
@@ -203,6 +204,36 @@ function App() {
     );
   }
 
+  if (user && accountError) {
+    return (
+      <main
+        className="app-shell"
+        aria-label="Account access needs attention"
+        style={{ alignItems: "stretch", padding: "20px" }}
+      >
+        <div
+          className="app-card"
+          style={{ maxWidth: 640, margin: "0 auto" }}
+        >
+          <ErrorState
+            title="We couldn't open your account"
+            description={accountError}
+            retryLabel="Refresh access"
+            onRetry={() => window.location.reload()}
+          />
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ marginTop: 16 }}
+            onClick={handleLogout}
+          >
+            Sign out
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (user && !userRole) {
     return (
       <main
@@ -314,7 +345,7 @@ function App() {
             <Route
               path="/user/home"
               element={
-                <div className="app-shell app-shell--compact">
+                <div className="app-shell app-shell--compact dashboard-shell dashboard-shell--customer">
                   <div className="app-card app-card--compact">
                     <CustomerHomePage />
                   </div>
@@ -337,7 +368,7 @@ function App() {
             <Route
               path="/user/mybookings"
               element={
-                <div className="app-shell app-shell--compact">
+                <div className="app-shell app-shell--compact dashboard-shell dashboard-shell--customer">
                   <div className="app-card app-card--compact">
                     <MyBookingsPage />
                   </div>
@@ -378,7 +409,7 @@ function App() {
             <Route
               path="/organization/*"
               element={
-                <div className="app-shell">
+                <div className="app-shell dashboard-shell dashboard-shell--organization">
                   <div className="app-card">
                     <OrganizationDashboard />
                   </div>
@@ -397,7 +428,7 @@ function App() {
             <Route
               path="/caregiver/*"
               element={
-                <div className="app-shell">
+                <div className="app-shell dashboard-shell dashboard-shell--caregiver">
                   <div className="app-card">
                     <CaregiverDashboardPage />
                   </div>
@@ -411,7 +442,7 @@ function App() {
           <Route
             path="/superadmin/*"
             element={
-              <div className="app-shell">
+              <div className="app-shell dashboard-shell dashboard-shell--admin">
                 <div className="app-card">
                   <AdminDashboardPage />
                 </div>

@@ -18,7 +18,7 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
-import { db, auth, functions } from "./firebaseConfig";
+import { appCheck, db, auth, functions } from "./firebaseConfig";
 import { normalizeBooking } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
@@ -34,6 +34,9 @@ const dashboardTabs = [
   "admins",
   "analytics",
 ];
+
+const PUBLIC_CAREGIVER_SYNC_BATCH_SIZE = 200;
+const MAX_PUBLIC_CAREGIVER_SYNC_PAGES = 1000;
 
 const caregiverVerificationFields = [
   {
@@ -159,6 +162,9 @@ export default function AdminDashboardPage() {
   const [orgCaregivers, setOrgCaregivers] = useState([]);
   const [showOrgCaregiversModal, setShowOrgCaregiversModal] = useState(false);
   const [loadingVendors, setLoadingVendors] = useState(false);
+  const [syncingPublicCaregivers, setSyncingPublicCaregivers] = useState(false);
+  const [publicCaregiverSyncProgress, setPublicCaregiverSyncProgress] =
+    useState("");
   const [vendorStatusFilter, setVendorStatusFilter] = useState("all");
   const [searchVendor, setSearchVendor] = useState("");
   const [showCaregiverPasswordModal, setShowCaregiverPasswordModal] =
@@ -294,7 +300,11 @@ export default function AdminDashboardPage() {
         );
       } catch (err) {
         console.error("Error loading organization applications:", err);
-        setError("Failed to load organization applications");
+        setError(
+          err?.code === "permission-denied"
+            ? "Partner applications are temporarily unavailable while secure access rules are being updated."
+            : "We couldn't load partner applications right now. Please try again.",
+        );
       }
 
       // Vendors
@@ -734,6 +744,110 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleSyncPublicCaregiverListings = async () => {
+    if (!isSuperAdmin) return;
+
+    if (!appCheck) {
+      setError(
+        "Public listing sync needs Firebase App Check. Configure REACT_APP_FIREBASE_APPCHECK_SITE_KEY in the deployed web environment, then sign in again.",
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Sync the public caregiver directory now? This rebuilds the PII-free listings from caregiver records. Only approved, safe-to-list caregivers will appear publicly.",
+    );
+    if (!confirmed) return;
+
+    setError("");
+    setSuccessMessage("");
+    setSyncingPublicCaregivers(true);
+    setPublicCaregiverSyncProgress("Preparing the public caregiver directory…");
+
+    try {
+      const backfillPublicCaregivers = httpsCallable(
+        functions,
+        "backfillPublicCaregivers",
+      );
+      let cursor = "";
+      let totalProcessed = 0;
+
+      for (let page = 0; page < MAX_PUBLIC_CAREGIVER_SYNC_PAGES; page += 1) {
+        const result = await backfillPublicCaregivers({
+          limit: PUBLIC_CAREGIVER_SYNC_BATCH_SIZE,
+          ...(cursor ? { cursor } : {}),
+        });
+        const data = result?.data || {};
+        const processed = Number(data.processed);
+        const nextCursor = data.nextCursor;
+
+        if (
+          !Number.isInteger(processed) ||
+          processed < 0 ||
+          processed > PUBLIC_CAREGIVER_SYNC_BATCH_SIZE
+        ) {
+          throw new Error("The listing sync returned an invalid progress response.");
+        }
+
+        totalProcessed += processed;
+
+        if (!nextCursor) {
+          setPublicCaregiverSyncProgress("");
+          setSuccessMessage(
+            `Public caregiver listings synced. ${totalProcessed} caregiver profile${
+              totalProcessed === 1 ? "" : "s"
+            } processed.`,
+          );
+          await loadAllData();
+          return;
+        }
+
+        if (typeof nextCursor !== "string" || nextCursor === cursor) {
+          throw new Error("The listing sync could not safely continue to its next page.");
+        }
+
+        cursor = nextCursor;
+        setPublicCaregiverSyncProgress(
+          `Syncing public listings… ${totalProcessed} caregiver profile${
+            totalProcessed === 1 ? "" : "s"
+          } processed.`,
+        );
+      }
+
+      throw new Error(
+        "The listing sync reached its safety limit. Run it again to continue.",
+      );
+    } catch (err) {
+      console.error("Error syncing public caregiver listings:", err);
+
+      if (
+        typeof err?.message === "string" &&
+        err.message.startsWith("The listing sync")
+      ) {
+        setError(err.message);
+      } else if (err?.code === "functions/permission-denied") {
+        setError(
+          "Your Firebase session does not have the required superadmin permission. Sign out and back in after the secure superadmin claim is set.",
+        );
+      } else if (err?.code === "functions/unauthenticated") {
+        setError(
+          "Firebase could not verify this secure sync request. Refresh your sign-in after Firebase App Check is configured, then try again.",
+        );
+      } else if (err?.code === "functions/not-found") {
+        setError(
+          "Public listing sync is not deployed yet. Enable Cloud Functions API and deploy the Firebase Functions before trying again.",
+        );
+      } else {
+        setError(
+          "Could not sync public caregiver listings. Check the Firebase Functions and App Check deployment, then try again.",
+        );
+      }
+    } finally {
+      setSyncingPublicCaregivers(false);
+      setPublicCaregiverSyncProgress("");
+    }
+  };
+
   const handleRejectCaregiverClick = async (caregiverId) => {
     const reason = window.prompt("Enter rejection reason:");
     if (!reason) return;
@@ -1098,6 +1212,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div
+      className="dashboard-admin-content"
       style={{
         padding: "20px",
         backgroundColor: "var(--theme-surface)",
@@ -1115,6 +1230,8 @@ export default function AdminDashboardPage() {
       {/* Error Messages */}
       {error && (
         <div
+          className="dashboard-notice dashboard-notice--error"
+          role="alert"
           style={{
             padding: "15px",
             marginBottom: "20px",
@@ -1126,8 +1243,9 @@ export default function AdminDashboardPage() {
         >
           ❌ {error}
           <button
+            type="button"
+            className="dashboard-notice-close"
             onClick={() => setError("")}
-            style={{ marginLeft: "10px", cursor: "pointer" }}
           >
             Close
           </button>
@@ -1137,6 +1255,8 @@ export default function AdminDashboardPage() {
       {/* Success Messages */}
       {successMessage && (
         <div
+          className="dashboard-notice dashboard-notice--success"
+          role="status"
           style={{
             padding: "15px",
             marginBottom: "20px",
@@ -1178,36 +1298,19 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Tabs */}
-      <div
-        style={{
-          marginBottom: "30px",
-          display: "flex",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
+      <nav className="dashboard-tabs" aria-label="Admin dashboard sections">
         {dashboardTabs.map((tab) => (
           <button
             type="button"
             key={tab}
+            className={`dashboard-tab${activeTab === tab ? " is-active" : ""}`}
+            aria-current={activeTab === tab ? "page" : undefined}
             onClick={() => navigate(`/superadmin/${tab}`)}
-            style={{
-              padding: "10px 20px",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              backgroundColor: activeTab === tab ? "var(--theme-help)" : "var(--theme-border)",
-              color: activeTab === tab ? "white" : "black",
-              fontWeight: activeTab === tab ? "bold" : "normal",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
           >
             {getTabLabel(tab)}
           </button>
         ))}
-      </div>
+      </nav>
 
       {/* ===== TAB: OPERATIONS OVERVIEW ===== */}
       {activeTab === "overview" && (
@@ -1234,6 +1337,7 @@ export default function AdminDashboardPage() {
               <button
                 type="button"
                 key={label}
+                className="dashboard-action-card"
                 onClick={() => navigate(`/superadmin/${tab}`)}
                 style={{ textAlign: "left", background: "var(--theme-surface)", border: "1px solid var(--theme-border)", borderRadius: "12px", padding: "18px", cursor: "pointer", color: "var(--theme-text)" }}
               >
@@ -2375,6 +2479,118 @@ export default function AdminDashboardPage() {
             <DashboardLoadingState label="Loading caregivers…" />
           ) : (
             <div>
+              <section
+                className="card"
+                aria-labelledby="public-caregiver-sync-title"
+                style={{ marginBottom: "18px", padding: "18px" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: "16px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ maxWidth: "720px" }}>
+                    <p
+                      style={{
+                        margin: "0 0 6px",
+                        color: "var(--theme-text-muted)",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Superadmin control
+                    </p>
+                    <h3
+                      id="public-caregiver-sync-title"
+                      style={{ margin: "0 0 8px" }}
+                    >
+                      Public caregiver listings
+                    </h3>
+                    <p
+                      id="public-caregiver-sync-help"
+                      style={{
+                        margin: 0,
+                        color: "var(--theme-text-muted)",
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      Rebuild the PII-free public directory from caregiver
+                      records. Only approved, unsuspended, unblacklisted
+                      caregivers from active organizations can be listed.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleSyncPublicCaregiverListings}
+                    disabled={syncingPublicCaregivers || !appCheck}
+                    aria-describedby="public-caregiver-sync-help"
+                    title={
+                      appCheck
+                        ? "Rebuild public caregiver listings"
+                        : "Configure Firebase App Check before syncing listings"
+                    }
+                  >
+                    {syncingPublicCaregivers
+                      ? "Syncing public listings…"
+                      : "Sync public listings"}
+                  </button>
+                </div>
+
+                {!appCheck && (
+                  <p
+                    role="alert"
+                    style={{
+                      margin: "14px 0 0",
+                      padding: "10px 12px",
+                      border: "1px solid var(--theme-warning)",
+                      borderRadius: "8px",
+                      background: "var(--theme-warning-soft)",
+                      color: "var(--theme-text)",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Firebase App Check is not configured for this web app. Add
+                    the public reCAPTCHA site key to the deployed environment,
+                    then sign in again before using this secure sync.
+                  </p>
+                )}
+
+                {appCheck && (
+                  <p
+                    style={{
+                      margin: "14px 0 0",
+                      color: "var(--theme-text-muted)",
+                      fontSize: "13px",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    This action requires the Cloud Functions API and the public
+                    projection functions to be deployed.
+                  </p>
+                )}
+
+                {publicCaregiverSyncProgress && (
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    style={{
+                      margin: "12px 0 0",
+                      color: "var(--theme-help)",
+                      fontWeight: "700",
+                    }}
+                  >
+                    {publicCaregiverSyncProgress}
+                  </p>
+                )}
+              </section>
+
               <div
                 style={{ marginBottom: "15px", display: "flex", gap: "10px" }}
               >
