@@ -515,6 +515,19 @@ service cloud.firestore {
         data.createdAt is timestamp;
     }
 
+    // Status transitions alter only the controlled workflow fields below.
+    // Validating every historical booking field here can exceed the Rules
+    // evaluator's expression limit even though `onlyChanges` keeps the rest
+    // of the document immutable.
+    function bookingTransitionDocumentIsValid() {
+      return request.resource.data.keys().hasAll(['status', 'updatedAt']) &&
+        request.resource.data.status is string &&
+        request.resource.data.status in [
+          'pending', 'accepted', 'in_progress', 'completed', 'cancelled'
+        ] &&
+        request.resource.data.updatedAt is timestamp;
+    }
+
     function isActiveCustomer() {
       // A trial customer may have completed Firebase Authentication before a
       // legacy profile document was written. Let that signed-in customer make
@@ -669,7 +682,7 @@ service cloud.firestore {
     }
 
     function validBookingTransition() {
-      return bookingDocumentIsValid(request.resource.data) &&
+      return bookingTransitionDocumentIsValid() &&
         (
           (isBookingCustomer() && resource.data.status == 'pending' &&
             request.resource.data.status == 'cancelled' && onlyChanges(['status', 'updatedAt'])) ||
