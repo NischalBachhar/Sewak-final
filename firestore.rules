@@ -456,6 +456,65 @@ service cloud.firestore {
         (!data.keys().hasAny(['paymentDate']) || data.paymentDate is timestamp);
     }
 
+    // Keep the customer-created cash-request path deliberately compact. The
+    // broader validator above supports historical booking/payment fields for
+    // administrator and workflow updates, but evaluating every optional field
+    // during a create can exceed Firestore Rules' expression limit and surface
+    // to the customer as a misleading permission denial.
+    function trialBookingCreateDocumentIsValid(data) {
+      return data.keys().hasOnly([
+          'userId', 'userName', 'userPhone', 'userEmail', 'address', 'city',
+          'date', 'time', 'durationHours', 'recurrence', 'notes', 'careRecipient', 'careNeeds',
+          'serviceId', 'serviceLabel', 'caregiverId', 'vendorId', 'organizationId',
+          'organizationName', 'caregiverName', 'caregiverLocation',
+          'caregiverWorkType', 'caregiverShifts', 'caregiverCategory', 'status',
+          'hourlyRate', 'totalAmount', 'platformCommission', 'vendorEarnings',
+          'paymentMethod', 'paymentStatus', 'amountDue', 'createdAt'
+        ]) &&
+        data.keys().hasAll([
+          'userId', 'userName', 'userPhone', 'userEmail', 'address', 'city',
+          'date', 'time', 'durationHours', 'recurrence', 'notes', 'careRecipient', 'careNeeds',
+          'serviceId', 'serviceLabel', 'caregiverId', 'vendorId', 'organizationId',
+          'organizationName', 'caregiverName', 'caregiverLocation',
+          'caregiverWorkType', 'caregiverShifts', 'caregiverCategory', 'status',
+          'hourlyRate', 'totalAmount', 'platformCommission', 'vendorEarnings',
+          'paymentMethod', 'paymentStatus', 'amountDue', 'createdAt'
+        ]) &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.userName is string && data.userName.size() <= 120 &&
+        data.userPhone is string && data.userPhone.size() <= 40 &&
+        data.userEmail is string && data.userEmail.size() <= 254 &&
+        data.address is string && data.address.size() <= 300 &&
+        data.city is string && data.city.size() <= 100 &&
+        data.date is string && data.date.size() <= 32 &&
+        data.time is string && data.time.size() <= 32 &&
+        data.recurrence in ['one_time', 'recurring'] &&
+        data.notes is string && data.notes.size() <= 1500 &&
+        data.careRecipient is string && data.careRecipient.size() <= 120 &&
+        data.careNeeds is string && data.careNeeds.size() <= 1000 &&
+        data.serviceId is string && data.serviceId.size() <= 128 &&
+        data.serviceLabel is string && data.serviceLabel.size() <= 160 &&
+        data.caregiverId is string && data.caregiverId.size() <= 128 &&
+        data.vendorId is string && data.vendorId.size() <= 128 &&
+        data.organizationId is string && data.organizationId.size() <= 128 &&
+        data.organizationName is string && data.organizationName.size() <= 160 &&
+        data.caregiverName is string && data.caregiverName.size() <= 120 &&
+        data.caregiverLocation is string && data.caregiverLocation.size() <= 160 &&
+        data.caregiverWorkType is string && data.caregiverWorkType.size() <= 32 &&
+        data.caregiverShifts is list && data.caregiverShifts.size() <= 3 &&
+        data.caregiverCategory is string && data.caregiverCategory.size() <= 32 &&
+        data.status is string && data.status.size() <= 32 &&
+        data.paymentMethod is string && data.paymentMethod.size() <= 32 &&
+        data.paymentStatus is string && data.paymentStatus.size() <= 40 &&
+        data.durationHours is int && data.durationHours >= 1 && data.durationHours <= 720 &&
+        data.hourlyRate is number && data.hourlyRate >= 0 && data.hourlyRate <= 1000000 &&
+        data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 1000000000 &&
+        data.platformCommission is number && data.platformCommission >= 0 && data.platformCommission <= 1000000000 &&
+        data.vendorEarnings is number && data.vendorEarnings >= 0 && data.vendorEarnings <= 1000000000 &&
+        data.amountDue is number && data.amountDue >= 0 && data.amountDue <= 1000000000 &&
+        data.createdAt is timestamp;
+    }
+
     function isActiveCustomer() {
       // A trial customer may have completed Firebase Authentication before a
       // legacy profile document was written. Let that signed-in customer make
@@ -573,7 +632,7 @@ service cloud.firestore {
     }
 
     function validBookingCreate() {
-      return bookingDocumentIsValid(request.resource.data) && isActiveCustomer() &&
+      return trialBookingCreateDocumentIsValid(request.resource.data) && isActiveCustomer() &&
         request.resource.data.userId == request.auth.uid &&
         request.resource.data.caregiverId == request.resource.data.vendorId &&
         request.resource.data.status == 'pending' &&
