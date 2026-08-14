@@ -402,7 +402,11 @@ service cloud.firestore {
         ]);
     }
 
-    function bookingDocumentIsValid(data) {
+    // Super-admin booking edits retain a strict field allow-list. Keep this
+    // intentionally compact: Firestore can evaluate every branch of an
+    // `allow update` expression, including the administrator branch, for a
+    // caregiver's status update.
+    function bookingAdminDocumentIsValid(data) {
       return data.keys().hasOnly([
           'userId', 'userName', 'userPhone', 'userEmail', 'address', 'city',
           'date', 'time', 'durationHours', 'recurrence', 'notes', 'careRecipient', 'careNeeds',
@@ -414,45 +418,16 @@ service cloud.firestore {
           'transactionId', 'amountPaid', 'amount', 'paymentDate', 'createdAt', 'updatedAt',
           'careSessionId'
         ]) &&
-        validOptionalText(data, 'userId', 128) &&
-        validOptionalText(data, 'userName', 120) &&
-        validOptionalText(data, 'userPhone', 40) &&
-        validOptionalText(data, 'userEmail', 254) &&
-        validOptionalText(data, 'address', 300) &&
-        validOptionalText(data, 'city', 100) &&
-        validOptionalText(data, 'date', 32) &&
-        validOptionalText(data, 'time', 32) &&
-        (!data.keys().hasAny(['recurrence']) || data.recurrence in ['one_time', 'recurring']) &&
-        validOptionalText(data, 'notes', 1500) &&
-        validOptionalText(data, 'careRecipient', 120) &&
-        validOptionalText(data, 'careNeeds', 1000) &&
-        validOptionalText(data, 'serviceId', 128) &&
-        validOptionalText(data, 'serviceLabel', 160) &&
-        validOptionalText(data, 'caregiverId', 128) &&
-        validOptionalText(data, 'vendorId', 128) &&
-        validOptionalText(data, 'organizationId', 128) &&
-        validOptionalText(data, 'organizationName', 160) &&
-        validOptionalText(data, 'caregiverName', 120) &&
-        validOptionalText(data, 'caregiverLocation', 160) &&
-        validOptionalText(data, 'caregiverWorkType', 32) &&
-        validOptionalText(data, 'caregiverCategory', 32) &&
-        validOptionalText(data, 'status', 32) &&
-        validOptionalText(data, 'paymentMethod', 32) &&
-        validOptionalText(data, 'paymentStatus', 40) &&
-        validOptionalText(data, 'paymentRefId', 160) &&
-        validOptionalText(data, 'transactionId', 200) &&
-        validOptionalText(data, 'careSessionId', 128) &&
-        validOptionalList(data, 'caregiverShifts', 3) &&
-        validOptionalNumber(data, 'durationHours', 1, 720) &&
-        validOptionalNumber(data, 'hourlyRate', 0, 1000000) &&
-        validOptionalNumber(data, 'totalAmount', 0, 1000000000) &&
-        validOptionalNumber(data, 'platformCommission', 0, 1000000000) &&
-        validOptionalNumber(data, 'vendorEarnings', 0, 1000000000) &&
-        validOptionalNumber(data, 'amountDue', 0, 1000000000) &&
-        validOptionalNumber(data, 'amountPaid', 0, 1000000000) &&
-        validOptionalNumber(data, 'amount', 0, 1000000000) &&
-        validTimestampOrIsoString(data, 'createdAt') &&
-        validTimestampOrIsoString(data, 'updatedAt') &&
+        (!data.keys().hasAny(['status']) ||
+          (data.status is string && data.status.size() <= 32)) &&
+        (!data.keys().hasAny(['paymentMethod']) ||
+          (data.paymentMethod is string && data.paymentMethod.size() <= 32)) &&
+        (!data.keys().hasAny(['paymentStatus']) ||
+          (data.paymentStatus is string && data.paymentStatus.size() <= 40)) &&
+        (!data.keys().hasAny(['careSessionId']) ||
+          (data.careSessionId is string && data.careSessionId.size() <= 128)) &&
+        (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp) &&
+        (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp) &&
         (!data.keys().hasAny(['paymentDate']) || data.paymentDate is timestamp);
     }
 
@@ -897,7 +872,7 @@ service cloud.firestore {
         (signedIn() && resource.data.userId == request.auth.uid) ||
         (isReadableCaregiver(request.auth.uid) && resource.data.caregiverId == request.auth.uid);
       allow create: if signedIn() && validBookingCreate();
-      allow update: if (isSuperAdmin() && bookingDocumentIsValid(request.resource.data)) ||
+      allow update: if (isSuperAdmin() && bookingAdminDocumentIsValid(request.resource.data)) ||
         validBookingTransition();
       allow delete: if false;
     }
