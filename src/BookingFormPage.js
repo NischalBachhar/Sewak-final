@@ -13,7 +13,51 @@ const STEP_COPY = [
   { id: "review", label: "Review", shortLabel: "Review", description: "Confirm your request" },
 ];
 
-const serviceLabel = (service) => String(service || "Care support").replace(/_/g, " ");
+const CARE_SERVICE_OPTIONS = [
+  { id: "general_care", label: "General care support" },
+  { id: "child_care", label: "Child care" },
+  { id: "elder_care", label: "Elder care" },
+  { id: "adult_care", label: "Adult care" },
+  { id: "post_operation_care", label: "Post-operation care" },
+  { id: "post_pregnancy_care", label: "Post-pregnancy care" },
+  { id: "pre_pregnancy_care", label: "Pre-pregnancy care" },
+];
+
+const HOUSEHOLD_SERVICE_OPTIONS = [
+  { id: "room_cleaning", label: "Room cleaning" },
+  { id: "cooking", label: "Cooking" },
+  { id: "laundry", label: "Laundry" },
+  { id: "dish_washing", label: "Dish washing" },
+];
+
+const BOOKING_SERVICE_OPTIONS = [...CARE_SERVICE_OPTIONS, ...HOUSEHOLD_SERVICE_OPTIONS];
+
+const TIME_WINDOW_OPTIONS = [
+  { id: "morning", label: "Morning" },
+  { id: "day", label: "Day" },
+  { id: "evening", label: "Evening" },
+  { id: "night", label: "Night" },
+];
+
+const serviceKey = (service) => String(service || "")
+  .trim()
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "_")
+  .replace(/^_+|_+$/g, "");
+
+const serviceLabel = (service) =>
+  BOOKING_SERVICE_OPTIONS.find((option) => option.id === serviceKey(service))?.label ||
+  String(service || "General care support").replace(/_/g, " ");
+
+const joinLabels = (labels) => {
+  if (labels.length < 2) return labels[0] || "";
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+};
+
+const MAX_CARE_NEEDS_LENGTH = 1000 - `Requested time windows: ${joinLabels(
+  TIME_WINDOW_OPTIONS.map((option) => option.label),
+)}.\n\n`.length;
 
 const localDateKey = (value = new Date()) => {
   const year = value.getFullYear();
@@ -26,10 +70,11 @@ export default function BookingFormPage({ caregiver, onBooked }) {
   const { user, userDoc } = useAuth();
   const [step, setStep] = useState(0);
   const [careRecipient, setCareRecipient] = useState("");
-  const [serviceId, setServiceId] = useState(caregiver?.servicesOffered?.[0] || "");
+  const [serviceId, setServiceId] = useState("general_care");
   const [careNeeds, setCareNeeds] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [requestedTimeWindows, setRequestedTimeWindows] = useState([]);
   const [durationHours, setDurationHours] = useState(4);
   const [recurrence, setRecurrence] = useState("one_time");
   const [fullName, setFullName] = useState(userDoc?.name || "");
@@ -42,7 +87,24 @@ export default function BookingFormPage({ caregiver, onBooked }) {
   const [error, setError] = useState("");
   const [successBooking, setSuccessBooking] = useState(null);
 
-  const offeredServices = useMemo(() => caregiver?.servicesOffered || [], [caregiver]);
+  const offeredServices = useMemo(() => {
+    const knownServices = new Set(BOOKING_SERVICE_OPTIONS.map((option) => option.id));
+    const seen = new Set();
+
+    return (caregiver?.servicesOffered || []).filter((service) => {
+      const key = serviceKey(service);
+      if (!key || knownServices.has(key) || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [caregiver]);
+  const isPartTimeCaregiver = ["parttime", "part_time"].includes(serviceKey(caregiver?.workType));
+  const requestedTimeWindowLabels = TIME_WINDOW_OPTIONS
+    .filter((option) => requestedTimeWindows.includes(option.id))
+    .map((option) => option.label);
+  const requestedTimeWindowNote = requestedTimeWindowLabels.length
+    ? `Requested time windows: ${joinLabels(requestedTimeWindowLabels)}.`
+    : "";
   const hourlyRate = Number(caregiver?.hourlyRate || 0);
   const totalAmount = Math.max(0, Number(durationHours || 0) * hourlyRate);
 
@@ -52,10 +114,22 @@ export default function BookingFormPage({ caregiver, onBooked }) {
 
   const validateCurrentStep = () => {
     if (step === 0 && !careRecipient.trim()) return "Tell us who needs care before continuing.";
-    if (step === 1 && (!date || !time || !Number(durationHours))) return "Add the date, start time, and duration for care.";
+    if (step === 1 && (!date || !Number(durationHours) || (!time && (!isPartTimeCaregiver || requestedTimeWindows.length === 0)))) {
+      return isPartTimeCaregiver
+        ? "Add the date and duration, then choose a start time or at least one preferred time window."
+        : "Add the date, start time, and duration for care.";
+    }
     if (step === 1 && date < localDateKey()) return "Choose today or a future date for care.";
     if (step === 2 && (!fullName.trim() || !phone.trim() || !address.trim() || !city.trim())) return "Add your contact and location details before continuing.";
     return "";
+  };
+
+  const toggleRequestedTimeWindow = (timeWindow) => {
+    setRequestedTimeWindows((current) =>
+      current.includes(timeWindow)
+        ? current.filter((item) => item !== timeWindow)
+        : [...current, timeWindow],
+    );
   };
 
   const nextStep = () => {
@@ -93,9 +167,9 @@ export default function BookingFormPage({ caregiver, onBooked }) {
       recurrence,
       notes: notes.trim(),
       careRecipient: careRecipient.trim(),
-      careNeeds: careNeeds.trim(),
+      careNeeds: [requestedTimeWindowNote, careNeeds.trim()].filter(Boolean).join("\n\n"),
       serviceId: serviceId || "general_care",
-      serviceLabel: serviceLabel(serviceId || verifiedCaregiver.servicesOffered?.[0]),
+      serviceLabel: serviceLabel(serviceId || "general_care"),
       caregiverId: verifiedCaregiver.id,
       vendorId: verifiedCaregiver.id,
       organizationId: verifiedCaregiver.organizationId || "",
@@ -178,11 +252,20 @@ export default function BookingFormPage({ caregiver, onBooked }) {
         <input id="care-recipient" value={careRecipient} onChange={(event) => setCareRecipient(event.target.value)} placeholder="For example, my parent or child" maxLength={120} />
         <label htmlFor="care-service">Care or support needed</label>
         <select id="care-service" value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
-          <option value="">General care support</option>
-          {offeredServices.map((service) => <option key={service} value={service}>{serviceLabel(service)}</option>)}
+          <optgroup label="Care services">
+            {CARE_SERVICE_OPTIONS.map((service) => <option key={service.id} value={service.id}>{service.label}</option>)}
+          </optgroup>
+          <optgroup label="Household services">
+            {HOUSEHOLD_SERVICE_OPTIONS.map((service) => <option key={service.id} value={service.id}>{service.label}</option>)}
+          </optgroup>
+          {offeredServices.length ? (
+            <optgroup label="Other services this caregiver offers">
+              {offeredServices.map((service) => <option key={service} value={service}>{serviceLabel(service)}</option>)}
+            </optgroup>
+          ) : null}
         </select>
         <label htmlFor="care-needs">What help is required?</label>
-        <textarea id="care-needs" value={careNeeds} onChange={(event) => setCareNeeds(event.target.value)} maxLength={1000} placeholder="For example, mobility support, meal assistance, companionship, or important needs." />
+        <textarea id="care-needs" value={careNeeds} onChange={(event) => setCareNeeds(event.target.value)} maxLength={MAX_CARE_NEEDS_LENGTH} placeholder="For example, mobility support, meal assistance, companionship, or important needs." />
       </section>
 
       <section className="booking-form-panel" hidden={step !== 1}>
@@ -191,10 +274,24 @@ export default function BookingFormPage({ caregiver, onBooked }) {
         <p>Choose a schedule that the caregiver can review before accepting.</p>
         <div className="booking-form-grid">
           <label>Date *<input type="date" value={date} min={localDateKey()} onChange={(event) => setDate(event.target.value)} /></label>
-          <label>Start time *<input type="time" value={time} onChange={(event) => setTime(event.target.value)} /></label>
+          <label>{isPartTimeCaregiver ? "Preferred start time" : "Start time *"}<input type="time" value={time} onChange={(event) => setTime(event.target.value)} /></label>
           <label>Duration (hours) *<input type="number" min="1" max="24" value={durationHours} onChange={(event) => setDurationHours(event.target.value)} /></label>
           <label>Frequency<select value={recurrence} onChange={(event) => setRecurrence(event.target.value)}><option value="one_time">One-time care</option><option value="recurring">Recurring care (confirm with caregiver)</option></select></label>
         </div>
+        {isPartTimeCaregiver ? (
+          <fieldset className="booking-form-payment" aria-describedby="preferred-time-windows-help">
+            <legend>Preferred time windows</legend>
+            <p id="preferred-time-windows-help">Select every window that works for you. You can choose morning and night without selecting day; the caregiver confirms availability before accepting.</p>
+            <div>
+              {TIME_WINDOW_OPTIONS.map((timeWindow) => (
+                <label key={timeWindow.id}>
+                  <input type="checkbox" checked={requestedTimeWindows.includes(timeWindow.id)} onChange={() => toggleRequestedTimeWindow(timeWindow.id)} />
+                  {timeWindow.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
       </section>
 
       <section className="booking-form-panel" hidden={step !== 2}>
@@ -215,7 +312,8 @@ export default function BookingFormPage({ caregiver, onBooked }) {
         <h2>Review and confirm</h2>
         <dl className="booking-form-review">
           <div><dt>Caregiver</dt><dd>{caregiver.name || "Caregiver"}</dd></div>
-          <div><dt>Care needed</dt><dd>{serviceLabel(serviceId || caregiver.servicesOffered?.[0])}</dd></div>
+          <div><dt>Care needed</dt><dd>{serviceLabel(serviceId || "general_care")}</dd></div>
+          {requestedTimeWindowLabels.length ? <div><dt>Preferred windows</dt><dd>{joinLabels(requestedTimeWindowLabels)}</dd></div> : null}
           <div><dt>Schedule</dt><dd>{date || "—"} {time ? `at ${time}` : ""} · {durationHours || 0} hours</dd></div>
           <div><dt>Location</dt><dd>{address || "—"}{city ? `, ${city}` : ""}</dd></div>
           <div><dt>Price</dt><dd>{hourlyRate ? `${formatNpr(hourlyRate)}/hr` : "Rate to be confirmed"}</dd></div>

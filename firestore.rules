@@ -456,13 +456,35 @@ service cloud.firestore {
         (!data.keys().hasAny(['paymentDate']) || data.paymentDate is timestamp);
     }
 
-    function bookingVendor() {
-      return get(/databases/$(database)/documents/vendors/$(request.resource.data.caregiverId));
+    function isActiveCustomer() {
+      // A trial customer may have completed Firebase Authentication before a
+      // legacy profile document was written. Let that signed-in customer make
+      // an own booking, but keep an explicit suspension or blacklist on an
+      // existing profile authoritative.
+      return signedIn() &&
+        (!exists(userPath(request.auth.uid)) ||
+          isNotBlocked(get(userPath(request.auth.uid)).data));
     }
 
-    function isActiveCustomer() {
-      return signedIn() && exists(userPath(request.auth.uid)) &&
-        isNotBlocked(get(userPath(request.auth.uid)).data);
+    function bookingPublicCaregiverPath() {
+      return /databases/$(database)/documents/publicCaregivers/$(request.resource.data.caregiverId);
+    }
+
+    function bookingPublicCaregiver() {
+      return get(bookingPublicCaregiverPath());
+    }
+
+    // Customers can request care only from the PII-free listing they were
+    // shown in Browse. This intentionally avoids a false permission denial
+    // when a legacy private vendor record and its published trial listing are
+    // temporarily out of sync.
+    function bookingPublicCaregiverIsBookable() {
+      return exists(bookingPublicCaregiverPath()) &&
+        bookingPublicCaregiver().data.get('isApproved', false) == true &&
+        bookingPublicCaregiver().data.get('isSuspended', false) == false &&
+        bookingPublicCaregiver().data.get('isBlacklisted', false) == false &&
+        bookingPublicCaregiver().data.get('isOrganizationActive', false) == true &&
+        bookingPublicCaregiver().data.get('isAvailable', false) == true;
     }
 
     function vendorOrganizationIsActive(vendor) {
@@ -565,15 +587,10 @@ service cloud.firestore {
         request.resource.data.platformCommission == request.resource.data.totalAmount * 0.15 &&
         request.resource.data.vendorEarnings == request.resource.data.totalAmount - request.resource.data.platformCommission &&
         request.resource.data.createdAt == request.time &&
-        exists(/databases/$(database)/documents/vendors/$(request.resource.data.caregiverId)) &&
-        bookingVendor().data.get('isApproved', false) == true &&
-        isNotBlocked(bookingVendor().data) &&
-        bookingVendor().data.get('isAvailable', false) == true &&
-        vendorOrganizationIsActive(bookingVendor().data) &&
-        request.resource.data.hourlyRate == bookingVendor().data.hourlyRate &&
-        request.resource.data.caregiverName == bookingVendor().data.name &&
-        (request.resource.data.organizationId == bookingVendor().data.organizationId ||
-         (!bookingVendor().data.keys().hasAny(['organizationId']) && request.resource.data.organizationId == ''));
+        bookingPublicCaregiverIsBookable() &&
+        request.resource.data.hourlyRate == bookingPublicCaregiver().data.get('hourlyRate', -1) &&
+        request.resource.data.caregiverName == bookingPublicCaregiver().data.get('name', '') &&
+        request.resource.data.organizationId == bookingPublicCaregiver().data.get('organizationId', '');
     }
 
     function isBookingCustomer() {
