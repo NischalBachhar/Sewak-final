@@ -14,12 +14,26 @@ PII-free caregiver projection to `publicCaregivers` from the Admin dashboard.
 - Writer: Admin dashboard only, authenticated as an existing superadmin. It
   copies a fixed safe-field list and removes stale projections for ineligible
   source records.
+- Legacy trial account records that omit `isSuspended` or `isBlacklisted` are
+  treated as unblocked; an explicit `true` still blocks access. This avoids a
+  missing optional field becoming a permission-evaluation error.
+- A legacy organization owner may resolve the `orgadmin` role from its own
+  immutable, superadmin-created organization record only when its `adminUid`
+  equals the caller UID.
+- Pending, non-blocked organization/caregiver accounts may read only their own
+  operations records. Approval is still required for public listing, customer
+  booking, or role-managed writes.
 
 ## Rule design
 
 - Default policy remains deny.
 - Public reads stay limited to active projection documents. Private vendor
   records remain owner/organization/superadmin-only.
+- Superadmins may list every public projection solely to remove stale entries;
+  public visitors still see only active projections.
+- Organization and caregiver read rules remain scoped to matching owner IDs;
+  the pending-read compatibility path does not authorize cross-organization
+  data access or any status transition.
 - Creates and updates require a superadmin and the exact strict public schema:
   bounded strings, bounded lists, numeric ranges, timestamp, fixed active
   flags, and verified-rating invariant.
@@ -40,3 +54,9 @@ PII-free caregiver projection to `publicCaregivers` from the Admin dashboard.
    must have safe values.
 7. Arbitrary large values: bounded strings/lists and numeric ranges prevent
    projection storage abuse.
+8. Cross-organization dashboard access: denied because the legacy fallback
+   applies only to the organization document keyed by the caller and every
+   organization data query still requires the caller's matching organization ID.
+9. Pending account actions: denied where an active approval state is required;
+   the compatibility rules grant read-only operational visibility, not booking,
+   public-listing, or role-management authority.

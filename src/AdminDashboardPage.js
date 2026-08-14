@@ -772,6 +772,8 @@ export default function AdminDashboardPage() {
         await updateDoc(doc(db, "organizations", orgId), {
           isApproved: true,
           verified: true,
+          isSuspended: false,
+          isBlacklisted: false,
           approvedAt: serverTimestamp(),
           approvedBy: currentUser?.email || "superadmin",
           updatedAt: serverTimestamp(),

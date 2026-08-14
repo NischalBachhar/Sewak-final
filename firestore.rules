@@ -33,26 +33,52 @@ service cloud.firestore {
       return signedIn() &&
         (request.auth.token.platformRole == 'superadmin' ||
          (exists(userPath(request.auth.uid)) &&
-          get(userPath(request.auth.uid)).data.role == 'superadmin'));
+          get(userPath(request.auth.uid)).data.get('role', '') == 'superadmin'));
     }
 
     function isOrgAdmin() {
       return signedIn() &&
         (request.auth.token.platformRole == 'orgadmin' ||
          (exists(userPath(request.auth.uid)) &&
-          get(userPath(request.auth.uid)).data.role == 'orgadmin'));
+          get(userPath(request.auth.uid)).data.get('role', '') == 'orgadmin') ||
+         // Legacy trial organizations may not have a matching users/ record.
+         // The organization itself is superadmin-created, keyed by its admin,
+         // and its ownership/role fields are immutable to that admin.
+         (exists(/databases/$(database)/documents/organizations/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/organizations/$(request.auth.uid)).data.get('adminUid', '') == request.auth.uid &&
+          get(/databases/$(database)/documents/organizations/$(request.auth.uid)).data.get('role', '') == 'orgadmin'));
+    }
+
+    // Older trial records predate the explicit suspension/blacklist fields.
+    // Treat an absent field as not blocked, while still denying every record
+    // explicitly marked suspended or blacklisted.
+    function isNotBlocked(data) {
+      return data.get('isSuspended', false) != true &&
+        data.get('isBlacklisted', false) != true;
     }
 
     function isActiveOrganization(organizationId) {
       return organizationId is string && organizationId.size() > 0 &&
         exists(/databases/$(database)/documents/organizations/$(organizationId)) &&
-        get(/databases/$(database)/documents/organizations/$(organizationId)).data.isApproved == true &&
-        get(/databases/$(database)/documents/organizations/$(organizationId)).data.isSuspended != true &&
-        get(/databases/$(database)/documents/organizations/$(organizationId)).data.isBlacklisted != true;
+        get(/databases/$(database)/documents/organizations/$(organizationId)).data.get('isApproved', false) == true &&
+        isNotBlocked(get(/databases/$(database)/documents/organizations/$(organizationId)).data);
     }
 
     function isActiveOrganizationAdmin() {
       return isOrgAdmin() && isActiveOrganization(request.auth.uid);
+    }
+
+    // A pending-but-not-blocked partner may view only the records owned by
+    // their organization. Approval remains required for public discovery,
+    // bookings, and organization-side mutations.
+    function isReadableOrganization(organizationId) {
+      return organizationId is string && organizationId.size() > 0 &&
+        exists(/databases/$(database)/documents/organizations/$(organizationId)) &&
+        isNotBlocked(get(/databases/$(database)/documents/organizations/$(organizationId)).data);
+    }
+
+    function isReadableOrganizationAdmin() {
+      return isOrgAdmin() && isReadableOrganization(request.auth.uid);
     }
 
     function isApprovedOrganizationAdmin() {
@@ -63,7 +89,7 @@ service cloud.firestore {
       return signedIn() &&
         (request.auth.token.platformRole == 'caregiver' ||
          (exists(userPath(request.auth.uid)) &&
-          get(userPath(request.auth.uid)).data.role == 'caregiver'));
+          get(userPath(request.auth.uid)).data.get('role', '') == 'caregiver'));
     }
 
     function validShortText(value, maxLength) {
@@ -436,8 +462,7 @@ service cloud.firestore {
 
     function isActiveCustomer() {
       return signedIn() && exists(userPath(request.auth.uid)) &&
-        get(userPath(request.auth.uid)).data.isSuspended != true &&
-        get(userPath(request.auth.uid)).data.isBlacklisted != true;
+        isNotBlocked(get(userPath(request.auth.uid)).data);
     }
 
     function vendorOrganizationIsActive(vendor) {
@@ -449,10 +474,25 @@ service cloud.firestore {
     function isActiveCaregiver(caregiverId) {
       return isCaregiver() && request.auth.uid == caregiverId &&
         exists(/databases/$(database)/documents/vendors/$(caregiverId)) &&
-        get(/databases/$(database)/documents/vendors/$(caregiverId)).data.isApproved == true &&
-        get(/databases/$(database)/documents/vendors/$(caregiverId)).data.isSuspended != true &&
-        get(/databases/$(database)/documents/vendors/$(caregiverId)).data.isBlacklisted != true &&
+        get(/databases/$(database)/documents/vendors/$(caregiverId)).data.get('isApproved', false) == true &&
+        isNotBlocked(get(/databases/$(database)/documents/vendors/$(caregiverId)).data) &&
         vendorOrganizationIsActive(
+          get(/databases/$(database)/documents/vendors/$(caregiverId)).data
+        );
+    }
+
+    function vendorOrganizationIsReadable(vendor) {
+      return !vendor.keys().hasAny(['organizationId']) ||
+        vendor.organizationId == '' ||
+        (vendor.organizationId is string && isReadableOrganization(vendor.organizationId));
+    }
+
+    function isReadableCaregiver(caregiverId) {
+      return isCaregiver() && request.auth.uid == caregiverId &&
+        exists(/databases/$(database)/documents/vendors/$(caregiverId)) &&
+        get(/databases/$(database)/documents/vendors/$(caregiverId)).data.get('isApproved', false) == true &&
+        isNotBlocked(get(/databases/$(database)/documents/vendors/$(caregiverId)).data) &&
+        vendorOrganizationIsReadable(
           get(/databases/$(database)/documents/vendors/$(caregiverId)).data
         );
     }
@@ -526,10 +566,9 @@ service cloud.firestore {
         request.resource.data.vendorEarnings == request.resource.data.totalAmount - request.resource.data.platformCommission &&
         request.resource.data.createdAt == request.time &&
         exists(/databases/$(database)/documents/vendors/$(request.resource.data.caregiverId)) &&
-        bookingVendor().data.isApproved == true &&
-        bookingVendor().data.isSuspended == false &&
-        bookingVendor().data.isBlacklisted != true &&
-        bookingVendor().data.isAvailable == true &&
+        bookingVendor().data.get('isApproved', false) == true &&
+        isNotBlocked(bookingVendor().data) &&
+        bookingVendor().data.get('isAvailable', false) == true &&
         vendorOrganizationIsActive(bookingVendor().data) &&
         request.resource.data.hourlyRate == bookingVendor().data.hourlyRate &&
         request.resource.data.caregiverName == bookingVendor().data.name &&
@@ -554,7 +593,7 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/bookings/$(bookingId)) &&
         (get(/databases/$(database)/documents/bookings/$(bookingId)).data.userId == request.auth.uid ||
          (get(/databases/$(database)/documents/bookings/$(bookingId)).data.caregiverId == request.auth.uid &&
-          isActiveCaregiver(request.auth.uid)));
+          isReadableCaregiver(request.auth.uid)));
     }
 
     function validBookingTransition() {
@@ -740,7 +779,7 @@ service cloud.firestore {
       // organization, and super-admins can read them; public discovery uses
       // the PII-free `publicCaregivers` projection below.
       allow get, list: if isOwner(vendorId) || isSuperAdmin() ||
-        (isActiveOrganizationAdmin() && resource.data.organizationId == request.auth.uid);
+        (isReadableOrganizationAdmin() && resource.data.organizationId == request.auth.uid);
       // Caregiver accounts are provisioned through the trusted Functions
       // workflow; a browser must never create a self-managed caregiver record.
       allow create: if isSuperAdmin() && vendorDocumentIsValid(request.resource.data);
@@ -755,10 +794,10 @@ service cloud.firestore {
       // publisher when the project stays on Firebase's free plan. The query
       // constraints in the client mirror these gates so suspended,
       // blacklisted, or organization-disabled caregivers cannot be listed.
-      allow get, list: if resource.data.isApproved == true &&
+      allow get, list: if isSuperAdmin() || (resource.data.isApproved == true &&
         resource.data.isSuspended == false &&
         resource.data.isBlacklisted == false &&
-        resource.data.isOrganizationActive == true;
+        resource.data.isOrganizationActive == true);
       allow create, update: if isSuperAdmin() &&
         publicCaregiverDocumentIsValid(caregiverId, request.resource.data);
       allow delete: if isSuperAdmin();
@@ -766,11 +805,12 @@ service cloud.firestore {
 
     match /bookings/{bookingId} {
       allow get: if isSuperAdmin() || isBookingCustomer() || isActiveAssignedCaregiver() ||
-        (isActiveOrganizationAdmin() && resource.data.organizationId == request.auth.uid);
+        isReadableCaregiver(resource.data.caregiverId) ||
+        (isReadableOrganizationAdmin() && resource.data.organizationId == request.auth.uid);
       allow list: if isSuperAdmin() ||
-        (isActiveOrganizationAdmin() && resource.data.organizationId == request.auth.uid) ||
+        (isReadableOrganizationAdmin() && resource.data.organizationId == request.auth.uid) ||
         (signedIn() && resource.data.userId == request.auth.uid) ||
-        (isActiveCaregiver(request.auth.uid) && resource.data.caregiverId == request.auth.uid);
+        (isReadableCaregiver(request.auth.uid) && resource.data.caregiverId == request.auth.uid);
       allow create: if signedIn() && validBookingCreate();
       allow update: if (isSuperAdmin() && bookingDocumentIsValid(request.resource.data)) ||
         validBookingTransition();
@@ -834,10 +874,10 @@ service cloud.firestore {
     match /services/{serviceId} {
       // Administrative service records may include internal creator metadata.
       // Public browse uses the PII-free publicServices projection below. An
-      // active organization may query only its own records; unowned legacy
+      // organization administrator may query only its own records; unowned legacy
       // service records are intentionally visible to super-admins only.
       allow get, list: if isSuperAdmin() ||
-        (isApprovedOrganizationAdmin() &&
+        (isReadableOrganizationAdmin() &&
           resource.data.organizationId == request.auth.uid);
       allow create: if serviceDocumentIsValid(request.resource.data) &&
         (isSuperAdmin() || organizationServiceCreateIsValid());
@@ -888,7 +928,7 @@ service cloud.firestore {
     }
 
     match /organizationBlacklist/{blacklistId} {
-      allow get, list: if isSuperAdmin() || (isActiveOrganizationAdmin() && resource.data.organizationId == request.auth.uid);
+      allow get, list: if isSuperAdmin() || (isReadableOrganizationAdmin() && resource.data.organizationId == request.auth.uid);
       allow create, update, delete: if isSuperAdmin();
     }
 
