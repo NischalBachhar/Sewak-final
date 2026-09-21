@@ -1,3 +1,5 @@
+> Historical audit snapshot. Current implementation, verification and release/rollback guidance: [SEWAK fix report](docs/SEWAK-FIX-REPORT.md).
+
 # Firestore security audit
 
 ## Reviewed client collections and access patterns

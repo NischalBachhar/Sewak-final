@@ -153,8 +153,9 @@ function normalizeCaregiverProvisioningInput(data) {
     "experience",
   ]);
 
-  const category = requiredString(value, "category", 20);
-  if (!["caregiver", "household", "both"].includes(category)) {
+  const rawCategory = requiredString(value, "category", 20);
+  const category = rawCategory === "household" ? "vendor" : rawCategory;
+  if (!["caregiver", "vendor", "both"].includes(category)) {
     throw new HttpsError("invalid-argument", "category is invalid.");
   }
 

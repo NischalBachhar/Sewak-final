@@ -1,3 +1,5 @@
+> Historical audit snapshot. Current implementation, verification and release/rollback guidance: [SEWAK fix report](docs/SEWAK-FIX-REPORT.md).
+
 # Trial public caregiver publishing audit
 
 Scope: Firebase Spark-plan replacement for the unavailable Cloud Functions

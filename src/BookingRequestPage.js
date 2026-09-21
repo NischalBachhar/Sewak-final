@@ -3,16 +3,19 @@ import { doc, getDoc } from "firebase/firestore";
 import { useNavigate, useParams } from "react-router-dom";
 import { db } from "./firebaseConfig";
 import BookingFormPage from "./BookingFormPage";
+import { useAuth } from "./AuthContext";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
 
 export default function BookingRequestPage() {
   const { caregiverId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [caregiver, setCaregiver] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
+    setCaregiver(null); setError("");
     async function loadCaregiver() {
       try {
         const snapshot = await getDoc(doc(db, "publicCaregivers", caregiverId));
@@ -34,7 +37,7 @@ export default function BookingRequestPage() {
   return (
     <div className="booking-request-page">
       <button type="button" className="booking-request-page__back" onClick={() => navigate(`/user/caregivers/${caregiver.id}`)}>Back to caregiver profile</button>
-      <BookingFormPage caregiver={caregiver} onBooked={(bookingId) => navigate(`/user/bookings/${bookingId}`)} />
+      <BookingFormPage key={`${user?.uid}:${caregiver.id}`} caregiver={caregiver} onBooked={(bookingId) => navigate(`/user/bookings/${bookingId}`)} />
     </div>
   );
 }

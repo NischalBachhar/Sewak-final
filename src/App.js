@@ -1,35 +1,44 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import React, { lazy, useEffect, useRef, useState } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import useCustomerBookings from "./useCustomerBookings";
+import NotFound from "./components/NotFound";
 import { useAuth } from "./AuthContext";
 import AuthPage from "./AuthPage";
-import UserProfilePage from "./UserProfilePage";
-import OrganizationProfilePage from "./OrganizationProfilePage";
-import CaregiverDashboardPage from "./CaregiverDashboardPage";
 import CaregiverListPage from "./CaregiverListPage";
-import BookingRequestPage from "./BookingRequestPage";
-import BookingDetailPage from "./BookingDetailPage";
 import PublicCaregiverProfilePage from "./PublicCaregiverProfilePage";
-import PaymentCallbackPage from "./PaymentCallbackPage";
-import MyBookingsPage from "./MyBookingsPage";
-import CustomerHomePage from "./CustomerHomePage";
-import AdminDashboardPage from "./AdminDashboardPage";
-import OrganizationDashboard from "./OrganizationDashboard";
-import CaregiverReportUserPage from "./CaregiverReportUserPage";
 import BrowsePage from "./BrowsePage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
-import { auth, db } from "./firebaseConfig";
+import { auth } from "./firebaseConfig";
 import "./App.css";
 import "./DashboardExperience.css";
 
+const UserProfilePage = lazy(() => import("./UserProfilePage"));
+const OrganizationProfilePage = lazy(() => import("./OrganizationProfilePage"));
+const CaregiverDashboardPage = lazy(() => import("./CaregiverDashboardPage"));
+const BookingRequestPage = lazy(() => import("./BookingRequestPage"));
+const BookingDetailPage = lazy(() => import("./BookingDetailPage"));
+const PaymentCallbackPage = lazy(() => import("./PaymentCallbackPage"));
+const MyBookingsPage = lazy(() => import("./MyBookingsPage"));
+const CustomerHomePage = lazy(() => import("./CustomerHomePage"));
+const AdminDashboardPage = lazy(() => import("./AdminDashboardPage"));
+const OrganizationDashboard = lazy(() => import("./OrganizationDashboard"));
+const CaregiverReportUserPage = lazy(() => import("./CaregiverReportUserPage"));
+
+function DashboardPath({ root, sections, children }) {
+  const { pathname } = useLocation();
+  const suffix = pathname.replace(/\/$/, "").slice(root.length);
+  return suffix === "" || sections.some((section) => suffix === `/${section}`) ? children : <NotFound />;
+}
+
 function App() {
-  const { user, loading, userRole, userDoc, accountError } = useAuth();
+  const { user, loading, userRole, userDoc, accountError, registrationPending } = useAuth();
   const [userCategory, setUserCategory] = useState("");
   const [userWorkType, setUserWorkType] = useState("");
   const [userShift, setUserShift] = useState("");
+  const customerBookings = useCustomerBookings(userRole === "user" ? user?.uid : null);
   const [notificationCount, setNotificationCount] = useState(0);
   const bookingsSnapshotRef = useRef([]);
   const bookingsInitialLoadRef = useRef(true);
@@ -49,7 +58,7 @@ function App() {
     try {
       await signOut(auth);
     } catch (err) {
-      console.error("Logout error:", err);
+      console.error("Logout error:", { code: err?.code || "unknown" });
     }
   };
 
@@ -84,16 +93,8 @@ function App() {
     const stored = localStorage.getItem(storageKey);
     seenCompletedIdsRef.current = parseSavedIds(stored);
 
-    const bookingsQuery = query(
-      collection(db, "bookings"),
-      where("userId", "==", user.uid)
-    );
-
-    const unsubscribe = onSnapshot(bookingsQuery, (snapshot) => {
-      const bookings = snapshot.docs.map((document) => ({
-        id: document.id,
-        ...document.data(),
-      }));
+    if (customerBookings.loading || customerBookings.error) return undefined;
+    const bookings = customerBookings.bookings;
       const currentCompletedIds = bookings
         .filter((booking) => booking.status === "completed")
         .map((booking) => booking.id);
@@ -113,17 +114,14 @@ function App() {
 
       bookingsSnapshotRef.current = bookings;
       bookingsInitialLoadRef.current = false;
-    });
-
-    return () => {
-      unsubscribe();
-      bookingsSnapshotRef.current = [];
-      bookingsInitialLoadRef.current = true;
-    };
-  }, [user, userRole]);
+  }, [user, userRole, customerBookings]);
 
   useEffect(() => {
-    if (!user || !userRole) return;
+    setNotificationCount(0); bookingsSnapshotRef.current = []; bookingsInitialLoadRef.current = true; seenCompletedIdsRef.current = [];
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user || !userRole || registrationPending) return;
 
     const path = window.location.pathname;
 
@@ -150,7 +148,7 @@ function App() {
         );
       }
     }
-  }, [user, userRole, userDoc?.profileComplete, navigate]);
+  }, [user, userRole, userDoc?.profileComplete, navigate, registrationPending]);
 
   useEffect(() => {
     if (!user || userRole !== "user" || !userDoc?.profileComplete) return;
@@ -174,6 +172,8 @@ function App() {
       localStorage.removeItem("pendingBookingCaregiverId");
     }
   }, [user, userRole, userDoc?.profileComplete, navigate]);
+
+  if (registrationPending || userDoc?.registrationIncomplete || (!user && window.location.pathname === "/auth")) return <AuthPage />;
 
   if (loading) {
     return (
@@ -273,7 +273,9 @@ function App() {
           element={<PublicCaregiverProfilePage />}
         />
         <Route path="/payment-callback" element={<PaymentCallbackPage />} />
-        <Route path="*" element={<Navigate to="/browse" replace />} />
+        <Route path="/" element={<Navigate to="/browse" replace />} />
+        {["/user/*", "/caregiver/*", "/organization/*", "/superadmin/*"].map((path) => <Route key={path} path={path} element={<Navigate to="/auth" replace />} />)}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     );
   }
@@ -376,7 +378,7 @@ function App() {
               }
             />
             <Route
-              path="/user/*"
+              path="/user"
               element={
                 <div className="app-shell">
                   <div className="app-card">
@@ -411,7 +413,7 @@ function App() {
               element={
                 <div className="app-shell dashboard-shell dashboard-shell--organization">
                   <div className="app-card">
-                    <OrganizationDashboard />
+                    <DashboardPath root="/organization" sections={["dashboard"]}><OrganizationDashboard /></DashboardPath>
                   </div>
                 </div>
               }
@@ -430,7 +432,7 @@ function App() {
               element={
                 <div className="app-shell dashboard-shell dashboard-shell--caregiver">
                   <div className="app-card">
-                    <CaregiverDashboardPage />
+                    <DashboardPath root="/caregiver" sections={["dashboard", "home", "jobs", "schedule", "profile", "earnings"]}><CaregiverDashboardPage /></DashboardPath>
                   </div>
                 </div>
               }
@@ -444,7 +446,7 @@ function App() {
             element={
               <div className="app-shell dashboard-shell dashboard-shell--admin">
                 <div className="app-card">
-                  <AdminDashboardPage />
+                  <DashboardPath root="/superadmin" sections={["overview", "organizations", "caregivers", "bookings", "services", "blacklist", "admins", "analytics"]}><AdminDashboardPage /></DashboardPath>
                 </div>
               </div>
             }
@@ -452,7 +454,7 @@ function App() {
         )}
 
         <Route
-          path="*"
+          path="/"
           element={
             userRole === "superadmin" ? (
               <Navigate to="/superadmin" replace />
@@ -471,6 +473,8 @@ function App() {
             )
           }
         />
+        <Route path="/auth" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <MobileBottomNavigation role={userRole} />
     </>

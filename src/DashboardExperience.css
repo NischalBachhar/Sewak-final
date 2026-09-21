@@ -336,3 +336,7 @@
     align-self: flex-start;
   }
 }
+
+.sewak-dialog-backdrop { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.5); overflow-y: auto; }
+.sewak-dialog-panel { background: var(--theme-surface, white); color: var(--theme-text); padding: 24px; width: min(560px, 100%); max-height: 85vh; overflow-y: auto; border-radius: 8px; }
+[role=dialog] { overscroll-behavior: contain; }

@@ -89,7 +89,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
             })),
           );
         } else {
-          console.warn("Error loading public service labels:", servicesResult.reason);
+          console.warn("Error loading public service labels:");
           setServicesUnavailable(true);
         }
 
@@ -104,7 +104,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
               }),
           );
         } else {
-          console.warn("Error loading public reviews:", reviewsResult.reason);
+          console.warn("Error loading public reviews:");
           setReviewsUnavailable(true);
         }
       } catch (loadError) {

@@ -1,3 +1,5 @@
+import { saveService, retireService } from "./servicePublishing";
+import AccessibleDialog from "./components/AccessibleDialog";
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -7,12 +9,10 @@ import {
   doc,
   updateDoc,
   setDoc,
-  deleteDoc,
   writeBatch,
   serverTimestamp,
   query,
   where,
-  addDoc,
 } from "firebase/firestore";
 import {
   onAuthStateChanged,
@@ -20,6 +20,7 @@ import {
 } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 import { db, auth, functions } from "./firebaseConfig";
+import CaregiverEditor from "./components/CaregiverEditor";
 import { normalizeBooking } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
@@ -36,7 +37,7 @@ const dashboardTabs = [
   "analytics",
 ];
 
-const PUBLIC_CAREGIVER_WRITE_BATCH_SIZE = 400;
+const PUBLIC_CAREGIVER_WRITE_BATCH_SIZE = 5;
 
 const caregiverVerificationFields = [
   {
@@ -137,7 +138,7 @@ function isActiveOrganizationForTrial(organization) {
   );
 }
 
-function buildPublicCaregiverListing(caregiver, organizationActive) {
+function buildPublicCaregiverListing(caregiver, organizationActive, commissionRate = 15) {
   const reviewCount = publicNumber(caregiver.reviewCount, 0, 1000000);
   const rating = reviewCount > 0
     ? publicNumber(caregiver.rating, 0, 5)
@@ -145,9 +146,11 @@ function buildPublicCaregiverListing(caregiver, organizationActive) {
 
   return {
     caregiverId: caregiver.id,
+    commissionRate,
+    allowZeroRate: caregiver.allowZeroRate === true,
     name: publicString(caregiver.name, 120),
     location: publicString(caregiver.location, 160),
-    category: publicString(caregiver.category, 32),
+    category: caregiver.category === "household" ? "vendor" : publicString(caregiver.category, 32),
     workType: publicString(caregiver.workType, 32),
     shifts: publicList(caregiver.shifts, 3),
     servicesOffered: publicList(caregiver.servicesOffered, 20),
@@ -242,6 +245,7 @@ export default function AdminDashboardPage() {
   const [newOrgCity, setNewOrgCity] = useState("");
   const [addingOrg, setAddingOrg] = useState(false);
 
+  const [editingCaregiver, setEditingCaregiver] = useState(null);
   const [editingOrg, setEditingOrg] = useState(null);
   const [editOrgName, setEditOrgName] = useState("");
   const [editOrgAdminName, setEditOrgAdminName] = useState("");
@@ -334,13 +338,8 @@ export default function AdminDashboardPage() {
   }, [location.pathname, activeTab]);
 
   // ============ LOAD ALL DATA ============
-  const calculateAnalytics = useCallback(async (organizationsData = []) => {
+  const calculateAnalytics = useCallback((organizationsData = [], vendorsData = [], bookingsData = []) => {
     try {
-      const vendorSnap = await getDocs(collection(db, "vendors"));
-      const vendorsData = vendorSnap.docs.map((d) => d.data());
-
-      const bookingSnap = await getDocs(collection(db, "bookings"));
-      const bookingsData = bookingSnap.docs.map((d) => d.data());
 
       const totalRevenue = bookingsData
         .filter((b) => b.status === "completed")
@@ -362,7 +361,7 @@ export default function AdminDashboardPage() {
         platformEarnings,
       });
   } catch (err) {
-    console.error("Unexpected error loading dashboard:", err);
+    console.error("Unexpected error loading dashboard:", { code: err?.code || "unknown" });
     setError("Failed to load dashboard data");
     setLoadingOrganizations(false);
   }
@@ -370,6 +369,8 @@ export default function AdminDashboardPage() {
 
   const loadAllData = useCallback(async () => {
     let orgsData = [];
+    let loadedVendors = [];
+    let loadedBookings = [];
 
     try {
       // Organizations
@@ -380,7 +381,7 @@ export default function AdminDashboardPage() {
         setOrganizations(orgsData);
         setLoadingOrganizations(false);
       } catch (err) {
-        console.error("Error loading organizations:", err);
+        console.error("Error loading organizations:", { code: err?.code || "unknown" });
         setError("Failed to load organizations");
       } finally {
         setLoadingOrganizations(false);
@@ -396,7 +397,7 @@ export default function AdminDashboardPage() {
           applicationSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
         );
       } catch (err) {
-        console.error("Error loading organization applications:", err);
+        console.error("Error loading organization applications:", { code: err?.code || "unknown" });
         setError(
           err?.code === "permission-denied"
             ? "Partner applications are temporarily unavailable while secure access rules are being updated."
@@ -412,9 +413,10 @@ export default function AdminDashboardPage() {
           id: d.id,
           ...d.data(),
         }));
+        loadedVendors = vendorsData;
         setVendors(vendorsData);
       } catch (err) {
-        console.error("Error loading vendors:", err);
+        console.error("Error loading vendors:", { code: err?.code || "unknown" });
         setError("Failed to load caregivers");
       } finally {
         setLoadingVendors(false);
@@ -427,9 +429,10 @@ export default function AdminDashboardPage() {
         const bookingsData = bookingSnap.docs.map((d) =>
           normalizeBooking({ id: d.id, ...d.data() }),
         );
+        loadedBookings = bookingsData;
         setBookings(bookingsData);
       } catch (err) {
-        console.error("Error loading bookings:", err);
+        console.error("Error loading bookings:", { code: err?.code || "unknown" });
         setError("Failed to load bookings");
       } finally {
         setLoadingBookings(false);
@@ -444,7 +447,7 @@ export default function AdminDashboardPage() {
         }));
         setServices(servicesData);
       } catch (err) {
-        console.error("Error loading services:", err);
+        console.error("Error loading services:", { code: err?.code || "unknown" });
       }
 
       // Blacklist reports
@@ -454,7 +457,7 @@ export default function AdminDashboardPage() {
           reportsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
         );
       } catch (err) {
-        console.error("Error loading blacklist reports:", err);
+        console.error("Error loading blacklist reports:", { code: err?.code || "unknown" });
       }
 
       // Blacklist
@@ -464,7 +467,7 @@ export default function AdminDashboardPage() {
           blacklistSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
         );
       } catch (err) {
-        console.error("Error loading blacklist:", err);
+        console.error("Error loading blacklist:", { code: err?.code || "unknown" });
       }
 
       // Superadmins
@@ -477,7 +480,7 @@ export default function AdminDashboardPage() {
         const superAdminList = allUsers.filter((u) => u.role === "superadmin");
         setSuperAdmins(superAdminList);
       } catch (err) {
-        console.error("Error loading superadmins:", err);
+        console.error("Error loading superadmins:", { code: err?.code || "unknown" });
         setError("Failed to load superadmins: " + err.message);
       }
 
@@ -485,16 +488,16 @@ export default function AdminDashboardPage() {
       try {
         const settingsSnap = await getDoc(doc(db, "settings", "commission"));
         if (settingsSnap.exists()) {
-          setGlobalCommissionRate(settingsSnap.data().rate || 15);
+          setGlobalCommissionRate(settingsSnap.data().rate ?? 15);
         }
       } catch (err) {
-        console.error("Error loading commission settings:", err);
+        console.error("Error loading commission settings:", { code: err?.code || "unknown" });
       }
 
       // Analytics
-      await calculateAnalytics(orgsData);
+      calculateAnalytics(orgsData, loadedVendors, loadedBookings);
     } catch (err) {
-      console.error("Unexpected error loading dashboard:", err);
+      console.error("Unexpected error loading dashboard:", { code: err?.code || "unknown" });
       setError("Failed to load dashboard data");
     }
   }, [calculateAnalytics]);
@@ -546,7 +549,7 @@ export default function AdminDashboardPage() {
 
         await loadAllData();
       } catch (err) {
-        console.error("Error verifying user role:", err);
+        console.error("Error verifying user role:", { code: err?.code || "unknown" });
         setPermissionsError(`Permission verification failed: ${err.message}`);
         setIsSuperAdmin(false);
         setLoadingAuth(false);
@@ -571,7 +574,7 @@ export default function AdminDashboardPage() {
       setOrgCaregivers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setShowOrgCaregiversModal(true);
     } catch (err) {
-      console.error("Error loading organization caregivers:", err);
+      console.error("Error loading organization caregivers:", { code: err?.code || "unknown" });
       setError("Failed to load caregivers");
     }
   };
@@ -607,7 +610,7 @@ export default function AdminDashboardPage() {
 
       await loadAllData();
     } catch (err) {
-      console.error("Error creating organization:", err);
+      console.error("Error creating organization:", { code: err?.code || "unknown" });
       setError("Failed to create organization: " + err.message);
     }
     setAddingOrg(false);
@@ -643,7 +646,7 @@ export default function AdminDashboardPage() {
         businessPhone: editOrgPhone,
         businessAddress: editOrgAddress,
         businessCity: editOrgCity,
-        commissionRate: Number(editOrgCommission) || 15,
+        commissionRate: Number(editOrgCommission),
         updatedAt: serverTimestamp(),
       });
 
@@ -658,10 +661,7 @@ export default function AdminDashboardPage() {
           updatedAt: serverTimestamp(),
         });
       } catch (userErr) {
-        console.warn(
-          "Org user doc not updated (may not exist with same id):",
-          userErr,
-        );
+        console.warn("Org user doc not updated (may not exist with same id):", { code: userErr?.code || "unknown" });
       }
 
       setSuccessMessage("Organization updated successfully!");
@@ -669,7 +669,7 @@ export default function AdminDashboardPage() {
       setShowEditOrgModal(false);
       await loadAllData();
     } catch (err) {
-      console.error("Error updating organization", err);
+      console.error("Error updating organization", { code: err?.code || "unknown" });
       setError("Failed to update organization: " + err.message);
     }
   };
@@ -747,7 +747,7 @@ export default function AdminDashboardPage() {
       setOrgBlacklistReason("");
       await loadAllData();
     } catch (err) {
-      console.error("Error blacklisting organization:", err);
+      console.error("Error blacklisting organization:", { code: err?.code || "unknown" });
       setError("Failed to blacklist organization: " + err.message);
     }
   };
@@ -765,27 +765,7 @@ export default function AdminDashboardPage() {
       setSuccessMessage("Organization approved and its secure organization-admin claim was updated.");
       await loadAllData();
     } catch (err) {
-      // Cloud Functions require Blaze. For the free-tier investor trial a
-      // superadmin may activate only this existing organization record; this
-      // does not issue any custom claim or create a privileged account.
-      try {
-        await updateDoc(doc(db, "organizations", orgId), {
-          isApproved: true,
-          verified: true,
-          isSuspended: false,
-          isBlacklisted: false,
-          approvedAt: serverTimestamp(),
-          approvedBy: currentUser?.email || "superadmin",
-          updatedAt: serverTimestamp(),
-        });
-        setSuccessMessage(
-          "Organization approved for the free-tier trial. Publish its approved caregivers next.",
-        );
-        await loadAllData();
-      } catch (fallbackError) {
-        console.error("Error approving organization:", err, fallbackError);
-        setError("Failed to approve organization: " + fallbackError.message);
-      }
+      setError("Organization approval was denied or unavailable. No approval or safety flags were changed. " + (err.code || "unknown"));
     }
   };
 
@@ -801,7 +781,7 @@ export default function AdminDashboardPage() {
       );
       await loadAllData();
     } catch (err) {
-      console.error("Error approving organization application:", err);
+      console.error("Error approving organization application:", { code: err?.code || "unknown" });
       setError("Failed to approve organization application: " + err.message);
     }
   };
@@ -826,7 +806,7 @@ export default function AdminDashboardPage() {
       );
       await loadAllData();
     } catch (err) {
-      console.error("Error rejecting organization:", err);
+      console.error("Error rejecting organization:", { code: err?.code || "unknown" });
       setError("Failed to reject organization: " + err.message);
     }
   };
@@ -861,112 +841,11 @@ export default function AdminDashboardPage() {
       if (selectedOrg) await handleOrgClick(selectedOrg);
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      console.error("Error approving caregiver:", err);
+      console.error("Error approving caregiver:", { code: err?.code || "unknown" });
       setError("Failed to approve caregiver: " + err.message);
     }
   };
 
-  /* Legacy paid-plan Function sync retained as reference. The Spark trial uses
-     the direct, schema-validated publisher immediately below. */
-  /*
-  const handleSyncPublicCaregiverListings = async () => {
-    if (!isSuperAdmin) return;
-
-    const confirmed = window.confirm(
-      "Publish the approved caregiver directory now? This copies only safe profile fields; phone, email, earnings, and addresses stay private.",
-    );
-    if (!confirmed) return;
-
-    setError("");
-    setSuccessMessage("");
-    setSyncingPublicCaregivers(true);
-    setPublicCaregiverSyncProgress("Preparing the public caregiver directory…");
-
-    try {
-      const backfillPublicCaregivers = httpsCallable(
-        functions,
-        "backfillPublicCaregivers",
-      );
-      let cursor = "";
-      let totalProcessed = 0;
-
-      for (let page = 0; page < MAX_PUBLIC_CAREGIVER_SYNC_PAGES; page += 1) {
-        const result = await backfillPublicCaregivers({
-          limit: PUBLIC_CAREGIVER_SYNC_BATCH_SIZE,
-          ...(cursor ? { cursor } : {}),
-        });
-        const data = result?.data || {};
-        const processed = Number(data.processed);
-        const nextCursor = data.nextCursor;
-
-        if (
-          !Number.isInteger(processed) ||
-          processed < 0 ||
-          processed > PUBLIC_CAREGIVER_SYNC_BATCH_SIZE
-        ) {
-          throw new Error("The listing sync returned an invalid progress response.");
-        }
-
-        totalProcessed += processed;
-
-        if (!nextCursor) {
-          setPublicCaregiverSyncProgress("");
-          setSuccessMessage(
-            `Public caregiver listings synced. ${totalProcessed} caregiver profile${
-              totalProcessed === 1 ? "" : "s"
-            } processed.`,
-          );
-          await loadAllData();
-          return;
-        }
-
-        if (typeof nextCursor !== "string" || nextCursor === cursor) {
-          throw new Error("The listing sync could not safely continue to its next page.");
-        }
-
-        cursor = nextCursor;
-        setPublicCaregiverSyncProgress(
-          `Syncing public listings… ${totalProcessed} caregiver profile${
-            totalProcessed === 1 ? "" : "s"
-          } processed.`,
-        );
-      }
-
-      throw new Error(
-        "The listing sync reached its safety limit. Run it again to continue.",
-      );
-    } catch (err) {
-      console.error("Error syncing public caregiver listings:", err);
-
-      if (
-        typeof err?.message === "string" &&
-        err.message.startsWith("The listing sync")
-      ) {
-        setError(err.message);
-      } else if (err?.code === "functions/permission-denied") {
-        setError(
-          "Your Firebase session does not have the required superadmin permission. Sign out and back in after the secure superadmin claim is set.",
-        );
-      } else if (err?.code === "functions/unauthenticated") {
-        setError(
-          "Firebase could not verify this secure sync request. Refresh your sign-in after Firebase App Check is configured, then try again.",
-        );
-      } else if (err?.code === "functions/not-found") {
-        setError(
-          "Public listing sync is not deployed yet. Enable Cloud Functions API and deploy the Firebase Functions before trying again.",
-        );
-      } else {
-        setError(
-          "Could not sync public caregiver listings. Check the Firebase Functions and App Check deployment, then try again.",
-        );
-      }
-    } finally {
-      setSyncingPublicCaregivers(false);
-      setPublicCaregiverSyncProgress("");
-    }
-  };
-
-  */
   const handlePublishTrialCaregiverListings = async () => {
     if (!isSuperAdmin) return;
 
@@ -1005,7 +884,7 @@ export default function AdminDashboardPage() {
           writes.push({
             type: "set",
             ref: doc(db, "publicCaregivers", caregiver.id),
-            data: buildPublicCaregiverListing(caregiver, organizationActive),
+            data: buildPublicCaregiverListing(caregiver, organizationActive, organizationsById.get(organizationId)?.commissionRate ?? 15),
           });
           published += 1;
         }
@@ -1048,7 +927,7 @@ export default function AdminDashboardPage() {
       );
       await loadAllData();
     } catch (err) {
-      console.error("Error publishing trial caregiver listings:", err);
+      console.error("Error publishing trial caregiver listings:", { code: err?.code || "unknown" });
       setError(
         err?.code === "permission-denied"
           ? "Your session is not allowed to publish public caregiver listings. Sign out and back in as a superadmin."
@@ -1078,15 +957,13 @@ export default function AdminDashboardPage() {
       if (selectedOrg) await handleOrgClick(selectedOrg);
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      console.error("Error rejecting caregiver:", err);
+      console.error("Error rejecting caregiver:", { code: err?.code || "unknown" });
       setError("Failed to reject caregiver: " + err.message);
     }
   };
 
   const handleStartEditCaregiver = (caregiver) => {
-    setSelectedOrg(null);
-    setOrgCaregivers([caregiver]);
-    // You can extend this to open a dedicated edit modal if needed.
+    setEditingCaregiver(caregiver);
   };
 
   const handleOpenCaregiverPasswordModal = async (caregiver) => {
@@ -1133,7 +1010,7 @@ export default function AdminDashboardPage() {
 
       await loadAllData();
     } catch (err) {
-      console.error("Error blacklisting caregiver:", err);
+      console.error("Error blacklisting caregiver:", { code: err?.code || "unknown" });
       setError("Failed to blacklist caregiver: " + err.message);
     }
   };
@@ -1165,7 +1042,7 @@ export default function AdminDashboardPage() {
       setSuperAdmins(allUsers.filter((u) => u.role === "superadmin"));
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      console.error("Error creating superadmin:", err);
+      console.error("Error creating superadmin:", { code: err?.code || "unknown" });
       setError("Failed to create superadmin: " + err.message);
     }
     setAddingSuperAdmin(false);
@@ -1180,7 +1057,7 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      await addDoc(collection(db, "services"), {
+      await saveService(doc(collection(db, "services")), {
         label: newServiceLabel,
         category: newServiceCategory,
         createdAt: serverTimestamp(),
@@ -1194,40 +1071,40 @@ export default function AdminDashboardPage() {
       setServices(servicesSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      console.error("Error adding service:", err);
+      console.error("Error adding service:", { code: err?.code || "unknown" });
       setError("Failed to add service: " + err.message);
     }
   };
 
   const handleUpdateService = async (serviceId, updatedLabel) => {
     try {
-      await updateDoc(doc(db, "services", serviceId), {
+      await saveService(doc(db, "services", serviceId), {
         label: updatedLabel,
         updatedAt: serverTimestamp(),
-      });
+      }, true);
       setSuccessMessage("Service updated!");
       const servicesSnap = await getDocs(collection(db, "services"));
       setServices(servicesSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setEditingService(null);
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      console.error("Error updating service:", err);
+      console.error("Error updating service:", { code: err?.code || "unknown" });
       setError("Failed to update service: " + err.message);
     }
   };
 
   const handleDeleteService = async (serviceId) => {
-    if (!window.confirm("Are you sure you want to delete this service?"))
+    if (!window.confirm("Retire this service from new bookings?"))
       return;
 
     try {
-      await deleteDoc(doc(db, "services", serviceId));
-      setSuccessMessage("Service deleted!");
+      await retireService(doc(db, "services", serviceId));
+      setSuccessMessage("Service retired. Historical bookings are preserved.");
       const servicesSnap = await getDocs(collection(db, "services"));
       setServices(servicesSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      console.error("Error deleting service:", err);
+      console.error("Error deleting service:", { code: err?.code || "unknown" });
       setError("Failed to delete service: " + err.message);
     }
   };
@@ -1245,7 +1122,7 @@ export default function AdminDashboardPage() {
       setSuccessMessage("Global commission rate updated!");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      console.error("Error updating commission:", err);
+      console.error("Error updating commission:", { code: err?.code || "unknown" });
       setError("Failed to update commission: " + err.message);
     }
   };
@@ -1283,18 +1160,22 @@ export default function AdminDashboardPage() {
       setSuccessMessage("Customer account suspended and report approved.");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      console.error("Error approving blacklist report:", err);
+      console.error("Error approving blacklist report:", { code: err?.code || "unknown" });
       setError("Failed to process blacklist: " + err.message);
     }
   };
 
   const handleRejectBlacklistReport = async (reportId) => {
     try {
-      await updateDoc(doc(db, "blacklistReports", reportId), {
+      const receipt = await getDoc(doc(db, "reportReceipts", reportId));
+      const batch = writeBatch(db);
+      batch.update(doc(db, "blacklistReports", reportId), {
         status: "rejected",
         rejectedAt: serverTimestamp(),
         rejectedBy: currentUser?.uid || "",
       });
+      if (receipt.exists()) batch.update(receipt.ref, { status: "rejected" });
+      await batch.commit();
       setSuccessMessage("Report rejected!");
       const reportsSnap = await getDocs(collection(db, "blacklistReports"));
       setBlacklistReports(
@@ -1302,9 +1183,15 @@ export default function AdminDashboardPage() {
       );
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      console.error("Error rejecting blacklist report:", err);
+      console.error("Error rejecting blacklist report:", { code: err?.code || "unknown" });
       setError("Failed to reject report: " + err.message);
     }
+  };
+
+  const savedCaregiver = (caregiver) => {
+    setVendors((current) => current.map((record) => record.id === caregiver.id ? caregiver : record));
+    setOrgCaregivers((current) => current.map((record) => record.id === caregiver.id ? caregiver : record));
+    setEditingCaregiver(null); setSuccessMessage("Caregiver profile saved.");
   };
 
   // ============ UI: LOADING / PERMISSIONS ============
@@ -1431,6 +1318,7 @@ export default function AdminDashboardPage() {
         minHeight: "100vh",
       }}
     >
+      {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={savedCaregiver} />}
       {/* Header */}
       <div style={{ marginBottom: "30px" }}>
         <h1>Admin Dashboard</h1>
@@ -1688,7 +1576,7 @@ export default function AdminDashboardPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
                   gap: "20px",
                 }}
               >
@@ -1844,7 +1732,7 @@ export default function AdminDashboardPage() {
 
           {/* Create Organization Modal */}
           {showAddOrgForm && (
-            <div
+            <AccessibleDialog onDismiss={() => setShowAddOrgForm(false)}
               style={{
                 position: "fixed",
                 inset: 0,
@@ -2018,12 +1906,12 @@ export default function AdminDashboardPage() {
                   </button>
                 </form>
               </div>
-            </div>
+            </AccessibleDialog>
           )}
 
           {/* Edit Organization Modal */}
           {showEditOrgModal && editingOrg && (
-            <div
+            <AccessibleDialog onDismiss={handleCancelEditOrg}
               style={{
                 position: "fixed",
                 inset: 0,
@@ -2226,12 +2114,15 @@ export default function AdminDashboardPage() {
                   </div>
                 </form>
               </div>
-            </div>
+            </AccessibleDialog>
           )}
 
           {/* Change Organization Password Modal */}
           {showOrgPasswordModal && orgPasswordOrg && (
-            <div
+            <AccessibleDialog onDismiss={() => {
+                setShowOrgPasswordModal(false);
+                setOrgPasswordOrg(null);
+              }}
               style={{
                 position: "fixed",
                 inset: 0,
@@ -2287,12 +2178,12 @@ export default function AdminDashboardPage() {
                   Passwords are never collected or stored here. Close this dialog and use the Send reset email action instead.
                 </p>
               </div>
-            </div>
+            </AccessibleDialog>
           )}
 
           {/* Org Caregivers Modal */}
           {showOrgCaregiversModal && selectedOrg && (
-            <div
+            <AccessibleDialog onDismiss={() => setShowOrgCaregiversModal(false)}
               style={{
                 position: "fixed",
                 inset: 0,
@@ -2420,12 +2311,15 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </AccessibleDialog>
           )}
 
           {/* Caregiver Password Modal */}
           {showCaregiverPasswordModal && caregiverPasswordUser && (
-            <div
+            <AccessibleDialog onDismiss={() => {
+                setShowCaregiverPasswordModal(false);
+                setCaregiverPasswordUser(null);
+              }}
               style={{
                 position: "fixed",
                 inset: 0,
@@ -2481,12 +2375,16 @@ export default function AdminDashboardPage() {
                   Passwords are never collected or stored here. Close this dialog and use the Send reset email action instead.
                 </p>
               </div>
-            </div>
+            </AccessibleDialog>
           )}
 
           {/* Caregiver Blacklist Modal */}
           {showCaregiverBlacklistModal && caregiverBlacklistUser && (
-            <div
+            <AccessibleDialog onDismiss={() => {
+                setShowCaregiverBlacklistModal(false);
+                setCaregiverBlacklistUser(null);
+                setCaregiverBlacklistReason("");
+              }}
               style={{
                 position: "fixed",
                 inset: 0,
@@ -2581,12 +2479,16 @@ export default function AdminDashboardPage() {
                   </button>
                 </form>
               </div>
-            </div>
+            </AccessibleDialog>
           )}
 
           {/* Org Blacklist Modal */}
           {showOrgBlacklistModal && orgBlacklistOrg && (
-            <div
+            <AccessibleDialog onDismiss={() => {
+                setShowOrgBlacklistModal(false);
+                setOrgBlacklistOrg(null);
+                setOrgBlacklistReason("");
+              }}
               style={{
                 position: "fixed",
                 inset: 0,
@@ -2679,7 +2581,7 @@ export default function AdminDashboardPage() {
                   </button>
                 </form>
               </div>
-            </div>
+            </AccessibleDialog>
           )}
         </div>
       )}
@@ -2814,7 +2716,7 @@ export default function AdminDashboardPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
                   gap: "20px",
                 }}
               >
@@ -3434,7 +3336,7 @@ export default function AdminDashboardPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
               gap: "20px",
             }}
           >
@@ -3620,7 +3522,7 @@ export default function AdminDashboardPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
                 gap: "20px",
               }}
             >

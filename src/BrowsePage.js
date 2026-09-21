@@ -131,7 +131,7 @@ export default function BrowsePage() {
               Explore caregivers
               <span aria-hidden="true">→</span>
             </button>
-            <button type="button" className="browse-secondary-action" onClick={() => navigate("/auth")}>
+            <button type="button" className="browse-secondary-action" onClick={() => navigate("/auth?mode=register")}>
               Create an account
             </button>
           </div>

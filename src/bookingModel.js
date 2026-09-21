@@ -2,7 +2,7 @@ export const BOOKING_STATUS = {
   pending: {
     label: "Waiting for caregiver",
     tone: "pending",
-    nextStep: "We have sent your request to the caregiver. We will notify you when they respond.",
+    nextStep: "Your request is available to the caregiver. Check My bookings for their response.",
   },
   accepted: {
     label: "Booking confirmed",

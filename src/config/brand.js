@@ -8,9 +8,9 @@ export const BRAND = {
 
 export const formatNpr = (amount, fallback = "On request") => {
   const numericAmount = Number(amount);
-  if (!Number.isFinite(numericAmount) || numericAmount <= 0) return fallback;
+  if (!Number.isFinite(numericAmount) || numericAmount < 0 || amount === null || amount === undefined || amount === "") return fallback;
 
   return `NPR ${new Intl.NumberFormat("en-NP", {
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(numericAmount)}`;
 };

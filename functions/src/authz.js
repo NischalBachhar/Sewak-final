@@ -50,7 +50,18 @@ function requireApprovedOrganizationAdmin(request) {
   return requester;
 }
 
+async function assertActorActive(requester) {
+  const { getFirestore } = require("firebase-admin/firestore");
+  const snapshot = await getFirestore().collection("users").doc(requester.uid).get();
+  if (!snapshot.exists || snapshot.data().isSuspended === true || snapshot.data().isBlacklisted === true ||
+      (requester.token.platformRole && snapshot.data().role !== requester.token.platformRole)) {
+    throw new HttpsError("permission-denied", "The account is not currently authorized.");
+  }
+  return requester;
+}
+
 module.exports = {
+  assertActorActive,
   ORGANIZATION_ADMIN_ROLE,
   ORGANIZATION_APPROVED_CLAIM,
   PLATFORM_ROLE_CLAIM,

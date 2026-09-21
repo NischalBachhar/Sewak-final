@@ -24,7 +24,7 @@ import "./BookingDetailPage.css";
 
 const readTimestamp = (value) => value?.toDate?.() || value || null;
 
-function SessionReview({ booking, existingReview, onSubmitted }) {
+export function SessionReview({ booking, existingReview, onSubmitted }) {
   const { user } = useAuth();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -48,7 +48,7 @@ function SessionReview({ booking, existingReview, onSubmitted }) {
     setError("");
     try {
       await submitVerifiedReview({ booking, userId: user?.uid, rating, comment });
-      onSubmitted?.();
+      onSubmitted?.({ rating, comment, isVerifiedReview: true });
     } catch (submitError) {
       setError(submitError.message || "We could not save your review.");
     } finally {
@@ -84,6 +84,7 @@ function SessionReview({ booking, existingReview, onSubmitted }) {
 }
 
 export default function BookingDetailPage() {
+  const { user } = useAuth();
   const { bookingId } = useParams();
   const navigate = useNavigate();
   const [booking, setBooking] = useState(null);
@@ -93,9 +94,17 @@ export default function BookingDetailPage() {
   const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [historyError, setHistoryError] = useState("");
+  const [reviewError, setReviewError] = useState("");
+  const [stale, setStale] = useState(false);
+  const [ready, setReady] = useState({});
 
   useEffect(() => {
-    if (!bookingId) return undefined;
+    setBooking(null); setSession(null); setTasks([]); setUpdates([]); setReview(null);
+    setLoading(true); setError(""); setHistoryError(""); setReviewError("");
+    setReady({});
+    const received = (key) => setReady((current) => ({ ...current, [key]: true }));
+    if (!bookingId || !user?.uid) return undefined;
     const unsubscribers = [];
     const stopBooking = onSnapshot(
       doc(db, "bookings", bookingId),
@@ -105,32 +114,33 @@ export default function BookingDetailPage() {
           setLoading(false);
           return;
         }
+        setStale(snapshot.metadata.fromCache);
         setBooking(normalizeBooking({ id: snapshot.id, ...snapshot.data() }));
         setLoading(false);
       },
       (snapshotError) => {
-        setError(snapshotError.message || "We could not load this booking.");
+        setError(snapshotError.code === "permission-denied" ? "You do not have access to this booking." : "We could not load this booking. Reconnect and refresh to try again.");
         setLoading(false);
       },
     );
     unsubscribers.push(stopBooking);
 
     const sessionRef = doc(db, "careSessions", bookingId);
-    unsubscribers.push(onSnapshot(sessionRef, (snapshot) => setSession(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null)));
+    unsubscribers.push(onSnapshot(sessionRef, (snapshot) => { setSession(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null); received("session"); }, () => { received("session"); setHistoryError("Care history could not be loaded. Refresh to retry."); }));
     unsubscribers.push(onSnapshot(
       query(collection(sessionRef, "tasks"), orderBy("createdAt", "asc")),
-      (snapshot) => setTasks(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))),
-      () => setTasks([]),
+      (snapshot) => { setTasks(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))); received("tasks"); },
+      () => { received("tasks"); setHistoryError("Care tasks could not be loaded. Displayed history may be incomplete."); },
     ));
     unsubscribers.push(onSnapshot(
       query(collection(sessionRef, "updates"), orderBy("createdAt", "desc")),
-      (snapshot) => setUpdates(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))),
-      () => setUpdates([]),
+      (snapshot) => { setUpdates(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))); received("updates"); },
+      () => { received("updates"); setHistoryError("Care updates could not be loaded. Displayed history may be incomplete."); },
     ));
-    unsubscribers.push(onSnapshot(doc(db, "reviews", bookingId), (snapshot) => setReview(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null)));
+    unsubscribers.push(onSnapshot(doc(db, "reviews", bookingId), (snapshot) => { setReview(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null); received("review"); }, () => { received("review"); setReviewError("Review status could not be loaded. Refresh before submitting."); }));
 
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe?.());
-  }, [bookingId]);
+  }, [bookingId, user?.uid]);
 
   if (loading) {
     return <main className="booking-detail-page" aria-busy="true"><SkeletonCard /><SkeletonCard /></main>;
@@ -152,7 +162,7 @@ export default function BookingDetailPage() {
       <button type="button" className="booking-detail-back" onClick={() => navigate("/user/mybookings")}>Back to my bookings</button>
       <header className="booking-detail-hero">
         <div>
-          <p className="booking-detail-eyebrow">Booking #{booking.id.slice(0, 8)}</p>
+          <p className="booking-detail-eyebrow">Booking #{booking.id.slice(-8)}</p>
           <h1>{booking.caregiverName}</h1>
           <p>{booking.serviceLabel} · {bookingScheduleLabel(booking)}</p>
         </div>
@@ -167,7 +177,9 @@ export default function BookingDetailPage() {
 
       <div className="booking-detail-grid">
         <div className="booking-detail-main">
-          {hasLiveSession ? (
+          {stale && <p role="status">Showing cached booking details. Reconnect for current status.</p>}
+          {historyError && <p role="alert" className="error-message">{historyError}</p>}
+          {!ready.session || !ready.tasks || !ready.updates ? <p role="status">Loading care history…</p> : historyError ? null : hasLiveSession ? (
             <ActiveCareCard
               session={session}
               status={session.status}
@@ -200,7 +212,7 @@ export default function BookingDetailPage() {
               { stage: "completed", timestamp: session?.actualCheckOut },
             ]}
           />
-          <SessionReview booking={booking} existingReview={review} onSubmitted={() => {}} />
+          {!ready.review ? <p role="status">Loading review status…</p> : reviewError ? <p role="alert">{reviewError}</p> : <SessionReview key={booking.id} booking={booking} existingReview={review} onSubmitted={setReview} />}
         </div>
 
         <aside className="booking-detail-summary">
@@ -210,14 +222,15 @@ export default function BookingDetailPage() {
             <div><dt>Service</dt><dd>{booking.serviceLabel}</dd></div>
             <div><dt>Schedule</dt><dd>{bookingScheduleLabel(booking)}</dd></div>
             <div><dt>Location</dt><dd>{booking.address || booking.city || "To be confirmed"}</dd></div>
-            <div><dt>Payment</dt><dd>{booking.paymentStatus === "awaiting_verification" ? "Verification pending" : booking.paymentMethod === "cash" ? "Cash payment pending" : booking.paymentStatus || "Pending"}</dd></div>
+            <div><dt>Payment</dt><dd>{booking.paymentStatus === "paid" ? (booking.paymentMethod === "cash" ? "Cash payment recorded" : "Paid") : booking.paymentStatus === "awaiting_verification" ? "Verification pending" : booking.paymentMethod === "cash" ? "Cash payment pending" : booking.paymentStatus || "Pending"}</dd></div>
             <div><dt>Total</dt><dd>{formatNpr(booking.totalAmount, "To be confirmed")}</dd></div>
           </dl>
-          {booking.notes || booking.careNeeds ? <p className="booking-detail-instructions"><strong>Care instructions</strong>{booking.careNeeds || booking.notes}</p> : null}
+          {booking.careNeeds && <p className="booking-detail-instructions"><strong>Care needs</strong>{booking.careNeeds}</p>}
+          {booking.notes && <p className="booking-detail-instructions"><strong>Additional instructions</strong>{booking.notes}</p>}
         </aside>
       </div>
 
-      {!hasLiveSession && booking.status === "in_progress" ? (
+      {ready.session && !historyError && !hasLiveSession && booking.status === "in_progress" ? (
         <EmptyState title="Care is marked in progress" description="Live care details will appear when the caregiver records a real check-in." compact />
       ) : null}
     </main>

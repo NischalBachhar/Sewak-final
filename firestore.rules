@@ -31,14 +31,15 @@ service cloud.firestore {
 
     function isSuperAdmin() {
       return signedIn() &&
-        (request.auth.token.platformRole == 'superadmin' ||
+        (!exists(userPath(request.auth.uid)) || isNotBlocked(get(userPath(request.auth.uid)).data)) &&
+        (request.auth.token.get('platformRole', '') == 'superadmin' ||
          (exists(userPath(request.auth.uid)) &&
           get(userPath(request.auth.uid)).data.get('role', '') == 'superadmin'));
     }
 
     function isOrgAdmin() {
       return signedIn() &&
-        (request.auth.token.platformRole == 'orgadmin' ||
+        (request.auth.token.get('platformRole', '') == 'orgadmin' ||
          (exists(userPath(request.auth.uid)) &&
           get(userPath(request.auth.uid)).data.get('role', '') == 'orgadmin') ||
          // Legacy trial organizations may not have a matching users/ record.
@@ -87,7 +88,7 @@ service cloud.firestore {
 
     function isCaregiver() {
       return signedIn() &&
-        (request.auth.token.platformRole == 'caregiver' ||
+        (request.auth.token.get('platformRole', '') == 'caregiver' ||
          (exists(userPath(request.auth.uid)) &&
           get(userPath(request.auth.uid)).data.get('role', '') == 'caregiver'));
     }
@@ -97,24 +98,27 @@ service cloud.firestore {
     }
 
     function validOptionalText(data, key, maxLength) {
-      return !data.keys().hasAny([key]) || validShortText(data[key], maxLength);
+      let value = data.get(key, '');
+      return value is string && value.size() <= maxLength;
     }
 
     function validOptionalNumber(data, key, min, max) {
-      return !data.keys().hasAny([key]) ||
-        (data[key] is number && data[key] >= min && data[key] <= max);
+      let value = data.get(key, min);
+      return value is number && value >= min && value <= max;
     }
 
     function validOptionalBoolean(data, key) {
-      return !data.keys().hasAny([key]) || data[key] is bool;
+      return data.get(key, false) is bool;
     }
 
     function validOptionalList(data, key, maxLength) {
-      return !data.keys().hasAny([key]) || (data[key] is list && data[key].size() <= maxLength);
+      let value = data.get(key, []);
+      return value is list && value.size() <= maxLength;
     }
 
     function validTimestampOrIsoString(data, key) {
-      return !data.keys().hasAny([key]) || data[key] is timestamp || validShortText(data[key], 40);
+      let value = data.get(key, '');
+      return value is timestamp || (value is string && value.size() <= 40);
     }
 
     function onlyChanges(fields) {
@@ -122,7 +126,7 @@ service cloud.firestore {
     }
 
     function userDocumentIsValid(data) {
-      return data.keys().hasOnly([
+      return data.keys().hasOnly(['approvalOperationId',
           'uid', 'name', 'email', 'role', 'phone', 'address', 'city',
           'profilePicture', 'profileComplete', 'createdAt', 'updatedAt', 'updatedBy',
           'isApproved', 'isSuspended', 'organizationName', 'organizationId',
@@ -208,7 +212,7 @@ service cloud.firestore {
     }
 
     function organizationDocumentIsValid(data) {
-      return data.keys().hasOnly([
+      return data.keys().hasOnly(['approvalOperationId',
           'organizationId', 'organizationName', 'adminUid', 'adminName', 'adminEmail', 'email',
           'businessPhone', 'businessAddress', 'businessCity', 'businessLicense',
           'caregivers', 'totalCaregivers', 'totalEarnings', 'totalBookings',
@@ -304,7 +308,7 @@ service cloud.firestore {
     }
 
     function vendorDocumentIsValid(data) {
-      return data.keys().hasOnly([
+      return data.keys().hasOnly(['allowZeroRate',
           'uid', 'vendorId', 'name', 'email', 'phone', 'location', 'category',
           'workType', 'shifts', 'servicesOffered', 'hourlyRate', 'experience', 'bio',
           'jobsCompleted', 'rating', 'reviewCount', 'verified', 'backgroundChecked',
@@ -318,49 +322,50 @@ service cloud.firestore {
           'blacklistedBy', 'blacklistReason', 'suspendedAt', 'suspendedBy',
           'suspendedReason'
         ]) &&
-        validOptionalText(data, 'uid', 128) &&
-        validOptionalText(data, 'vendorId', 128) &&
-        validOptionalText(data, 'name', 120) &&
-        validOptionalText(data, 'email', 254) &&
-        validOptionalText(data, 'phone', 40) &&
-        validOptionalText(data, 'location', 160) &&
-        validOptionalText(data, 'category', 32) &&
-        validOptionalText(data, 'workType', 32) &&
-        validOptionalText(data, 'bio', 1000) &&
-        validOptionalText(data, 'organizationId', 128) &&
-        validOptionalText(data, 'organizationName', 160) &&
-        validOptionalText(data, 'addedBy', 128) &&
-        validOptionalText(data, 'approvedBy', 254) &&
-        validOptionalText(data, 'rejectedBy', 254) &&
-        validOptionalText(data, 'rejectionReason', 1000) &&
-        validOptionalText(data, 'blacklistedBy', 254) &&
-        validOptionalText(data, 'blacklistReason', 1000) &&
-        validOptionalText(data, 'suspendedBy', 254) &&
-        validOptionalText(data, 'suspendedReason', 1000) &&
-        validOptionalList(data, 'shifts', 3) &&
-        validOptionalList(data, 'servicesOffered', 20) &&
-        validOptionalNumber(data, 'hourlyRate', 0, 1000000) &&
-        validOptionalNumber(data, 'experience', 0, 100) &&
-        validOptionalNumber(data, 'jobsCompleted', 0, 1000000) &&
-        validOptionalNumber(data, 'rating', 0, 5) &&
-        validOptionalNumber(data, 'reviewCount', 0, 1000000) &&
-        validOptionalNumber(data, 'totalEarnings', 0, 1000000000) &&
-        validOptionalNumber(data, 'pendingEarnings', 0, 1000000000) &&
-        validOptionalNumber(data, 'satisfactionRate', 0, 100) &&
-        validOptionalBoolean(data, 'verified') &&
-        validOptionalBoolean(data, 'backgroundChecked') &&
-        validOptionalBoolean(data, 'isCertified') &&
-        validOptionalBoolean(data, 'isAvailable') &&
-        validOptionalBoolean(data, 'isApproved') &&
-        validOptionalBoolean(data, 'isSuspended') &&
-        validOptionalBoolean(data, 'isIndependent') &&
-        validOptionalBoolean(data, 'isBlacklisted') &&
-        validTimestampOrIsoString(data, 'createdAt') &&
-        validTimestampOrIsoString(data, 'approvedAt') &&
-        validTimestampOrIsoString(data, 'rejectedAt') &&
-        validTimestampOrIsoString(data, 'blacklistedAt') &&
-        validTimestampOrIsoString(data, 'suspendedAt') &&
-        validTimestampOrIsoString(data, 'updatedAt') &&
+        (!('uid' in data) || (data.uid is string && data.uid.size() <= 128)) &&
+        (!('vendorId' in data) || (data.vendorId is string && data.vendorId.size() <= 128)) &&
+        (!('name' in data) || (data.name is string && data.name.size() <= 120)) &&
+        (!('email' in data) || (data.email is string && data.email.size() <= 254)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 40)) &&
+        (!('location' in data) || (data.location is string && data.location.size() <= 160)) &&
+        (!('category' in data) || (data.category is string && data.category.size() <= 32)) &&
+        (!('workType' in data) || (data.workType is string && data.workType.size() <= 32)) &&
+        (!('bio' in data) || (data.bio is string && data.bio.size() <= 1000)) &&
+        (!('organizationId' in data) || (data.organizationId is string && data.organizationId.size() <= 128)) &&
+        (!('organizationName' in data) || (data.organizationName is string && data.organizationName.size() <= 160)) &&
+        (!('addedBy' in data) || (data.addedBy is string && data.addedBy.size() <= 128)) &&
+        (!('approvedBy' in data) || (data.approvedBy is string && data.approvedBy.size() <= 254)) &&
+        (!('rejectedBy' in data) || (data.rejectedBy is string && data.rejectedBy.size() <= 254)) &&
+        (!('rejectionReason' in data) || (data.rejectionReason is string && data.rejectionReason.size() <= 1000)) &&
+        (!('blacklistedBy' in data) || (data.blacklistedBy is string && data.blacklistedBy.size() <= 254)) &&
+        (!('blacklistReason' in data) || (data.blacklistReason is string && data.blacklistReason.size() <= 1000)) &&
+        (!('suspendedBy' in data) || (data.suspendedBy is string && data.suspendedBy.size() <= 254)) &&
+        (!('suspendedReason' in data) || (data.suspendedReason is string && data.suspendedReason.size() <= 1000)) &&
+        (!('shifts' in data) || (data.shifts is list && data.shifts.size() <= 3)) &&
+        (!('servicesOffered' in data) || (data.servicesOffered is list && data.servicesOffered.size() <= 20)) &&
+        (!('allowZeroRate' in data) || data.allowZeroRate is bool) &&
+        (!('hourlyRate' in data) || (data.hourlyRate is number && data.hourlyRate >= 0 && data.hourlyRate <= 1000000)) &&
+        (!('experience' in data) || (data.experience is number && data.experience >= 0 && data.experience <= 100)) &&
+        (!('jobsCompleted' in data) || (data.jobsCompleted is number && data.jobsCompleted >= 0 && data.jobsCompleted <= 1000000)) &&
+        (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+        (!('reviewCount' in data) || (data.reviewCount is number && data.reviewCount >= 0 && data.reviewCount <= 1000000)) &&
+        (!('totalEarnings' in data) || (data.totalEarnings is number && data.totalEarnings >= 0 && data.totalEarnings <= 1000000000)) &&
+        (!('pendingEarnings' in data) || (data.pendingEarnings is number && data.pendingEarnings >= 0 && data.pendingEarnings <= 1000000000)) &&
+        (!('satisfactionRate' in data) || (data.satisfactionRate is number && data.satisfactionRate >= 0 && data.satisfactionRate <= 100)) &&
+        (!('verified' in data) || data.verified is bool) &&
+        (!('backgroundChecked' in data) || data.backgroundChecked is bool) &&
+        (!('isCertified' in data) || data.isCertified is bool) &&
+        (!('isAvailable' in data) || data.isAvailable is bool) &&
+        (!('isApproved' in data) || data.isApproved is bool) &&
+        (!('isSuspended' in data) || data.isSuspended is bool) &&
+        (!('isIndependent' in data) || data.isIndependent is bool) &&
+        (!('isBlacklisted' in data) || data.isBlacklisted is bool) &&
+        (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 40)) &&
+        (!('approvedAt' in data) || data.approvedAt is timestamp || (data.approvedAt is string && data.approvedAt.size() <= 40)) &&
+        (!('rejectedAt' in data) || data.rejectedAt is timestamp || (data.rejectedAt is string && data.rejectedAt.size() <= 40)) &&
+        (!('blacklistedAt' in data) || data.blacklistedAt is timestamp || (data.blacklistedAt is string && data.blacklistedAt.size() <= 40)) &&
+        (!('suspendedAt' in data) || data.suspendedAt is timestamp || (data.suspendedAt is string && data.suspendedAt.size() <= 40)) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 40)) &&
         (!data.keys().hasAny(['identityVerificationStatus']) || data.identityVerificationStatus in ['verified', 'pending', 'not_verified']) &&
         (!data.keys().hasAny(['phoneVerificationStatus']) || data.phoneVerificationStatus in ['verified', 'pending', 'not_verified']) &&
         (!data.keys().hasAny(['trainingVerificationStatus']) || data.trainingVerificationStatus in ['verified', 'pending', 'not_verified']) &&
@@ -381,8 +386,7 @@ service cloud.firestore {
     }
 
     function ownVendorUpdateIsValid() {
-      return vendorDocumentIsValid(request.resource.data) &&
-        request.resource.data.uid == resource.data.uid &&
+      return request.resource.data.uid == resource.data.uid &&
         request.resource.data.vendorId == resource.data.vendorId &&
         request.resource.data.organizationId == resource.data.organizationId &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
@@ -416,7 +420,7 @@ service cloud.firestore {
           'hourlyRate', 'totalAmount', 'platformCommission', 'vendorEarnings',
           'paymentMethod', 'paymentStatus', 'amountDue', 'paymentRefId',
           'transactionId', 'amountPaid', 'amount', 'paymentDate', 'createdAt', 'updatedAt',
-          'careSessionId'
+          'careSessionId', 'schemaVersion', 'requestFingerprint', 'scheduleAt', 'requestedTimeWindows', 'commissionRate'
         ]) &&
         (!data.keys().hasAny(['status']) ||
           (data.status is string && data.status.size() <= 32)) &&
@@ -431,63 +435,78 @@ service cloud.firestore {
         (!data.keys().hasAny(['paymentDate']) || data.paymentDate is timestamp);
     }
 
-    // Keep the customer-created cash-request path deliberately compact. The
-    // broader validator above supports historical booking/payment fields for
-    // administrator and workflow updates, but evaluating every optional field
-    // during a create can exceed Firestore Rules' expression limit and surface
-    // to the customer as a misleading permission denial.
-    function trialBookingCreateDocumentIsValid(data) {
+    // Version 2 cash requests: private records authorize every price and tenant.
+    function requiredText(value, minimum, maximum) {
+      return value is string && value.size() >= minimum && value.size() <= maximum &&
+        value == value.trim() && value.matches('.*[^ \t\r\n].*');
+    }
+
+    function bookingScheduleIsValid(data) {
+      let parts = data.date.split('-');
+      let windows = data.requestedTimeWindows;
+      let effectiveTime = data.time != '' ? data.time :
+        (windows.hasAny(['night']) ? '23:59' : windows.hasAny(['evening']) ? '21:00' : windows.hasAny(['day']) ? '17:00' : '12:00');
+      let clock = effectiveTime.split(':');
+      return data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        windows is list && windows.size() <= 4 && windows.toSet().size() == windows.size() &&
+        windows.hasOnly(['morning', 'day', 'evening', 'night']) &&
+        (data.time.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$') ||
+          (data.time == '' && windows.size() > 0 && data.caregiverWorkType in ['parttime', 'part_time'])) &&
+        data.scheduleAt == timestamp.date(int(parts[0]), int(parts[1]), int(parts[2])) +
+          duration.value(int(clock[0]) * 60 + int(clock[1]) - 345, 'm') &&
+        data.scheduleAt > request.time &&
+        data.durationHours is int && data.durationHours >= 1 && data.durationHours <= 24 &&
+        data.recurrence in ['one_time', 'recurring'];
+    }
+
+    function bookingServiceIsValid(data, vendor) {
+      let chosenService = get(/databases/$(database)/documents/services/$(data.serviceId)).data;
+      return data.serviceId in vendor.servicesOffered && chosenService.get('isActive', true) == true &&
+        (chosenService.get('organizationId', '') == '' || chosenService.organizationId == data.organizationId) &&
+        (vendor.category == 'both' || chosenService.category == 'both' || chosenService.category == vendor.category ||
+          (chosenService.category in ['vendor', 'household'] && vendor.category in ['vendor', 'household'])) &&
+        data.serviceLabel == chosenService.get('label', chosenService.get('serviceName', ''));
+    }
+
+    function bookingTermsAreAuthoritative(data) {
+      let vendor = get(/databases/$(database)/documents/vendors/$(data.caregiverId)).data;
+      let org = vendor.get('organizationId', '') == '' ? {'isApproved': true} : get(/databases/$(database)/documents/organizations/$(vendor.organizationId)).data;
+      let rateMinor = math.round(vendor.hourlyRate * 100);
+      let commission = org.get('commissionRate', 15);
+      let totalMinor = rateMinor * data.durationHours;
+      let commissionMinor = math.round(totalMinor * commission / 100);
+      return vendor.isApproved == true && vendor.isAvailable == true && isNotBlocked(vendor) &&
+        org.isApproved == true && isNotBlocked(org) &&
+        (!exists(userPath(data.caregiverId)) || isNotBlocked(get(userPath(data.caregiverId)).data)) &&
+        data.organizationId == vendor.get('organizationId', '') && data.vendorId == data.caregiverId &&
+        data.caregiverName == vendor.name && data.caregiverWorkType == vendor.workType &&
+        data.caregiverCategory == (vendor.category == 'household' ? 'vendor' : vendor.category) &&
+        vendor.hourlyRate is number && vendor.hourlyRate >= 0 && vendor.hourlyRate <= 1000000 &&
+        (rateMinor > 0 || vendor.get('allowZeroRate', false) == true) &&
+        commission is number && commission >= 0 && commission <= 100 &&
+        data.hourlyRate == rateMinor / 100.0 && data.commissionRate == commission &&
+        data.totalAmount == totalMinor / 100.0 && data.amountDue == data.totalAmount &&
+        data.platformCommission == commissionMinor / 100.0 && data.vendorEarnings == (totalMinor - commissionMinor) / 100.0 &&
+        bookingServiceIsValid(data, vendor);
+    }
+
+    function cashBookingDocumentIsValid(data) {
       return data.keys().hasOnly([
-          'userId', 'userName', 'userPhone', 'userEmail', 'address', 'city',
-          'date', 'time', 'durationHours', 'recurrence', 'notes', 'careRecipient', 'careNeeds',
-          'serviceId', 'serviceLabel', 'caregiverId', 'vendorId', 'organizationId',
-          'organizationName', 'caregiverName', 'caregiverLocation',
-          'caregiverWorkType', 'caregiverShifts', 'caregiverCategory', 'status',
-          'hourlyRate', 'totalAmount', 'platformCommission', 'vendorEarnings',
-          'paymentMethod', 'paymentStatus', 'amountDue', 'createdAt'
-        ]) &&
-        data.keys().hasAll([
-          'userId', 'userName', 'userPhone', 'userEmail', 'address', 'city',
-          'date', 'time', 'durationHours', 'recurrence', 'notes', 'careRecipient', 'careNeeds',
-          'serviceId', 'serviceLabel', 'caregiverId', 'vendorId', 'organizationId',
-          'organizationName', 'caregiverName', 'caregiverLocation',
-          'caregiverWorkType', 'caregiverShifts', 'caregiverCategory', 'status',
-          'hourlyRate', 'totalAmount', 'platformCommission', 'vendorEarnings',
-          'paymentMethod', 'paymentStatus', 'amountDue', 'createdAt'
-        ]) &&
-        data.userId is string && data.userId.size() <= 128 &&
-        data.userName is string && data.userName.size() <= 120 &&
-        data.userPhone is string && data.userPhone.size() <= 40 &&
-        data.userEmail is string && data.userEmail.size() <= 254 &&
-        data.address is string && data.address.size() <= 300 &&
-        data.city is string && data.city.size() <= 100 &&
-        data.date is string && data.date.size() <= 32 &&
-        data.time is string && data.time.size() <= 32 &&
-        data.recurrence in ['one_time', 'recurring'] &&
-        data.notes is string && data.notes.size() <= 1500 &&
-        data.careRecipient is string && data.careRecipient.size() <= 120 &&
-        data.careNeeds is string && data.careNeeds.size() <= 1000 &&
-        data.serviceId is string && data.serviceId.size() <= 128 &&
-        data.serviceLabel is string && data.serviceLabel.size() <= 160 &&
-        data.caregiverId is string && data.caregiverId.size() <= 128 &&
-        data.vendorId is string && data.vendorId.size() <= 128 &&
-        data.organizationId is string && data.organizationId.size() <= 128 &&
-        data.organizationName is string && data.organizationName.size() <= 160 &&
-        data.caregiverName is string && data.caregiverName.size() <= 120 &&
-        data.caregiverLocation is string && data.caregiverLocation.size() <= 160 &&
-        data.caregiverWorkType is string && data.caregiverWorkType.size() <= 32 &&
-        data.caregiverShifts is list && data.caregiverShifts.size() <= 3 &&
-        data.caregiverCategory is string && data.caregiverCategory.size() <= 32 &&
-        data.status is string && data.status.size() <= 32 &&
-        data.paymentMethod is string && data.paymentMethod.size() <= 32 &&
-        data.paymentStatus is string && data.paymentStatus.size() <= 40 &&
-        data.durationHours is int && data.durationHours >= 1 && data.durationHours <= 720 &&
-        data.hourlyRate is number && data.hourlyRate >= 0 && data.hourlyRate <= 1000000 &&
-        data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 1000000000 &&
-        data.platformCommission is number && data.platformCommission >= 0 && data.platformCommission <= 1000000000 &&
-        data.vendorEarnings is number && data.vendorEarnings >= 0 && data.vendorEarnings <= 1000000000 &&
-        data.amountDue is number && data.amountDue >= 0 && data.amountDue <= 1000000000 &&
-        data.createdAt is timestamp;
+        'schemaVersion', 'requestFingerprint', 'requestedTimeWindows', 'scheduleAt', 'commissionRate',
+        'userId', 'userName', 'userPhone', 'userEmail', 'address', 'city', 'date', 'time', 'durationHours',
+        'recurrence', 'notes', 'careRecipient', 'careNeeds', 'serviceId', 'serviceLabel', 'caregiverId', 'vendorId',
+        'organizationId', 'organizationName', 'caregiverName', 'caregiverLocation', 'caregiverWorkType',
+        'caregiverShifts', 'caregiverCategory', 'status', 'hourlyRate', 'totalAmount', 'platformCommission',
+        'vendorEarnings', 'paymentMethod', 'paymentStatus', 'amountDue', 'createdAt'
+      ]) && data.schemaVersion == 2 && data.requestFingerprint.matches('^[a-f0-9]{64}$') &&
+        requiredText(data.userName, 2, 120) && requiredText(data.address, 5, 300) &&
+        requiredText(data.city, 2, 100) && requiredText(data.careRecipient, 2, 120) &&
+        data.userPhone.matches('^[+][1-9][0-9]{7,14}$') &&
+        data.userEmail == request.auth.token.get('email', '') &&
+        validShortText(data.notes, 1500) && validShortText(data.careNeeds, 1000) &&
+        validShortText(data.organizationName, 160) && validShortText(data.caregiverLocation, 160) &&
+        data.caregiverShifts is list && data.caregiverShifts.size() <= 4 &&
+        data.createdAt == request.time && bookingScheduleIsValid(data);
     }
 
     // Status transitions alter only the controlled workflow fields below.
@@ -511,27 +530,6 @@ service cloud.firestore {
       return signedIn() &&
         (!exists(userPath(request.auth.uid)) ||
           isNotBlocked(get(userPath(request.auth.uid)).data));
-    }
-
-    function bookingPublicCaregiverPath() {
-      return /databases/$(database)/documents/publicCaregivers/$(request.resource.data.caregiverId);
-    }
-
-    function bookingPublicCaregiver() {
-      return get(bookingPublicCaregiverPath());
-    }
-
-    // Customers can request care only from the PII-free listing they were
-    // shown in Browse. This intentionally avoids a false permission denial
-    // when a legacy private vendor record and its published trial listing are
-    // temporarily out of sync.
-    function bookingPublicCaregiverIsBookable() {
-      return exists(bookingPublicCaregiverPath()) &&
-        bookingPublicCaregiver().data.get('isApproved', false) == true &&
-        bookingPublicCaregiver().data.get('isSuspended', false) == false &&
-        bookingPublicCaregiver().data.get('isBlacklisted', false) == false &&
-        bookingPublicCaregiver().data.get('isOrganizationActive', false) == true &&
-        bookingPublicCaregiver().data.get('isAvailable', false) == true;
     }
 
     function vendorOrganizationIsActive(vendor) {
@@ -574,8 +572,18 @@ service cloud.firestore {
       return value in ['verified', 'pending', 'not_verified', 'unavailable'];
     }
 
+    function bookingProjectionMatchesPrivate(caregiverId, data) {
+      let vendor = get(/databases/$(database)/documents/vendors/$(caregiverId)).data;
+      let org = vendor.get('organizationId', '') == '' ? {'isApproved': true} : get(/databases/$(database)/documents/organizations/$(vendor.organizationId)).data;
+      return vendor.isApproved == true && isNotBlocked(vendor) && org.isApproved == true && isNotBlocked(org) &&
+        data.organizationId == vendor.get('organizationId', '') && data.hourlyRate == vendor.hourlyRate &&
+        data.servicesOffered == vendor.servicesOffered && data.isAvailable == vendor.isAvailable &&
+        data.get('commissionRate', 15) == org.get('commissionRate', 15) &&
+        data.get('allowZeroRate', false) == vendor.get('allowZeroRate', false);
+    }
+
     function publicCaregiverDocumentIsValid(caregiverId, data) {
-      return data.keys().hasOnly([
+      return data.keys().hasOnly(['commissionRate', 'allowZeroRate',
           'caregiverId', 'name', 'location', 'category', 'workType', 'shifts',
           'servicesOffered', 'hourlyRate', 'experience', 'bio', 'jobsCompleted',
           'rating', 'reviewCount', 'verified', 'backgroundChecked', 'isCertified',
@@ -616,24 +624,16 @@ service cloud.firestore {
         isPublicVerificationStatus(data.trainingVerificationStatus) &&
         isPublicVerificationStatus(data.backgroundVerificationStatus) &&
         isPublicVerificationStatus(data.referencesVerificationStatus) &&
-        data.updatedAt is timestamp;
+        data.updatedAt is timestamp &&
+        bookingProjectionMatchesPrivate(caregiverId, data);
     }
 
-    function validBookingCreate() {
-      return trialBookingCreateDocumentIsValid(request.resource.data) && isActiveCustomer() &&
-        request.resource.data.userId == request.auth.uid &&
-        request.resource.data.caregiverId == request.resource.data.vendorId &&
-        request.resource.data.status == 'pending' &&
-        // Client-created bookings stay cash-only until a server-created and
-        // server-verified digital payment intent is implemented.
-        request.resource.data.paymentMethod == 'cash' &&
-        request.resource.data.paymentStatus == 'pending' &&
-        request.resource.data.durationHours is int &&
-        // The trial booking is a customer request, not a payment settlement.
-        // Its price/name snapshots are display data rebuilt from the public
-        // listing in the client. Do not make a valid customer request depend
-        // on fragile snapshot equality or timestamp-transform comparisons.
-        bookingPublicCaregiverIsBookable();
+    function validBookingCreate(bookingId) {
+      return isActiveCustomer() && request.resource.data.userId == request.auth.uid &&
+        bookingId.matches('^' + request.auth.uid + '_[a-f0-9-]{36}$') &&
+        request.resource.data.status == 'pending' && request.resource.data.paymentMethod == 'cash' &&
+        request.resource.data.paymentStatus == 'pending' && cashBookingDocumentIsValid(request.resource.data) &&
+        bookingTermsAreAuthoritative(request.resource.data);
     }
 
     function isBookingCustomer() {
@@ -726,7 +726,10 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/bookings/$(sessionId)) &&
         sessionBooking(sessionId).data.status == 'accepted' &&
         sessionBooking(sessionId).data.caregiverId == request.auth.uid &&
-        request.resource.data.customerId == sessionBooking(sessionId).data.userId;
+        request.resource.data.customerId == sessionBooking(sessionId).data.userId &&
+        request.resource.data.organizationId == sessionBooking(sessionId).data.organizationId &&
+        getAfter(/databases/$(database)/documents/bookings/$(sessionId)).data.status == 'in_progress' &&
+        getAfter(/databases/$(database)/documents/bookings/$(sessionId)).data.careSessionId == sessionId;
     }
 
     function validSessionUpdate() {
@@ -738,7 +741,8 @@ service cloud.firestore {
         resource.data.status == 'in_progress' && request.resource.data.status == 'completed' &&
         request.resource.data.actualCheckOut == request.time &&
         request.resource.data.updatedAt == request.time &&
-        onlyChanges(['status', 'actualCheckOut', 'updatedAt']);
+        onlyChanges(['status', 'actualCheckOut', 'updatedAt']) &&
+        getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.status == 'completed';
     }
 
     function taskDocumentIsValid(data) {
@@ -771,7 +775,7 @@ service cloud.firestore {
         validOptionalText(data, 'bookingId', 128) &&
         validOptionalText(data, 'caregiverId', 128) &&
         validOptionalText(data, 'customerId', 128) &&
-        validOptionalNumber(data, 'rating', 1, 5) &&
+        data.rating is int && data.rating >= 1 && data.rating <= 5 &&
         validOptionalText(data, 'comment', 600) &&
         validOptionalBoolean(data, 'isVerifiedReview') &&
         (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp);
@@ -786,7 +790,7 @@ service cloud.firestore {
         (!data.keys().hasAny(['serviceName']) || validShortText(data.serviceName, 160)) &&
         (data.keys().hasAny(['label', 'serviceName'])) &&
         validOptionalText(data, 'category', 32) &&
-        (!data.keys().hasAny(['category']) || data.category in ['caregiver', 'vendor', 'both']) &&
+        (!data.keys().hasAny(['category']) || data.category in ['caregiver', 'vendor', 'household', 'both']) &&
         validOptionalText(data, 'description', 1000) &&
         validOptionalNumber(data, 'price', 0, 1000000) &&
         validOptionalBoolean(data, 'isActive') &&
@@ -834,7 +838,8 @@ service cloud.firestore {
       // Organization records and claims are created together by trusted
       // server operations after an application is reviewed.
       allow create: if isSuperAdmin() && organizationDocumentIsValid(request.resource.data);
-      allow update: if (isSuperAdmin() && organizationDocumentIsValid(request.resource.data)) ||
+      allow update: if (isSuperAdmin() && organizationDocumentIsValid(request.resource.data) &&
+          onlyChanges(['organizationName', 'adminName', 'adminEmail', 'email', 'businessPhone', 'businessAddress', 'businessCity', 'commissionRate', 'updatedAt'])) ||
         isOwner(orgId) && ownOrganizationUpdateIsValid();
       allow delete: if false;
     }
@@ -855,8 +860,8 @@ service cloud.firestore {
       // Caregiver accounts are provisioned through the trusted Functions
       // workflow; a browser must never create a self-managed caregiver record.
       allow create: if isSuperAdmin() && vendorDocumentIsValid(request.resource.data);
-      allow update: if (isSuperAdmin() && vendorDocumentIsValid(request.resource.data)) ||
-        isOwner(vendorId) && ownVendorUpdateIsValid();
+      allow update: if vendorDocumentIsValid(request.resource.data) &&
+        (isSuperAdmin() || (isOwner(vendorId) && ownVendorUpdateIsValid()));
       allow delete: if false;
     }
 
@@ -876,6 +881,8 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
+      allow get: if signedIn() && !exists(/databases/$(database)/documents/bookings/$(bookingId)) &&
+        bookingId.matches('^' + request.auth.uid + '_[a-f0-9-]{36}$');
       allow get: if isSuperAdmin() || isBookingCustomer() || isActiveAssignedCaregiver() ||
         isReadableCaregiver(resource.data.caregiverId) ||
         (isReadableOrganizationAdmin() && resource.data.organizationId == request.auth.uid);
@@ -883,7 +890,7 @@ service cloud.firestore {
         (isReadableOrganizationAdmin() && resource.data.organizationId == request.auth.uid) ||
         (signedIn() && resource.data.userId == request.auth.uid) ||
         (isReadableCaregiver(request.auth.uid) && resource.data.caregiverId == request.auth.uid);
-      allow create: if signedIn() && validBookingCreate();
+      allow create: if signedIn() && validBookingCreate(bookingId);
       allow update: if (isSuperAdmin() && bookingAdminDocumentIsValid(request.resource.data)) ||
         validBookingTransition();
       allow delete: if false;
@@ -923,7 +930,8 @@ service cloud.firestore {
     }
 
     match /reviews/{bookingId} {
-      allow get, list: if isSuperAdmin() || (signedIn() &&
+      allow get: if isSuperAdmin() || isBookingParticipant(bookingId);
+      allow list: if isSuperAdmin() || (signedIn() &&
         (resource.data.customerId == request.auth.uid || resource.data.caregiverId == request.auth.uid));
       allow create: if signedIn() && reviewDocumentIsValid(request.resource.data) &&
         request.resource.data.bookingId == bookingId && request.resource.data.customerId == request.auth.uid &&
@@ -959,9 +967,21 @@ service cloud.firestore {
         (isApprovedOrganizationAdmin() && resource.data.organizationId == request.auth.uid);
     }
 
+    function validPublicService(serviceId, data) {
+      let source = getAfter(/databases/$(database)/documents/services/$(serviceId)).data;
+      return (isSuperAdmin() || (isApprovedOrganizationAdmin() && source.organizationId == request.auth.uid)) &&
+        data.keys().hasOnly(['serviceId', 'label', 'serviceName', 'category', 'description', 'price', 'isActive', 'updatedAt']) &&
+        data.serviceId == serviceId && data.label == source.get('label', source.get('serviceName', '')) &&
+        data.serviceName == source.get('serviceName', data.label) &&
+        data.category == (source.category == 'household' ? 'vendor' : source.category) &&
+        data.description == source.get('description', '') && data.price == source.get('price', 0) &&
+        data.isActive == true && source.get('isActive', true) == true && data.updatedAt == request.time;
+    }
     match /publicServices/{serviceId} {
       allow get, list: if true;
-      allow write: if false;
+      allow create, update: if validPublicService(serviceId, request.resource.data);
+      allow delete: if isSuperAdmin() || (isApprovedOrganizationAdmin() &&
+        get(/databases/$(database)/documents/services/$(serviceId)).data.organizationId == request.auth.uid);
     }
 
     match /blacklist/{userId} {
@@ -971,7 +991,14 @@ service cloud.firestore {
 
     match /blacklistReports/{reportId} {
       allow get, list: if isSuperAdmin();
-      allow create: if isActiveCaregiver(request.auth.uid) && request.resource.data.keys().hasOnly([
+      allow create: if isActiveCaregiver(request.auth.uid) && reportId == request.resource.data.bookingId &&
+        !exists(/databases/$(database)/documents/reportLocks/$(reportId)) &&
+        getAfter(/databases/$(database)/documents/reportLocks/$(reportId)).data.reportId == reportId &&
+        request.resource.data.createdAt == request.time && request.resource.data.userType == 'user' &&
+        request.resource.data.reason in ['Non-payment', 'Abusive behavior', 'Safety concerns', 'Cancellation without notice', 'Inappropriate requests', 'Other'] &&
+        validShortText(request.resource.data.reportedByName, 120) &&
+        getAfter(/databases/$(database)/documents/reportReceipts/$(reportId)).data.reportedBy == request.auth.uid &&
+        request.resource.data.keys().hasOnly([
           'bookingId', 'userId', 'userType', 'userName', 'reportedBy',
           'reportedByName', 'reportedByOrgId', 'reason', 'description', 'status', 'createdAt'
         ]) && request.resource.data.reportedBy == request.auth.uid &&
@@ -988,12 +1015,42 @@ service cloud.firestore {
         request.resource.data.status == 'rejected' &&
         request.resource.data.rejectedAt == request.time &&
         request.resource.data.rejectedBy == request.auth.uid &&
-        onlyChanges(['status', 'rejectedAt', 'rejectedBy']);
+        onlyChanges(['status', 'rejectedAt', 'rejectedBy']) &&
+        (!exists(/databases/$(database)/documents/reportReceipts/$(reportId)) ||
+          getAfter(/databases/$(database)/documents/reportReceipts/$(reportId)).data.status == 'rejected');
+      allow delete: if false;
+    }
+
+    match /reportLocks/{bookingId} {
+      allow get: if isSuperAdmin() || (signedIn() &&
+        get(/databases/$(database)/documents/bookings/$(bookingId)).data.caregiverId == request.auth.uid);
+      allow create: if request.resource.data == {'reportId': bookingId, 'reportedBy': request.auth.uid} &&
+        !exists(/databases/$(database)/documents/blacklistReports/$(bookingId)) &&
+        getAfter(/databases/$(database)/documents/blacklistReports/$(bookingId)).data.reportedBy == request.auth.uid;
+      allow list, update, delete: if false;
+    }
+
+    match /reportReceipts/{reportId} {
+      allow get: if isSuperAdmin() ||
+        (signedIn() && exists(/databases/$(database)/documents/bookings/$(reportId)) &&
+          get(/databases/$(database)/documents/bookings/$(reportId)).data.caregiverId == request.auth.uid) ||
+        (signedIn() && resource.data.reportedBy == request.auth.uid);
+      allow list: if isSuperAdmin() || (signedIn() && resource.data.reportedBy == request.auth.uid);
+      allow create: if request.resource.data.keys().hasOnly(['bookingId', 'reportedBy', 'reason', 'status', 'createdAt']) &&
+        request.resource.data == {
+          'bookingId': reportId, 'reportedBy': request.auth.uid,
+          'reason': getAfter(/databases/$(database)/documents/blacklistReports/$(reportId)).data.reason,
+          'status': 'pending', 'createdAt': request.time
+        } && getAfter(/databases/$(database)/documents/blacklistReports/$(reportId)).data.reportedBy == request.auth.uid &&
+        !exists(/databases/$(database)/documents/blacklistReports/$(reportId));
+      allow update: if isSuperAdmin() && onlyChanges(['status']) &&
+        request.resource.data.status == getAfter(/databases/$(database)/documents/blacklistReports/$(reportId)).data.status;
       allow delete: if false;
     }
 
     match /caregiverReports/{reportId} {
-      allow get, list: if isSuperAdmin() || (signedIn() && resource.data.reportedBy == request.auth.uid);
+      allow get, list: if isSuperAdmin();
+      // Legacy moderator records are private; backfill safe reportReceipts.
       // This legacy collection has no active create flow. Keep it read-only
       // until reports are moved to a strictly validated booking-linked path.
       allow create, update, delete: if isSuperAdmin();

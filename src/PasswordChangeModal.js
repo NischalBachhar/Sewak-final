@@ -1,3 +1,4 @@
+import AccessibleDialog from "./components/AccessibleDialog";
 // src/components/PasswordChangeModal.js
 import React, { useState } from "react";
 import "./PasswordChangeModal.css";
@@ -38,7 +39,7 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
   };
 
   return (
-    <div className="password-modal-backdrop">
+    <AccessibleDialog onDismiss={onClose} className="password-modal-backdrop">
       <div className="password-modal">
         <div className="password-modal-header">
           <h2>Change Password</h2>
@@ -93,7 +94,7 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
           </div>
         </form>
       </div>
-    </div>
+    </AccessibleDialog>
   );
 };
 

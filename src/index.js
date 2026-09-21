@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { Suspense } from 'react';
+import RouteMetadata from './components/RouteMetadata';
+import RouteBoundary from './components/RouteBoundary';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
@@ -12,7 +14,8 @@ root.render(
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider />
-        <App />
+        <RouteMetadata />
+        <RouteBoundary><Suspense fallback={<main className="app-shell" role="status">Loading page…</main>}><App /></Suspense></RouteBoundary>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

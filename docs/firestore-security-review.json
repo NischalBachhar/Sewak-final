@@ -1,0 +1,24 @@
+{
+  "score": 4,
+  "summary": "Scoped adversarial review: booking creation, owner-role immutability, private tenant reads, atomic sessions, verified reviews, reporter-safe receipts and publication were exercised with actual demo Firestore rules. No unauthorized bypass was found in the tested paths. This is not an independent certification or evidence that production is migrated; legacy and operational limits remain.",
+  "findings": [
+    {
+      "check": "Authority source and admin privileges",
+      "severity": "minor",
+      "issue": "Immutable legacy role mirrors remain a compatibility authorization source in rules; privileged callables require claims. Existing historical role assignments were not inventoried against production identities.",
+      "recommendation": "Independently verify UID, role, tenant, approval and safety before issuing claims; retain compatibility until an authorized migration is verified. Never grant claims from unreviewed mirror values."
+    },
+    {
+      "check": "Business logic and storage limits",
+      "severity": "minor",
+      "issue": "Large existing customer/superadmin histories still use whole-history reads to retain exact search and totals, and trial public caregiver/review synchronization depends on available operator or Functions capability.",
+      "recommendation": "Monitor reads within existing quotas, retain strict private write checks, and scope further bounded-query work without turning page totals into global totals or adding insecure sync fallbacks."
+    },
+    {
+      "check": "Legacy report compatibility",
+      "severity": "minor",
+      "issue": "Legacy report receipts/locks and service mappings require the reviewed backfill before release. Ambiguous records cannot safely be exposed automatically.",
+      "recommendation": "Review dry-run blocked entries, preserve private originals, apply during the coordinated writer pause and compare-before-write on rollback. Do not claim migration completion from local tests."
+    }
+  ]
+}

@@ -18,7 +18,14 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "postbuild": "node scripts/public-metadata.cjs",
+    "test:unit": "react-scripts test --watchAll=false --runInBand",
+    "test:browser": "node scripts/test-browser.cjs",
+    "test:migration": "node --test tests/migration.test.cjs",
+    "test:rules": "node scripts/test-emulators.cjs \"node --test tests/rules.test.cjs\"",
+    "test:backend": "node scripts/test-emulators.cjs \"node --test functions/test/*.test.cjs\"",
+    "lint": "eslint src --ext .js && npm --prefix functions run lint"
   },
   "eslintConfig": {
     "extends": [
@@ -37,5 +44,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "@playwright/test": "^1.63.0",
+    "firebase-tools": "^15.30.2"
   }
 }

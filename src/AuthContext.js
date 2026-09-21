@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { onIdTokenChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 import {
@@ -33,13 +33,14 @@ async function getTrustedRole(user) {
   } catch (error) {
     // A temporary token-read failure must not turn a privileged account into a
     // customer account. We still try its private profile as a legacy fallback.
-    console.warn("[AuthContext] Unable to read platform role claim:", error);
+    console.warn("[AuthContext] Unable to read platform role claim:", { code: error?.code || "unknown" });
     return null;
   }
 }
 
 async function loadFirstExistingProfile(uid) {
   let permissionDenied = false;
+  let userProfileMissing = false;
 
   for (const collectionName of PROFILE_COLLECTIONS) {
     try {
@@ -50,16 +51,14 @@ async function loadFirstExistingProfile(uid) {
           permissionDenied,
         };
       }
+      if (collectionName === "users") userProfileMissing = true;
     } catch (error) {
       permissionDenied = permissionDenied || isPermissionDenied(error);
-      console.warn(
-        `[AuthContext] Unable to read ${collectionName} profile:`,
-        error,
-      );
+      console.warn("Application diagnostic", { code: error?.code || "unknown" });
     }
   }
 
-  return { data: null, permissionDenied };
+  return { data: null, permissionDenied, userProfileMissing };
 }
 
 async function mergeOrganizationProfile(user, role, profileData) {
@@ -85,11 +84,9 @@ async function mergeOrganizationProfile(user, role, profileData) {
     }
   } catch (error) {
     if (isPermissionDenied(error)) {
-      console.warn(
-        "[AuthContext] Organization profile is unavailable; using the account profile.",
-      );
+      console.warn("[AuthContext] Organization profile is unavailable; using the account profile.");
     } else {
-      console.error("[AuthContext] Error fetching organization profile:", error);
+      console.error("[AuthContext] Error fetching organization profile:", { code: error?.code || "unknown" });
     }
   }
 
@@ -98,9 +95,13 @@ async function mergeOrganizationProfile(user, role, profileData) {
 
 async function resolveAccountProfile(firebaseUser) {
   const trustedRole = await getTrustedRole(firebaseUser);
-  const { data: profileData, permissionDenied } =
+  const { data: profileData, permissionDenied, userProfileMissing } =
     await loadFirstExistingProfile(firebaseUser.uid);
   const role = trustedRole || resolveInitialUserRole(profileData);
+
+  if (!profileData && userProfileMissing && (!trustedRole || trustedRole === "user")) {
+    return { role: "user", profile: { ...createFallbackUserDoc(firebaseUser, { role: "user" }), registrationIncomplete: true }, accountError: "" };
+  }
 
   // A signed custom claim remains the routing source of truth when a private
   // profile read is temporarily denied. Do not silently send a caregiver or
@@ -123,6 +124,8 @@ async function resolveAccountProfile(firebaseUser) {
 }
 
 export const AuthProvider = ({ children }) => {
+  const generation = useRef(0);
+  const [registrationPending, setRegistrationPending] = useState(() => sessionStorage.getItem("sewak.registrationPending") === "true");
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [userDoc, setUserDoc] = useState(null);
@@ -131,9 +134,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const refreshUserDoc = async () => {
-    if (!user) return;
+    const currentGeneration = ++generation.current;
 
-    const resolved = await resolveAccountProfile(user);
+    const activeUser = auth.currentUser;
+    if (!activeUser) return;
+    const resolved = await resolveAccountProfile(activeUser);
+    if (auth.currentUser?.uid !== activeUser.uid || generation.current !== currentGeneration) return;
     if (resolved.accountError) {
       setAccountError(resolved.accountError);
       return;
@@ -143,14 +149,18 @@ export const AuthProvider = ({ children }) => {
     setUserRole(resolved.role);
     setUserDoc(resolved.profile);
     setUserData(resolved.profile);
+    setLoading(false);
   };
 
   useEffect(() => {
     let cancelled = false;
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
       if (cancelled) return;
 
+      const currentGeneration = ++generation.current;
+      const stillCurrent = () => !cancelled && currentGeneration === generation.current;
+      setUserRole(null); setUserDoc(null); setUserData(null);
       setUser(firebaseUser);
       setLoading(true);
       setAccountError("");
@@ -165,7 +175,7 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const resolved = await resolveAccountProfile(firebaseUser);
-        if (cancelled) return;
+        if (!stillCurrent()) return;
 
         if (resolved.accountError) {
           setUserRole(null);
@@ -178,15 +188,15 @@ export const AuthProvider = ({ children }) => {
           setUserData(resolved.profile);
         }
       } catch (error) {
-        console.error("[AuthContext] Error resolving account profile:", error);
-        if (!cancelled) {
+        console.error("[AuthContext] Error resolving account profile:", { code: error?.code || "unknown" });
+        if (stillCurrent()) {
           setUserRole(null);
           setUserDoc(null);
           setUserData(null);
           setAccountError(ACCOUNT_ACCESS_ERROR);
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (stillCurrent()) setLoading(false);
       }
     });
 
@@ -206,6 +216,9 @@ export const AuthProvider = ({ children }) => {
         userData,
         accountError,
         refreshUserDoc,
+        registrationPending,
+        beginRegistration: (role) => { sessionStorage.setItem("sewak.registrationRole", role); sessionStorage.setItem("sewak.registrationPending", "true"); setRegistrationPending(true); },
+        finishRegistration: async () => { await refreshUserDoc(); sessionStorage.removeItem("sewak.registrationPending"); sessionStorage.removeItem("sewak.registrationRole"); setRegistrationPending(false); },
       }}
     >
       {children}

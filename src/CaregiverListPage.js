@@ -325,7 +325,7 @@ function CaregiverCard({ caregiver, services, onSelect, onViewProfile, requireLo
           <span style={{ color: "var(--theme-help)" }}>Category:</span>{" "}
           {caregiver.category === "caregiver"
             ? "🏥 Care giver"
-            : caregiver.category === "household"
+            : ["household", "vendor"].includes(caregiver.category)
             ? "🏠 Household"
             : "👥 Both"}
         </p>
@@ -582,7 +582,7 @@ export default function CaregiverListPage({
         const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setCaregivers(docs);
       } catch (err) {
-        console.error("Error loading caregivers:", err);
+        console.error("Error loading caregivers:", { code: err?.code || "unknown" });
         setError(
           err?.code === "permission-denied"
             ? "Caregiver profiles are temporarily unavailable while access is being updated. Please try again shortly."
@@ -603,7 +603,7 @@ export default function CaregiverListPage({
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setServices(list);
       } catch (err) {
-        console.error("Error loading services:", err);
+        console.error("Error loading services:", { code: err?.code || "unknown" });
       }
     };
     loadServices();
@@ -613,14 +613,14 @@ export default function CaregiverListPage({
   const visibleServices = services.filter((s) => {
     if (!userCategory || userCategory === "both") return true;
     if (s.category === "both") return true;
-    return s.category === userCategory;
+    return (s.category === "vendor" ? "household" : s.category) === userCategory;
   });
 
   // Apply all filters
   const filtered = caregivers.filter((c) => {
     // Category filter: “both” should show everyone
     if (userCategory === "caregiver" && !["caregiver", "both"].includes(c.category)) return false;
-    if (userCategory === "household" && !["household", "both"].includes(c.category)) return false;
+    if (userCategory === "household" && !["household", "vendor", "both"].includes(c.category)) return false;
     // if userCategory is "both" or "", we do not restrict c.category
 
     // Search

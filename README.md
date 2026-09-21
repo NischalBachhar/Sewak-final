@@ -1,70 +1,32 @@
-# Getting Started with Create React App
+﻿# Sewak
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React customer, caregiver, organization-admin and superadmin application backed by Firebase Authentication and Cloud Firestore. The light theme and four-step cash booking flow are retained.
 
-## Available Scripts
+See [the implementation and verification report](docs/SEWAK-FIX-REPORT.md) for all 17 findings, schema compatibility, release order, rollback and remaining environment checks. Older audit files are historical snapshots, not current deployment instructions.
 
-In the project directory, you can run:
+## Local verification
 
-### `npm start`
+Use Node 20 (the Functions target), npm, Java 21+ for the Firestore emulator, and Chrome for browser journeys. Install with `npm ci` at the root and `npm --prefix functions ci`. On Windows use `npm.cmd`.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```powershell
+npm.cmd run lint
+npm.cmd run test:unit
+npm.cmd run test:migration
+node scripts/test-emulators.cjs
+npm.cmd run test:browser
+npm.cmd run build
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+The emulator runner pins `demo-sewak-test`, removes service-account credential configuration, and tests refuse other project/host combinations. `test:browser` builds a localhost-only demo bundle before running Chrome. Run the normal build afterward to replace that test bundle. Do not publish a demo build.
 
-### `npm test`
+`npm start` uses the existing Firebase project unless `REACT_APP_USE_EMULATORS=true` is set. For local development with synthetic data, set that flag and start the demo emulators explicitly; do not use real customer records as fixtures. Local tests do not exercise deployed Functions transport or App Check issuance.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Hosting and configuration
 
-### `npm run build`
+`firebase.json` declares Firebase Hosting from `build`, Firestore rules/indexes, Storage rules and Functions from `functions`. The client points at the existing Firebase project and calls Functions in `asia-south1`. A Cloudflare Pages frontend can serve the same static build: postbuild generates `_redirects` and private-route `_headers`. No Cloudflare Worker backend configuration is present. Actual provider-dashboard configuration has not been accessed or changed.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Set `REACT_APP_CANONICAL_ORIGIN` to the reviewed public HTTPS origin before a release build. Without it the build deliberately omits canonicals and sitemap URLs. Browser metadata is route-specific; the served SPA document has generic public metadata. Private routes receive HTTP noindex headers on the configured hosts. Individual caregiver social cards and true HTTP 404 responses require additional host rendering/routing work; client-side metadata alone does not provide these.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Set `REACT_APP_FIREBASE_APPCHECK_SITE_KEY` only to the configured public web App Check key. Privileged callables retain `enforceAppCheck: true`. Missing callable configuration fails closed. Never disable enforcement to bypass a failed operation.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Cash booking, review, reporter receipts and authorized service publication use strict Firestore rules and do not require introducing paid infrastructure. Privileged account provisioning/approval and automated public projections use the existing optional Functions integration. If that integration is unavailable on the trial project, those operations remain unavailable; there is no browser approval fallback. Online payments remain disabled.

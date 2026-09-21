@@ -20,28 +20,6 @@ function organizationIdFor(vendor) {
   return safeString(vendor?.organizationId, 128);
 }
 
-async function isOrganizationPubliclyActive(vendor) {
-  const organizationId = organizationIdFor(vendor);
-  if (!organizationId) {
-    return true;
-  }
-
-  const organizationSnapshot = await getFirestore()
-    .collection("organizations")
-    .doc(organizationId)
-    .get();
-  if (!organizationSnapshot.exists) {
-    return false;
-  }
-
-  const organization = organizationSnapshot.data();
-  return (
-    organization.isApproved === true &&
-    organization.isSuspended !== true &&
-    organization.isBlacklisted !== true
-  );
-}
-
 function numberInRange(value, minimum, maximum, fallback) {
   const numeric = Number(value);
   return Number.isFinite(numeric) && numeric >= minimum && numeric <= maximum
@@ -53,7 +31,7 @@ function safeString(value, maximum = 500) {
   return typeof value === "string" ? value.slice(0, maximum) : "";
 }
 
-function publicCaregiverRecord(caregiverId, vendor, organizationActive) {
+function publicCaregiverRecord(caregiverId, vendor, organizationActive, commissionRate = 15) {
   const reviewCount = numberInRange(vendor.reviewCount, 0, 1000000, 0);
   const rating = reviewCount > 0
     ? numberInRange(vendor.rating, 0, 5, 0)
@@ -65,9 +43,11 @@ function publicCaregiverRecord(caregiverId, vendor, organizationActive) {
   // request to appear in the correct organization queue.
   return {
     caregiverId,
+    commissionRate,
+    allowZeroRate: vendor.allowZeroRate === true,
     name: safeString(vendor.name, 120),
     location: safeString(vendor.location, 160),
-    category: safeString(vendor.category, 32),
+    category: vendor.category === "household" ? "vendor" : safeString(vendor.category, 32),
     workType: safeString(vendor.workType, 32),
     shifts: Array.isArray(vendor.shifts) ? vendor.shifts.slice(0, 3) : [],
     servicesOffered: Array.isArray(vendor.servicesOffered)
@@ -111,27 +91,24 @@ function publicCaregiverRecord(caregiverId, vendor, organizationActive) {
   };
 }
 
-async function syncPublicCaregiver(
-  caregiverId,
-  vendor,
-  knownOrganizationActive,
-) {
+async function syncPublicCaregiver(caregiverId) {
   const db = getFirestore();
   const publicRef = db.collection("publicCaregivers").doc(caregiverId);
-  const organizationActive =
-    knownOrganizationActive === undefined
-      ? await isOrganizationPubliclyActive(vendor)
-      : knownOrganizationActive;
-
-  if (!isPubliclyBookable(vendor) || !organizationActive) {
-    await publicRef.delete();
-    return { visible: false };
-  }
-
-  await publicRef.set(
-    publicCaregiverRecord(caregiverId, vendor, organizationActive),
-  );
-  return { visible: true };
+  // Never publish event payloads: retries/out-of-order deliveries always read
+  // current records in the same transaction that writes the projection.
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(db.collection("vendors").doc(caregiverId));
+    const vendor = snapshot.exists ? snapshot.data() : null;
+    const orgId = organizationIdFor(vendor);
+    const orgSnapshot = orgId ? await transaction.get(db.collection("organizations").doc(orgId)) : null;
+    const org = orgSnapshot?.exists ? orgSnapshot.data() : null;
+    const active = !orgId || Boolean(org && org.isApproved && !org.isSuspended && !org.isBlacklisted);
+    if (!isPubliclyBookable(vendor) || !active) {
+      transaction.delete(publicRef); return { visible: false };
+    }
+    transaction.set(publicRef, publicCaregiverRecord(caregiverId, vendor, active, org?.commissionRate ?? 15));
+    return { visible: true };
+  });
 }
 
 function publicServiceRecord(serviceId, service) {
@@ -140,7 +117,7 @@ function publicServiceRecord(serviceId, service) {
     serviceId,
     label,
     serviceName: safeString(service.serviceName || label, 160),
-    category: safeString(service.category, 32),
+    category: service.category === "household" ? "vendor" : safeString(service.category, 32),
     description: safeString(service.description, 1000),
     price: numberInRange(service.price, 0, 1000000, 0),
     isActive: service.isActive !== false,
@@ -156,17 +133,14 @@ function isPublicService(service) {
   );
 }
 
-async function syncPublicService(serviceId, service) {
-  const db = getFirestore();
-  const publicRef = db.collection("publicServices").doc(serviceId);
-
-  if (!isPublicService(service)) {
-    await publicRef.delete();
-    return { visible: false };
-  }
-
-  await publicRef.set(publicServiceRecord(serviceId, service));
-  return { visible: true };
+async function syncPublicService(serviceId) {
+  const db = getFirestore(); const publicRef = db.collection("publicServices").doc(serviceId);
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(db.collection("services").doc(serviceId));
+    const service = snapshot.exists ? snapshot.data() : null;
+    if (!isPublicService(service)) { transaction.delete(publicRef); return { visible: false }; }
+    transaction.set(publicRef, publicServiceRecord(serviceId, service)); return { visible: true };
+  });
 }
 
 function publicReviewRecord(bookingId, review) {
@@ -232,7 +206,7 @@ async function refreshCaregiverReviewSummary(caregiverId) {
 }
 
 const onVendorWritten = onDocumentWritten(
-  { document: "vendors/{caregiverId}", region: FUNCTION_REGION },
+  { document: "vendors/{caregiverId}", region: FUNCTION_REGION, retry: true },
   async (event) => {
     const caregiverId = event.params.caregiverId;
     const after = event.data?.after;
@@ -254,6 +228,7 @@ function organizationPublicStateChanged(before, after) {
   return (
     !before ||
     !after ||
+    before.commissionRate !== after.commissionRate ||
     before.isApproved !== after.isApproved ||
     before.isSuspended !== after.isSuspended ||
     before.isBlacklisted !== after.isBlacklisted
@@ -457,6 +432,8 @@ module.exports = {
   backfillPublicServices,
   onReviewWritten,
   onOrganizationWritten,
+  syncPublicCaregiver,
+  publicCaregiverRecord,
   onServiceWritten,
   onVendorWritten,
 };

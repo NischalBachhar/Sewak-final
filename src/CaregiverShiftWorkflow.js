@@ -22,18 +22,19 @@ export default function CaregiverShiftWorkflow({ booking, caregiverId }) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    setLoaded(false); setSession(null); setTasks([]); setUpdates([]); setError("");
     if (!booking?.id) return undefined;
     const sessionRef = doc(db, "careSessions", booking.id);
     const subscribers = [
       onSnapshot(sessionRef, (snapshot) => {
         setSession(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null);
         setLoaded(true);
-      }, () => setLoaded(true)),
-      onSnapshot(query(collection(sessionRef, "tasks"), orderBy("createdAt", "asc")), (snapshot) => setTasks(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setTasks([])),
-      onSnapshot(query(collection(sessionRef, "updates"), orderBy("createdAt", "desc")), (snapshot) => setUpdates(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setUpdates([])),
+      }, () => { setLoaded(true); setError("Care session could not be loaded. Refresh to retry."); }),
+      onSnapshot(query(collection(sessionRef, "tasks"), orderBy("createdAt", "asc")), (snapshot) => setTasks(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setError("Care tasks could not be loaded. History may be incomplete.")),
+      onSnapshot(query(collection(sessionRef, "updates"), orderBy("createdAt", "desc")), (snapshot) => setUpdates(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setError("Care updates could not be loaded. History may be incomplete.")),
     ];
     return () => subscribers.forEach((unsubscribe) => unsubscribe());
-  }, [booking?.id]);
+  }, [booking?.id, caregiverId]);
 
   const run = async (task) => {
     setWorking(true);
@@ -61,6 +62,7 @@ export default function CaregiverShiftWorkflow({ booking, caregiverId }) {
 
   if (booking.status !== "in_progress") return null;
   if (!loaded) return <SkeletonCard />;
+  if (error && !session) return <p role="alert">{error}</p>;
   if (!session) return <p className="caregiver-shift-workflow__hint">The booking is active, but no care session has been recorded yet.</p>;
 
   return (

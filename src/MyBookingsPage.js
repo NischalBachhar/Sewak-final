@@ -1,9 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
-  collection,
-  query,
-  where,
-  onSnapshot,
   doc,
   serverTimestamp,
   updateDoc,
@@ -11,85 +7,31 @@ import {
 import { db } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
-import { getBookingStatus, normalizeBooking } from "./bookingModel";
+import useCustomerBookings from "./useCustomerBookings";
+import { getBookingStatus } from "./bookingModel";
 import { SkeletonCard, StatusBadge } from "./components/CareExperience";
 import { formatNpr } from "./config/brand";
 
 export default function MyBookingsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [bookings, setBookings] = useState([]);
+  const { bookings, loading, error, stale } = useCustomerBookings(user?.uid);
   const [statusFilter, setStatusFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [completionNotification, setCompletionNotification] = useState(null);
   const prevBookingsRef = useRef([]);
   const initialLoadRef = useRef(true);
 
+  useEffect(() => { prevBookingsRef.current = []; initialLoadRef.current = true; setCompletionNotification(null); }, [user?.uid]);
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
+    if (loading || error) return undefined;
+    let timer;
+    if (!initialLoadRef.current && bookings.some((booking) => booking.status === "completed" && prevBookingsRef.current.some((previous) => previous.id === booking.id && previous.status !== "completed"))) {
+      setCompletionNotification("A booking has been marked completed."); timer = setTimeout(() => setCompletionNotification(null), 7000);
     }
-
-    try {
-      const q = query(
-        collection(db, "bookings"),
-        where("userId", "==", user.uid)
-      );
-
-      const unsub = onSnapshot(
-        q,
-        (snap) => {
-          const docs = snap.docs
-            .map((d) => normalizeBooking({
-              id: d.id,
-              ...d.data(),
-            }))
-            .sort((a, b) => {
-              const timeA = a.createdAt?.toDate?.() || new Date(0);
-              const timeB = b.createdAt?.toDate?.() || new Date(0);
-              return timeB - timeA;
-            });
-
-          if (!initialLoadRef.current) {
-            const newlyCompleted = docs.filter((b) => {
-              const prev = prevBookingsRef.current.find((p) => p.id === b.id);
-              return b.status === "completed" && prev && prev.status !== "completed";
-            });
-
-            if (newlyCompleted.length > 0) {
-              const message = newlyCompleted.length === 1
-                ? `Your booking ${newlyCompleted[0].caregiverName || newlyCompleted[0].id.substring(0, 8)} has been marked completed.`
-                : `You have ${newlyCompleted.length} bookings marked completed.`;
-              setCompletionNotification(message);
-              window.setTimeout(() => setCompletionNotification(null), 7000);
-            }
-          }
-
-          prevBookingsRef.current = docs;
-          initialLoadRef.current = false;
-
-          console.log("User bookings loaded:", docs);
-          setBookings(docs);
-          setLoading(false);
-          setError(null);
-        },
-        (err) => {
-          console.error("Error loading user bookings:", err);
-          setError(err.message);
-          setLoading(false);
-        }
-      );
-
-      return () => unsub();
-    } catch (err) {
-      console.error("Query error:", err);
-      setError(err.message);
-      setLoading(false);
-    }
-  }, [user]);
+    prevBookingsRef.current = bookings; initialLoadRef.current = false;
+    return () => clearTimeout(timer);
+  }, [bookings, loading, error]);
 
   const cancelBooking = async (booking) => {
     if (!booking || booking.status !== "pending") {
@@ -109,7 +51,7 @@ export default function MyBookingsPage() {
       });
       alert("Booking cancelled successfully.");
     } catch (err) {
-      console.error("Error cancelling booking:", err);
+      console.error("Error cancelling booking:", { code: err?.code || "unknown" });
       alert("Could not cancel booking. Please try again.");
     }
   };
@@ -130,7 +72,7 @@ export default function MyBookingsPage() {
     );
 
   const totalSpent = bookings
-    .filter((b) => b.status === "completed" || b.paymentStatus === "paid")
+    .filter((b) => b.paymentStatus === "paid")
     .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
   const completedCount = bookings.filter((b) => b.status === "completed").length;
@@ -138,6 +80,7 @@ export default function MyBookingsPage() {
   return (
     <div>
       <h2 className="section-title section-title--compact">My Bookings</h2>
+      {stale && <p role="status">Showing cached bookings. Reconnect for current status.</p>}
       {completionNotification && (
         <div
           style={{

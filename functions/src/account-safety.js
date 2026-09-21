@@ -346,9 +346,13 @@ async function resolveSafetyTarget({ db, targetType, targetId, reportId, read })
   const reportRef = reportId
     ? db.collection("blacklistReports").doc(reportId)
     : null;
+  let reportReceiptExists = false;
   if (reportRef) {
     const reportSnapshot = await read(reportRef);
     assertPendingCustomerReport(reportSnapshot, targetId);
+    const receiptRef = db.collection("reportReceipts").doc(reportId);
+    const receiptSnapshot = await read(receiptRef);
+    reportReceiptExists = receiptSnapshot.exists;
   }
 
   return {
@@ -359,6 +363,7 @@ async function resolveSafetyTarget({ db, targetType, targetId, reportId, read })
     user,
     userRef,
     reportRef,
+    reportReceiptExists,
   };
 }
 
@@ -881,6 +886,7 @@ async function applyFirestoreSafetyAction({ requester, input, expectedAuthUids }
         { merge: true },
       );
       if (target.reportRef) {
+        if (target.reportReceiptExists) transaction.update(db.collection("reportReceipts").doc(input.reportId), { status: "approved" });
         transaction.update(target.reportRef, {
           status: "approved",
           approvedAt: FieldValue.serverTimestamp(),

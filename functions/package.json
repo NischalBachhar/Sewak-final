@@ -9,7 +9,7 @@
   },
   "scripts": {
     "lint": "node --check index.js && node --check src/account-safety.js && node --check src/authz.js && node --check src/fonepay.js && node --check src/organization-application.js && node --check src/organization-approval.js && node --check src/provisioning.js && node --check src/public-projections.js && node --check src/validation.js && node --check scripts/grant-platform-role.js",
-    "test": "node --test"
+    "test": "node --test test/*.test.cjs"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",

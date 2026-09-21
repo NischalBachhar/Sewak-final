@@ -10,6 +10,7 @@ const {
   PLATFORM_ROLE_CLAIM,
 } = require("./authz");
 
+const { randomUUID } = require("node:crypto");
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DEFAULT_COMMISSION_RATE = 15;
 
@@ -127,6 +128,9 @@ function assertExistingRecordsAreCompatible({
   organizationSnapshot,
   userSnapshot,
 }) {
+  if (organizationSnapshot.exists && (organizationSnapshot.data().isSuspended || organizationSnapshot.data().isBlacklisted)) {
+    throw new HttpsError("failed-precondition", "A blocked organization cannot be approved.");
+  }
   if (organizationSnapshot.exists) {
     const organization = organizationSnapshot.data();
     if (
@@ -147,7 +151,7 @@ function assertExistingRecordsAreCompatible({
       (user.uid && user.uid !== application.applicantId) ||
       (user.role &&
         !["user", ORGANIZATION_ADMIN_ROLE].includes(user.role)) ||
-      user.isSuspended === true
+      (user.isSuspended === true || user.isBlacklisted === true)
     ) {
       throw new HttpsError(
         "failed-precondition",
@@ -214,7 +218,6 @@ function applicationUserRecord(application, requesterUid) {
     profileComplete: true,
     isApproved: true,
     verified: true,
-    isSuspended: false,
     organizationId: application.applicantId,
     organizationName: application.organizationName,
     businessPhone: application.businessPhone,
@@ -294,6 +297,7 @@ async function prepareApplicationApproval({ applicationId, requesterUid, authUse
   const applicationRef = db
     .collection("organizationApplications")
     .doc(applicationId);
+  const operationId = randomUUID();
 
   return db.runTransaction(async (transaction) => {
     const applicationSnapshot = await transaction.get(applicationRef);
@@ -337,27 +341,28 @@ async function prepareApplicationApproval({ applicationId, requesterUid, authUse
       userSnapshot,
     );
 
+    rollbackState.operationId = operationId;
     if (organizationSnapshot.exists) {
       transaction.set(
         organizationRef,
-        applicationOrganizationPatch(application, requesterUid),
+        { ...applicationOrganizationPatch(application, requesterUid), approvalOperationId: operationId },
         { merge: true },
       );
     } else {
       transaction.set(
         organizationRef,
-        applicationOrganizationRecord(application, requesterUid),
+        { ...applicationOrganizationRecord(application, requesterUid), approvalOperationId: operationId },
       );
     }
 
     if (userSnapshot.exists) {
       transaction.set(
         userRef,
-        applicationUserPatch(application, requesterUid),
+        { ...applicationUserPatch(application, requesterUid), approvalOperationId: operationId },
         { merge: true },
       );
     } else {
-      transaction.set(userRef, applicationUserRecord(application, requesterUid));
+      transaction.set(userRef, { ...applicationUserRecord(application, requesterUid), approvalOperationId: operationId });
     }
 
     transaction.update(applicationRef, {
@@ -366,6 +371,7 @@ async function prepareApplicationApproval({ applicationId, requesterUid, authUse
       approvedAt: FieldValue.serverTimestamp(),
       approvedBy: requesterUid,
       approvalClaimSync: "pending",
+      approvalOperationId: operationId,
     });
     transaction.set(db.collection("adminAuditLogs").doc(), {
       action: "organization_application_approved",
@@ -400,6 +406,7 @@ async function rollBackApplicationApproval({ requesterUid, state }) {
 
       if (
         applicationSnapshot.exists &&
+        applicationSnapshot.data().approvalOperationId === state.operationId &&
         applicationSnapshot.data().status === "approved" &&
         applicationSnapshot.data().organizationId === state.applicantId
       ) {
@@ -412,7 +419,7 @@ async function rollBackApplicationApproval({ requesterUid, state }) {
         });
       }
 
-      if (organizationSnapshot.exists) {
+      if (organizationSnapshot.exists && organizationSnapshot.data().approvalOperationId === state.operationId && !organizationSnapshot.data().isSuspended && !organizationSnapshot.data().isBlacklisted) {
         if (
           state.organizationWasCreated &&
           organizationSnapshot.data().approvedFromApplicationId ===
@@ -445,7 +452,7 @@ async function rollBackApplicationApproval({ requesterUid, state }) {
         }
       }
 
-      if (userSnapshot.exists) {
+      if (userSnapshot.exists && userSnapshot.data().approvalOperationId === state.operationId && !userSnapshot.data().isSuspended && !userSnapshot.data().isBlacklisted) {
         if (
           state.userWasCreated &&
           userSnapshot.data().approvedFromApplicationId === state.applicationId
@@ -462,7 +469,6 @@ async function rollBackApplicationApproval({ requesterUid, state }) {
             profileComplete: currentOrDelete(state.user.profileComplete),
             isApproved: currentOrDelete(state.user.isApproved),
             verified: currentOrDelete(state.user.verified),
-            isSuspended: currentOrDelete(state.user.isSuspended),
             organizationId: currentOrDelete(state.user.organizationId),
             organizationName: currentOrDelete(state.user.organizationName),
             businessPhone: currentOrDelete(state.user.businessPhone),
@@ -528,6 +534,7 @@ async function approveOrganizationApplication({ requester, applicationId }) {
 
   try {
     const latestAuthUser = await auth.getUser(authUser.uid);
+    if (latestAuthUser.disabled) throw new HttpsError("failed-precondition", "The applicant account is disabled.");
     await auth.setCustomUserClaims(authUser.uid, {
       ...(latestAuthUser.customClaims || {}),
       [PLATFORM_ROLE_CLAIM]: ORGANIZATION_ADMIN_ROLE,
@@ -541,6 +548,14 @@ async function approveOrganizationApplication({ requester, applicationId }) {
     throw error;
   }
 
+  const latestOrg = await getFirestore().collection("organizations").doc(authUser.uid).get();
+  const latestProfile = await getFirestore().collection("users").doc(authUser.uid).get();
+  if ([latestOrg, latestProfile].some((snapshot) => !snapshot.exists || snapshot.data().isSuspended || snapshot.data().isBlacklisted)) {
+    const record = await auth.getUser(authUser.uid); const claims = { ...(record.customClaims || {}) };
+    delete claims.platformRole; delete claims.organizationApproved;
+    await auth.setCustomUserClaims(authUser.uid, claims); await auth.revokeRefreshTokens(authUser.uid);
+    throw new HttpsError("failed-precondition", "A concurrent safety action blocked approval.");
+  }
   await finalizeApplicationApproval(applicationId);
   logger.info("Organization application approved.", {
     actorUid: requester.uid,
@@ -558,4 +573,7 @@ async function approveOrganizationApplication({ requester, applicationId }) {
 
 module.exports = {
   approveOrganizationApplication,
+  assertExistingRecordsAreCompatible,
+  prepareApplicationApproval,
+  rollBackApplicationApproval,
 };

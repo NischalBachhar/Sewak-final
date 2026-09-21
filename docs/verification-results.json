@@ -1,0 +1,68 @@
+{
+  "date": "2026-09-21",
+  "branch": "fix/sewak-security-workflows",
+  "baseCommit": "40c6e02",
+  "environment": "Windows, Node 25.6.0 host, Java 21, local Chrome and demo-sewak-test Auth/Firestore emulators",
+  "productionModified": false,
+  "deployed": false,
+  "checks": {
+    "frontend": {
+      "suites": 9,
+      "passed": 33,
+      "failed": 0
+    },
+    "firestoreRules": {
+      "passed": 31,
+      "failed": 0
+    },
+    "backend": {
+      "passed": 12,
+      "failed": 0,
+      "includes": "demo migration apply, conflict protection and rollback"
+    },
+    "migrationPlanner": {
+      "passed": 2,
+      "failed": 0
+    },
+    "browser": {
+      "fullRunPassed": 15,
+      "additionalFocusedPassed": 1,
+      "failed": 0,
+      "retries": 0,
+      "skipped": 0,
+      "viewportWidths": [
+        320,
+        375,
+        430,
+        768,
+        1366,
+        1920
+      ]
+    },
+    "lint": "passed",
+    "normalBuild": "passed; emulator mode disabled; canonical origin absent and omitted",
+    "gitDiffCheck": "passed"
+  },
+  "bundle": {
+    "baselineMainGzipKB": 259.86,
+    "finalMainGzipKB": 230.71,
+    "reductionPercent": 11.2,
+    "finalMainCssGzipKB": 15.51,
+    "scope": "initial main asset, not total lazy application size"
+  },
+  "localBrowserObservation": {
+    "domContentLoadedMs": 297.4,
+    "loadMs": 297.6,
+    "firstPaintMs": 340,
+    "syntheticScriptDelayMs": 150,
+    "isFieldCoreWebVitals": false
+  },
+  "pendingEnvironmentChecks": [
+    "reviewed canonical origin",
+    "authorized host configuration and live index readiness",
+    "real App Check transport",
+    "legacy production data and claims",
+    "approved test inbox delivery",
+    "physical devices and screen readers"
+  ]
+}

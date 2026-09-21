@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import React, { useMemo } from "react";
+import useCustomerBookings from "./useCustomerBookings";
 import { useNavigate } from "react-router-dom";
-import { db } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
-import { bookingScheduleLabel, getBookingStatus, normalizeBooking } from "./bookingModel";
+import { bookingScheduleLabel, getBookingStatus } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { EmptyState, ErrorState, SkeletonCard, StatusBadge } from "./components/CareExperience";
 
@@ -29,33 +28,8 @@ const bookingDateTime = (booking) => {
 export default function CustomerHomePage() {
   const { user, userDoc } = useAuth();
   const navigate = useNavigate();
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!user?.uid) {
-      setLoading(false);
-      return undefined;
-    }
-
-    const bookingsQuery = query(collection(db, "bookings"), where("userId", "==", user.uid));
-    return onSnapshot(
-      bookingsQuery,
-      (snapshot) => {
-        const nextBookings = snapshot.docs
-          .map((item) => normalizeBooking({ id: item.id, ...item.data() }))
-          .sort((first, second) => bookingDateTime(first) - bookingDateTime(second));
-        setBookings(nextBookings);
-        setError("");
-        setLoading(false);
-      },
-      (snapshotError) => {
-        setError(snapshotError.message || "We could not load your care overview.");
-        setLoading(false);
-      },
-    );
-  }, [user?.uid]);
+  const { bookings: records, loading, error } = useCustomerBookings(user?.uid);
+  const bookings = useMemo(() => [...records].sort((a,b) => bookingDateTime(a) - bookingDateTime(b)), [records]);
 
   const activeBookings = useMemo(
     () => bookings.filter((booking) => ["pending", "accepted", "in_progress"].includes(booking.status)),

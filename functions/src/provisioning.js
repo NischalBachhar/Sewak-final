@@ -228,7 +228,7 @@ async function resolveOrganizationForCaregiver(requester) {
   };
 }
 
-async function assertServicesExist(db, serviceIds) {
+async function assertServicesExist(db, serviceIds, organizationId, category) {
   if (serviceIds.length === 0) {
     return;
   }
@@ -238,7 +238,13 @@ async function assertServicesExist(db, serviceIds) {
   );
   const snapshots = await db.getAll(...references);
 
-  if (snapshots.some((snapshot) => !snapshot.exists)) {
+  if (snapshots.some((snapshot) => {
+    if (!snapshot.exists) return true;
+    const service = snapshot.data();
+    const serviceCategory = service.category === "household" ? "vendor" : service.category;
+    return service.isActive === false || (service.organizationId && service.organizationId !== organizationId) ||
+      (category !== "both" && serviceCategory !== "both" && serviceCategory !== category);
+  })) {
     throw new HttpsError(
       "invalid-argument",
       "One or more selected services do not exist.",
@@ -306,7 +312,7 @@ function caregiverVendorRecord({ uid, input, requester, organization }) {
 async function provisionCaregiverAccount({ requester, input }) {
   const { db, organization, organizationRef } =
     await resolveOrganizationForCaregiver(requester);
-  await assertServicesExist(db, input.servicesOffered);
+  await assertServicesExist(db, input.servicesOffered, requester.uid, input.category);
 
   const auth = getAuth();
   const user = await auth.createUser({

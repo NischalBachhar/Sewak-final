@@ -21,7 +21,6 @@ export default function OrganizationProfilePage() {
   // Watch for profile completion and navigate
   useEffect(() => {
     if (shouldNavigate && userDoc?.profileComplete) {
-      console.log("Profile complete, navigating to dashboard");
       navigate("/organization/dashboard");
     }
   }, [userDoc?.profileComplete, shouldNavigate, navigate]);
@@ -75,14 +74,12 @@ export default function OrganizationProfilePage() {
       setSuccess("Profile saved successfully!");
 
       // Refresh user context to update profileComplete status
-      console.log("Refreshing user doc...");
       await refreshUserDoc();
-      console.log("User doc refreshed, setting flag to navigate");
       
       // Set flag to trigger navigation when userDoc updates
       setShouldNavigate(true);
     } catch (err) {
-      console.error("Error saving profile:", err);
+      console.error("Error saving profile:", { code: err?.code || "unknown" });
       setError(err.message || "Could not save profile. Please try again.");
     } finally {
       setSubmitting(false);

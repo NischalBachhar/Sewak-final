@@ -50,6 +50,9 @@ function validateOrganizationAndAdmin({
   }
 
   const admin = userSnapshot.data();
+  if ([organization, admin].some((record) => record.isSuspended === true || record.isBlacklisted === true)) {
+    throw new HttpsError("failed-precondition", "Blocked accounts cannot be approved. Use the separate safety review workflow.");
+  }
   if (admin.uid !== adminUid || admin.role !== ORGANIZATION_ADMIN_ROLE) {
     throw new HttpsError(
       "failed-precondition",
@@ -99,6 +102,7 @@ async function approveOrganizationFirestore({ organizationId, requesterUid }) {
     });
 
     transaction.update(organizationRef, {
+      approvalOperationId: auditRef.id,
       isApproved: true,
       verified: true,
       approvedAt: FieldValue.serverTimestamp(),
@@ -106,6 +110,7 @@ async function approveOrganizationFirestore({ organizationId, requesterUid }) {
       updatedAt: FieldValue.serverTimestamp(),
     });
     transaction.update(userRef, {
+      approvalOperationId: auditRef.id,
       isApproved: true,
       verified: true,
       role: ORGANIZATION_ADMIN_ROLE,
@@ -122,7 +127,7 @@ async function approveOrganizationFirestore({ organizationId, requesterUid }) {
       createdAt: FieldValue.serverTimestamp(),
     });
 
-    return result;
+    return { ...result, operationId: auditRef.id };
   });
 }
 
@@ -143,7 +148,7 @@ async function rollBackFirestoreApproval({
         transaction.get(userRef),
       ]);
 
-      if (organizationSnapshot.exists) {
+      if (organizationSnapshot.exists && organizationSnapshot.data().approvalOperationId === previous.operationId && !organizationSnapshot.data().isSuspended && !organizationSnapshot.data().isBlacklisted) {
         transaction.update(organizationRef, {
           isApproved: previous.previousOrganizationApproval,
           verified: previous.previousOrganizationVerification,
@@ -151,7 +156,7 @@ async function rollBackFirestoreApproval({
         });
       }
 
-      if (userSnapshot.exists) {
+      if (userSnapshot.exists && userSnapshot.data().approvalOperationId === previous.operationId && !userSnapshot.data().isSuspended && !userSnapshot.data().isBlacklisted) {
         transaction.update(userRef, {
           isApproved: previous.previousUserApproval,
           verified: previous.previousUserVerification,
@@ -184,6 +189,7 @@ async function approveOrganizationAccount({ requester, organizationId }) {
   try {
     const auth = getAuth();
     const adminUser = await auth.getUser(approval.adminUid);
+    if (adminUser.disabled) throw new HttpsError("failed-precondition", "The administrator account is disabled.");
     await auth.setCustomUserClaims(approval.adminUid, {
       ...(adminUser.customClaims || {}),
       [PLATFORM_ROLE_CLAIM]: ORGANIZATION_ADMIN_ROLE,
@@ -199,6 +205,18 @@ async function approveOrganizationAccount({ requester, organizationId }) {
     throw error;
   }
 
+  // Auth writes cannot participate in the Firestore transaction. Recheck after
+  // claims are issued, so a racing safety action cannot leave usable privileges.
+  const current = await getFirestore().collection("organizations").doc(organizationId).get();
+  if (!current.exists || current.data().isSuspended || current.data().isBlacklisted || !current.data().isApproved) {
+    const auth = getAuth();
+    const actor = await auth.getUser(approval.adminUid);
+    const claims = { ...(actor.customClaims || {}) };
+    delete claims.platformRole; delete claims.organizationApproved;
+    await auth.setCustomUserClaims(approval.adminUid, claims);
+    await auth.revokeRefreshTokens(approval.adminUid);
+    throw new HttpsError("failed-precondition", "A safety action blocked this approval.");
+  }
   logger.info("Organization account approved.", {
     actorUid: requester.uid,
     organizationId,
@@ -214,4 +232,7 @@ async function approveOrganizationAccount({ requester, organizationId }) {
 
 module.exports = {
   approveOrganizationAccount,
+  validateOrganizationAndAdmin,
+  approveOrganizationFirestore,
+  rollBackFirestoreApproval,
 };

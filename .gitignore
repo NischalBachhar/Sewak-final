@@ -21,3 +21,10 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+/functions/node_modules
+/.local-tools
+/test-results
+/playwright-report
+*-debug.log
+/firebase-debug.log

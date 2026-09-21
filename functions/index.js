@@ -5,6 +5,7 @@ const { HttpsError, onCall } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { logger } = require("firebase-functions");
 const {
+  assertActorActive,
   requireApprovedOrganizationAdmin,
   requireAuthenticated,
   requireSuperAdmin,
@@ -77,6 +78,7 @@ exports.provisionOrganizationAccount = onCall(
   callableOptions,
   async (request) => {
     const requester = requireSuperAdmin(request);
+    await assertActorActive(requester);
     const input = normalizeOrganizationProvisioningInput(request.data);
 
     try {
@@ -91,6 +93,7 @@ exports.approveOrganizationAccount = onCall(
   callableOptions,
   async (request) => {
     const requester = requireSuperAdmin(request);
+    await assertActorActive(requester);
     const input = normalizeOrganizationApprovalInput(request.data);
 
     try {
@@ -108,6 +111,7 @@ exports.approveOrganizationApplication = onCall(
   callableOptions,
   async (request) => {
     const requester = requireSuperAdmin(request);
+    await assertActorActive(requester);
     const input = normalizeOrganizationApplicationApprovalInput(request.data);
 
     try {
@@ -128,6 +132,7 @@ exports.provisionSuperAdminAccount = onCall(
   callableOptions,
   async (request) => {
     const requester = requireSuperAdmin(request);
+    await assertActorActive(requester);
     const input = normalizeSuperAdminProvisioningInput(request.data);
 
     try {
@@ -142,6 +147,7 @@ exports.provisionCaregiverAccount = onCall(
   callableOptions,
   async (request) => {
     const requester = requireApprovedOrganizationAdmin(request);
+    await assertActorActive(requester);
     const input = normalizeCaregiverProvisioningInput(request.data);
 
     try {
@@ -156,6 +162,7 @@ exports.applyAccountSafetyAction = onCall(
   callableOptions,
   async (request) => {
     const requester = requireSuperAdmin(request);
+    await assertActorActive(requester);
     const input = normalizeAccountSafetyActionInput(request.data);
 
     try {
@@ -247,6 +254,7 @@ exports.verifyFonepayPayment = onCall(
   },
   async (request) => {
     const requester = requireAuthenticated(request);
+    await assertActorActive(requester);
     const input = normalizePaymentVerificationInput(request.data);
 
     assertFonepayServerConfig();

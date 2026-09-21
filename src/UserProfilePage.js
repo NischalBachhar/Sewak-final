@@ -39,11 +39,14 @@ export default function UserProfilePage() {
   const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    setName(""); setPhone(""); setAddress(""); setCity(""); setProfilePicture(""); setImagePreview(null); setError(""); setLoading(true);
     const loadProfile = async () => {
-      if (!user) return;
+      if (!user) { setLoading(false); return; }
 
       try {
         const docSnap = await getDoc(doc(db, "users", user.uid));
+        if (!active) return;
         if (docSnap.exists()) {
           const data = docSnap.data();
           setName(data.name || "");
@@ -54,20 +57,20 @@ export default function UserProfilePage() {
           setImagePreview(data.profilePicture || user.photoURL || null);
         }
       } catch (err) {
-        console.error("Error loading profile:", err);
-        setError("Could not load profile");
+        console.error("Error loading profile:", { code: err?.code || "unknown" });
+        if (active) setError("Could not load profile");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     loadProfile();
+    return () => { active = false; };
   }, [user]);
 
   // Watch for profile completion and navigate
   useEffect(() => {
     if (shouldNavigate && userDoc?.profileComplete) {
-      console.log("Profile complete, navigating to browse");
       navigate("/user");
     }
   }, [userDoc?.profileComplete, shouldNavigate, navigate]);
@@ -122,7 +125,7 @@ export default function UserProfilePage() {
 
       return downloadURL;
     } catch (err) {
-      console.error("Error uploading image:", err);
+      console.error("Error uploading image:", { code: err?.code || "unknown" });
       throw new Error("Could not upload profile picture");
     } finally {
       setUploadingImage(false);
@@ -181,7 +184,7 @@ export default function UserProfilePage() {
       // Set flag to trigger navigation when userDoc updates
       setShouldNavigate(true);
     } catch (err) {
-      console.error("Error saving profile:", err);
+      console.error("Error saving profile:", { code: err?.code || "unknown" });
       setError(err.message || "Could not save profile. Please try again.");
     } finally {
       setSubmitting(false);
@@ -230,7 +233,7 @@ export default function UserProfilePage() {
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      console.error("Error changing password:", err);
+      console.error("Error changing password:", { code: err?.code || "unknown" });
       if (err.code === "auth/wrong-password") {
         setError("Current password is incorrect");
       } else if (err.code === "auth/too-many-requests") {

@@ -26,7 +26,6 @@ import "./OrganizationDashboard.css";
 
 const STATUS_OPTIONS = ["pending", "accepted", "in_progress", "completed", "cancelled"];
 const SHIFT_OPTIONS = ["morning", "day", "night"];
-const COMMISSION_RATE = 15;
 const CAREGIVER_TABS = ["home", "jobs", "schedule", "profile", "earnings"];
 
 const localDateKey = (value = new Date()) => {
@@ -74,6 +73,7 @@ export default function CaregiverDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [myReports, setMyReports] = useState([]);
+  const [reportsError, setReportsError] = useState("");
   const [services, setServices] = useState([]);
 
   // Password Change
@@ -109,16 +109,17 @@ export default function CaregiverDashboardPage() {
   // Sync active tab with URL query params
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const tab = params.get("tab");
+    const tab = params.get("tab") || location.pathname.split("/").filter(Boolean)[1];
     if (CAREGIVER_TABS.includes(tab)) {
       setActiveTab(tab);
     } else {
       setActiveTab("home");
     }
-  }, [location.search]);
+  }, [location.search, location.pathname]);
 
   // Load bookings & reports
   useEffect(() => {
+    setBookings([]); setMyReports([]); setReportsError(""); setLoading(true);
     if (!user) {
       setLoading(false);
       return;
@@ -147,9 +148,7 @@ export default function CaregiverDashboardPage() {
             (sum, b) => sum + (b.totalAmount || 0),
             0
           );
-          const platformCommission =
-            (totalEarnings * COMMISSION_RATE) / 100;
-          const vendorEarnings = totalEarnings - platformCommission;
+          const vendorEarnings = completed.reduce((sum, booking) => sum + Number(booking.vendorEarnings ?? 0), 0);
 
           setEarnings({
             total: totalEarnings,
@@ -162,7 +161,7 @@ export default function CaregiverDashboardPage() {
           setError(null);
         },
         (err) => {
-          console.error("Error loading bookings", err);
+          console.error("Error loading bookings", { code: err?.code || "unknown" });
           setError(err.message || "Error loading bookings");
           setLoading(false);
         }
@@ -170,7 +169,7 @@ export default function CaregiverDashboardPage() {
 
       // Reports
       const reportsQuery = query(
-        collection(db, "caregiverReports"),
+        collection(db, "reportReceipts"),
         where("reportedBy", "==", user.uid)
       );
       const unsubReports = onSnapshot(
@@ -186,7 +185,7 @@ export default function CaregiverDashboardPage() {
           setMyReports(docs);
         },
         (err) => {
-          console.error("Error loading reports", err);
+          setReportsError("Report history could not be loaded. Refresh to retry.");
         }
       );
 
@@ -195,7 +194,7 @@ export default function CaregiverDashboardPage() {
         unsubReports();
       };
     } catch (err) {
-      console.error("Query error", err);
+      console.error("Query error", { code: err?.code || "unknown" });
       setError(err.message || "Error loading dashboard");
       setLoading(false);
     }
@@ -235,7 +234,7 @@ export default function CaregiverDashboardPage() {
         }));
         setServices(servicesData);
       } catch (err) {
-        console.error("Error loading profile", err);
+        console.error("Error loading profile", { code: err?.code || "unknown" });
       }
     };
 
@@ -249,7 +248,7 @@ export default function CaregiverDashboardPage() {
         updatedAt: serverTimestamp(),
       });
     } catch (err) {
-      console.error("Error updating status", err);
+      console.error("Error updating status", { code: err?.code || "unknown" });
       alert("Could not update status. Please try again.");
     }
   };
@@ -315,7 +314,7 @@ export default function CaregiverDashboardPage() {
         setProfileData(vendorSnap.data());
       }
     } catch (err) {
-      console.error("Error saving profile", err);
+      console.error("Error saving profile", { code: err?.code || "unknown" });
       setError("Could not save profile. Please try again.");
     } finally {
       setSavingProfile(false);
@@ -356,7 +355,7 @@ export default function CaregiverDashboardPage() {
   const todayCompletedEarnings = todaysJobs
     .filter((booking) => booking.status === "completed")
     .reduce(
-      (total, booking) => total + Number(booking.vendorEarnings ?? (booking.totalAmount || 0) * 0.85),
+      (total, booking) => total + Number(booking.vendorEarnings ?? 0),
       0,
     );
   const selectTab = (tab) => navigate(`/caregiver?tab=${tab}`);
@@ -397,7 +396,7 @@ export default function CaregiverDashboardPage() {
       setConfirmPassword("");
       setShowPasswordSection(false);
     } catch (err) {
-      console.error("Error changing password", err);
+      console.error("Error changing password", { code: err?.code || "unknown" });
       if (err.code === "auth/wrong-password") {
         setError("Current password is incorrect.");
       } else if (err.code === "auth/requires-recent-login") {
@@ -595,11 +594,16 @@ export default function CaregiverDashboardPage() {
       {/* JOBS TAB */}
       {activeTab === "jobs" && (
         <div>
+          <section className="card" aria-label="Report history">
+            <h3>Report history</h3>
+            {reportsError ? <p role="alert">{reportsError}</p> : myReports.length ? <ul>{myReports.map((report) => <li key={report.id}>{report.reason} — {report.status}. Booking {report.bookingId?.slice(0, 12)}</li>)}</ul> : <p>No reports submitted.</p>}
+          </section>
           {/* Filter */}
           <div className="row" style={{ marginBottom: 12 }}>
             <div className="col">
-              <label>Filter by status</label>
+              <label htmlFor="caregiver-status-filter">Filter by status</label>
               <select
+                id="caregiver-status-filter"
                 className="dropdown-select"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -810,7 +814,7 @@ export default function CaregiverDashboardPage() {
                     <strong>Your Earnings:</strong>{" "}
                     {formatNpr(Math.round(
                       b.vendorEarnings ??
-                        (b.totalAmount || 0) * 0.85
+                        0
                     ), "NPR 0")}
                   </p>
                   <p
@@ -820,12 +824,12 @@ export default function CaregiverDashboardPage() {
                       marginBottom: 4,
                     }}
                   >
-                    Platform fee (approx):{" "}
+                    Recorded platform fee:{" "}
                     {formatNpr(Math.round(
                       b.platformCommission ??
-                        (b.totalAmount || 0) * 0.15
+                        0
                     ), "NPR 0")}{" "}
-                    ({COMMISSION_RATE}%)
+                    ({b.commissionRate ?? "not recorded"}%)
                   </p>
                   <p
                     style={{
@@ -1608,7 +1612,7 @@ export default function CaregiverDashboardPage() {
                     margin: 0,
                   }}
                 >
-                  Your Balance
+                  Recorded care earnings
                 </p>
                 <p
                   style={{
@@ -1627,7 +1631,7 @@ export default function CaregiverDashboardPage() {
                     margin: 0,
                   }}
                 >
-                  After {COMMISSION_RATE}% commission
+                  After each booking’s recorded commission
                 </p>
               </div>
               <div>
@@ -1670,7 +1674,7 @@ export default function CaregiverDashboardPage() {
                   }}
                 >
                   {Math.round(
-                    (earnings.total * COMMISSION_RATE) / 100
+                    bookings.filter((booking) => booking.status === "completed").reduce((sum, booking) => sum + Number(booking.platformCommission ?? 0), 0)
                   )}
                 </p>
                 <p
@@ -1680,7 +1684,7 @@ export default function CaregiverDashboardPage() {
                     margin: 0,
                   }}
                 >
-                  {COMMISSION_RATE}%
+                  Recorded booking fees
                 </p>
               </div>
             </div>
@@ -1749,7 +1753,7 @@ export default function CaregiverDashboardPage() {
                         >
                           {Math.round(
                             b.vendorEarnings ??
-                              (b.totalAmount || 0) * 0.85
+                              0
                           )}
                         </p>
                         <p
@@ -1759,7 +1763,7 @@ export default function CaregiverDashboardPage() {
                             color: "var(--theme-text-muted)",
                           }}
                         >
-                          {b.totalAmount} - {COMMISSION_RATE}% fee
+                          {b.totalAmount} - {b.commissionRate ?? "not recorded"}% fee
                         </p>
                       </div>
                     </div>

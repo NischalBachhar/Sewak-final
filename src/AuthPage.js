@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { auth, db } from "./firebaseConfig";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { useSearchParams } from "react-router-dom";
+import { useAuth } from "./AuthContext";
+import { completeRegistration } from "./registrationService";
+import { auth } from "./firebaseConfig";
 import "./AuthPage.css";
 
 const GENERIC_SIGN_IN_ERROR =
@@ -45,11 +47,13 @@ const getAuthErrorMessage = (errorCode, mode) => {
 };
 
 export default function AuthPage() {
-  const [mode, setMode] = useState("login");
+  const [params] = useSearchParams();
+  const { beginRegistration, finishRegistration, registrationPending, userDoc } = useAuth();
+  const [mode, setMode] = useState(params.get("mode") === "register" || registrationPending || userDoc?.registrationIncomplete ? "register" : "login");
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(auth.currentUser?.email || "");
   const [password, setPassword] = useState("");
-  const [selectedRole, setSelectedRole] = useState("user");
+  const [selectedRole, setSelectedRole] = useState(sessionStorage.getItem("sewak.registrationRole") || "user");
   const [organizationName, setOrganizationName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -63,94 +67,48 @@ export default function AuthPage() {
     try {
       if (mode === "login") {
         await signInWithEmailAndPassword(auth, email, password);
+        if (registrationPending) {
+          setMode("register");
+          setSuccess("Signed in. Complete your profile/application setup to continue.");
+        }
       } else {
-        console.log("Auth: register flow started", { email, selectedRole, fullName, organizationName });
-        if (!selectedRole) {
-          setError("Please select a role");
-          setLoading(false);
-          return;
-        }
-
-        // Validate organization name for orgadmin
-        if (selectedRole === "orgadmin" && !organizationName.trim()) {
-          setError("Please enter your organization/company name");
-          setLoading(false);
-          return;
-        }
-
-        let cred;
-        try {
-          cred = await createUserWithEmailAndPassword(auth, email, password);
-          console.log("Auth: created user", cred.user.uid);
-        } catch (createErr) {
-          console.error("Auth: createUser failed", createErr);
-          throw createErr;
-        }
-
-        // Public registration always creates a customer account. Choosing the
-        // organization option creates a reviewable application, never a
-        // browser-assigned privileged role or organization record.
-        const userData = {
-          uid: cred.user.uid,
-          name: fullName.trim(),
-          email: email.trim().toLowerCase(),
-          role: "user",
-          phone: "",
-          address: "",
-          city: "",
-          createdAt: serverTimestamp(),
-          isApproved: false,
-          isSuspended: false,
-          profileComplete: false,
-        };
-
-        try {
-          await setDoc(doc(db, "users", cred.user.uid), userData);
-
-          if (selectedRole === "orgadmin") {
-            await setDoc(doc(db, "organizationApplications", cred.user.uid), {
-              applicantId: cred.user.uid,
-              applicantName: fullName.trim(),
-              applicantEmail: email.trim().toLowerCase(),
-              organizationName: organizationName.trim(),
-              businessPhone: "",
-              businessAddress: "",
-              businessCity: "",
-              status: "pending",
-              createdAt: serverTimestamp(),
-            });
+        if (fullName.trim().length < 2) throw new Error("Enter your full name.");
+        if (selectedRole === "orgadmin" && organizationName.trim().length < 2) throw new Error("Enter your organization name.");
+        beginRegistration(selectedRole);
+        let account = auth.currentUser;
+        if (!account || account.email?.toLowerCase() !== email.trim().toLowerCase()) {
+          try { account = (await createUserWithEmailAndPassword(auth, email.trim(), password)).user; }
+          catch (error) {
+            if (error.code !== "auth/email-already-in-use") throw error;
+            // Resume only after Firebase verifies the password; never overwrite
+            // another account or assign an organization role from the browser.
+            account = (await signInWithEmailAndPassword(auth, email.trim(), password)).user;
           }
-        } catch (registrationWriteError) {
-          console.error("Firestore registration write failed", registrationWriteError);
-          throw registrationWriteError;
         }
-
-        // After successful registration, sign the user out so they can sign in manually.
-        // This avoids showing a stuck "Loading your dashboard..." state while role is resolved.
-        try {
-          await signOut(auth);
-          console.log("Auth: signed out after registration");
-        } catch (signOutErr) {
-          console.error("Auth: signOut failed", signOutErr);
-        }
-
-        setSuccess(
-          selectedRole === "orgadmin"
-            ? "Organization application submitted. Sewak will review it before issuing organization access."
-            : "Registration complete. Please sign in to continue.",
-        );
-        setMode("login");
-        setEmail("");
+        await completeRegistration(account, { fullName, selectedRole, organizationName });
+        await finishRegistration();
+        setSuccess(selectedRole === "orgadmin" ? "Application submitted for review. Organization access requires approval." : "Registration complete.");
         setPassword("");
       }
     } catch (err) {
-      console.error("Auth error:", err);
-      setError(getAuthErrorMessage(err?.code, mode));
+      console.error("Auth error:", { code: err?.code || "unknown" });
+      setError(err?.code ? getAuthErrorMessage(err.code, mode) : err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const forgotPassword = async () => {
+    if (!email.trim()) { setError("Enter your email address first."); return; }
+    setLoading(true); setError("");
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      setSuccess("If this address can receive a reset email, check its inbox for the secure reset link.");
+    } catch (error) {
+      if (["auth/user-not-found", "auth/invalid-credential"].includes(error.code)) setSuccess("If this address can receive a reset email, check its inbox for the secure reset link.");
+      else setError("The reset request could not be completed. Check the address and connection, then try again.");
+    } finally { setLoading(false); }
+  };
   return (
     <div className="auth-shell">
       <div className="auth-hero">
@@ -181,9 +139,9 @@ export default function AuthPage() {
           {mode === "register" && (
             <>
               <div>
-                <label>Full name</label>
+                <label htmlFor="auth-name">Full name</label>
                 <input
-                  type="text"
+                  id="auth-name" autoComplete="name" type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
@@ -194,9 +152,9 @@ export default function AuthPage() {
           )}
 
           <div>
-            <label>Email</label>
+            <label htmlFor="auth-email">Email</label>
             <input
-              type="email"
+              id="auth-email" autoComplete="email" type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -205,12 +163,12 @@ export default function AuthPage() {
           </div>
 
           <div>
-            <label>Password</label>
+            <label htmlFor="auth-password">Password</label>
             <input
-              type="password"
+              id="auth-password" autoComplete={mode === "login" ? "current-password" : "new-password"} type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
+              required={mode === "login" || !auth.currentUser}
               minLength={6}
               placeholder={mode === "login" ? "Your password" : "At least 6 characters"}
             />
@@ -220,8 +178,8 @@ export default function AuthPage() {
           {mode === "register" && (
             <>
               <div>
-                <label>I want to register as</label>
-                <div className="role-selection">
+                <p id="registration-role-label">I want to register as</p>
+                <div className="role-selection" role="group" aria-labelledby="registration-role-label">
                   <label className="role-option">
                     <input
                       type="radio"
@@ -253,10 +211,10 @@ export default function AuthPage() {
               {/* Organization Name - Only for orgadmin */}
               {selectedRole === "orgadmin" && (
                 <div>
-                  <label>Organization/Company Name</label>
+                  <label htmlFor="auth-organization">Organization/Company Name</label>
                   <input
                     type="text"
-                    value={organizationName}
+                    id="auth-organization" autoComplete="organization" value={organizationName}
                     onChange={(e) => setOrganizationName(e.target.value)}
                     required
                     placeholder="e.g., ABC Care Services Pvt. Ltd."
@@ -281,6 +239,7 @@ export default function AuthPage() {
           </button>
         </form>
 
+        {mode === "login" && <button type="button" className="link-button" disabled={loading} onClick={forgotPassword}>Forgot password?</button>}
         <div className="auth-toggle">
           {mode === "login" ? (
             <p>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
+import { submitBookingReport } from "./reportService";
 import { db } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
 
@@ -28,6 +29,7 @@ export default function CaregiverReportUserPage() {
 
   useEffect(() => {
     let active = true;
+    setBooking(null); setSubmitted(false); setReason(""); setDescription("");
 
     const loadAssignedBooking = async () => {
       setLoadingBooking(true);
@@ -81,7 +83,7 @@ export default function CaregiverReportUserPage() {
 
     try {
       setSubmitting(true);
-      await addDoc(collection(db, "blacklistReports"), {
+      await submitBookingReport({
         bookingId: booking.id,
         userId: booking.userId,
         userType: "user",
@@ -91,8 +93,6 @@ export default function CaregiverReportUserPage() {
         reportedByOrgId: booking.organizationId || "",
         reason,
         description: description.trim(),
-        status: "pending",
-        createdAt: serverTimestamp(),
       });
       setSubmitted(true);
     } catch (submitError) {

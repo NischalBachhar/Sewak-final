@@ -1,3 +1,5 @@
+import { saveService, retireService } from "./servicePublishing";
+import AccessibleDialog from "./components/AccessibleDialog";
 // src/OrganizationDashboard.js
 import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -8,13 +10,13 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  deleteDoc,
   query,
   where,
   serverTimestamp,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "./firebaseConfig";
+import useOrganizationBookings from "./useOrganizationBookings";
 import { useAuth } from "./AuthContext";
 import "./OrganizationDashboard.css";
 
@@ -38,7 +40,8 @@ export default function OrganizationDashboard() {
   const [loading, setLoading] = useState(true);
   const [organizationData, setOrganizationData] = useState(null);
   const [caregivers, setCaregivers] = useState([]);
-  const [bookings, setBookings] = useState([]);
+  const bookingHistory = useOrganizationBookings(user?.uid);
+  const bookings = bookingHistory.rows;
   const [services, setServices] = useState([]);
   const [error, setError] = useState("");
 
@@ -82,6 +85,7 @@ export default function OrganizationDashboard() {
 
   // Load data
   useEffect(() => {
+    let active = true;
     const loadData = async () => {
       if (!user) return;
       try {
@@ -90,6 +94,7 @@ export default function OrganizationDashboard() {
 
         // Organization info
         const orgSnap = await getDoc(doc(db, "organizations", user.uid));
+        if (!active) return;
         if (orgSnap.exists()) {
           const data = orgSnap.data();
           setOrganizationData(data);
@@ -109,29 +114,12 @@ export default function OrganizationDashboard() {
           where("organizationId", "==", user.uid),
         );
         const caregiversSnap = await getDocs(caregiversQuery);
+        if (!active) return;
         const caregiversData = caregiversSnap.docs.map((d) => ({
           id: d.id,
           ...d.data(),
         }));
         setCaregivers(caregiversData);
-
-        // Query by the organization ID stored on each booking. This matches the
-        // access rule and includes every team booking rather than only the first
-        // ten caregiver IDs.
-        if (caregiversData.length > 0) {
-          const bookingsQuery = query(
-            collection(db, "bookings"),
-            where("organizationId", "==", user.uid),
-          );
-          const bookingsSnap = await getDocs(bookingsQuery);
-          const bookingsData = bookingsSnap.docs.map((d) => ({
-            id: d.id,
-            ...d.data(),
-          }));
-          setBookings(bookingsData);
-        } else {
-          setBookings([]);
-        }
 
         // Administrative service records are private. Restrict this dashboard
         // query to the signed-in organization's own records; public browse
@@ -142,6 +130,7 @@ export default function OrganizationDashboard() {
             where("organizationId", "==", user.uid),
           ),
         );
+        if (!active) return;
         const servicesData = servicesSnap.docs.map((d) => ({
           id: d.id,
           ...d.data(),
@@ -154,20 +143,23 @@ export default function OrganizationDashboard() {
           where("organizationId", "==", user.uid),
         );
         const blacklistSnap = await getDocs(blacklistQueryRef);
+        if (!active) return;
         const blacklistData = blacklistSnap.docs.map((d) => ({
           id: d.id,
           ...d.data(),
         }));
         setOrgBlacklist(blacklistData);
       } catch (err) {
-        console.error("Error loading data", err);
+        console.error("Error loading data", { code: err?.code || "unknown" });
         setError("Could not load dashboard.");
       } finally {
         setLoading(false);
       }
     };
 
+    setCaregivers([]); setServices([]); setOrganizationData(null); setOrgBlacklist([]);
     loadData();
+    return () => { active = false; };
   }, [user]);
 
   // Add caregiver
@@ -193,7 +185,7 @@ export default function OrganizationDashboard() {
         experience: Number(caregiverExperience) || 0,
       });
       setCaregiverInvitation(result.data?.invitation?.passwordResetLink || "");
-      setNotice("Caregiver account provisioned. It remains unavailable and unverified until an authorized platform review is complete.");
+      setNotice((result.data?.invitation?.warning ? result.data.invitation.warning + " " : "") + "Caregiver account provisioned. It remains unavailable and unverified until an authorized platform review is complete.");
 
       // reset
       setCaregiverName("");
@@ -220,7 +212,7 @@ export default function OrganizationDashboard() {
       }));
       setCaregivers(caregiversData);
     } catch (err) {
-      console.error("Error adding caregiver", err);
+      console.error("Error adding caregiver", { code: err?.code || "unknown" });
       if (err.code === "already-exists" || err.code === "auth/email-already-in-use") {
         setError("This email is already registered.");
       } else {
@@ -246,9 +238,9 @@ export default function OrganizationDashboard() {
         "_" +
         newServiceLabel.trim().toLowerCase().replace(/\s+/g, "_");
 
-      await setDoc(doc(db, "services", serviceId), {
+      await saveService(doc(db, "services", serviceId), {
         label: newServiceLabel.trim(),
-        category: newServiceCategory,
+        category: newServiceCategory === "household" ? "vendor" : newServiceCategory,
         organizationId: user.uid,
         organizationName: organizationData?.organizationName || "",
         createdAt: serverTimestamp(),
@@ -272,7 +264,7 @@ export default function OrganizationDashboard() {
       }));
       setServices(servicesData);
     } catch (err) {
-      console.error("Error adding service", err);
+      console.error("Error adding service", { code: err?.code || "unknown" });
       setError("Could not add service.");
     } finally {
       setAddingService(false);
@@ -291,11 +283,11 @@ export default function OrganizationDashboard() {
       return;
     }
     try {
-      await updateDoc(doc(db, "services", editingService.id), {
+      await saveService(doc(db, "services", editingService.id), {
         label: editServiceLabel.trim(),
-        category: editServiceCategory,
+        category: editServiceCategory === "household" ? "vendor" : editServiceCategory,
         updatedAt: serverTimestamp(),
-      });
+      }, true);
       alert("Service updated!");
       setEditingService(null);
       setEditServiceLabel("");
@@ -313,18 +305,18 @@ export default function OrganizationDashboard() {
       }));
       setServices(servicesData);
     } catch (err) {
-      console.error("Error updating service", err);
+      console.error("Error updating service", { code: err?.code || "unknown" });
       setError("Could not update service.");
     }
   };
 
   const handleDeleteService = async (serviceId, label) => {
-    if (!window.confirm(`Delete ${label}? This cannot be undone.`)) {
+    if (!window.confirm(`Retire ${label}? It will no longer be offered for new bookings.`)) {
       return;
     }
     try {
-      await deleteDoc(doc(db, "services", serviceId));
-      alert("Service deleted!");
+      await retireService(doc(db, "services", serviceId));
+      alert("Service retired. Historical bookings are preserved.");
       const servicesSnap = await getDocs(
         query(
           collection(db, "services"),
@@ -337,7 +329,7 @@ export default function OrganizationDashboard() {
       }));
       setServices(servicesData);
     } catch (err) {
-      console.error("Error deleting service", err);
+      console.error("Error deleting service", { code: err?.code || "unknown" });
       alert("Could not delete service.");
     }
   };
@@ -391,6 +383,8 @@ export default function OrganizationDashboard() {
     );
   }
 
+  if (error && !organizationData) return <p role="alert">{error}</p>;
+
   if (!organizationData?.isApproved) {
     return (
       <div style={{ padding: 20 }}>
@@ -407,8 +401,7 @@ export default function OrganizationDashboard() {
         >
           <h3 style={{ marginTop: 0, marginBottom: 8 }}>Approval Pending</h3>
           <p style={{ margin: 0 }}>
-            Your organization is pending approval from Sewak team. You&apos;ll
-            be notified once approved.
+            Your organization is pending approval from Sewak team. Check this dashboard for the review result.
           </p>
         </div>
 
@@ -475,15 +468,9 @@ export default function OrganizationDashboard() {
     );
   }
 
-  const completedBookings = bookings.filter(
-    (b) => b.status === "completed",
-  ).length;
-  const totalRevenue = bookings
-    .filter((b) => b.status === "completed")
-    .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-  const orgEarnings = bookings
-    .filter((b) => b.status === "completed")
-    .reduce((sum, b) => sum + (b.vendorEarnings || 0), 0);
+  const completedBookings = bookingHistory.totals.completed ?? "—";
+  const totalRevenue = bookingHistory.totals.revenue;
+  const orgEarnings = bookingHistory.totals.earnings;
 
   const orgServices = services.filter((s) => s.organizationId === user?.uid);
   const globalServices = services.filter((s) => !s.organizationId);
@@ -585,7 +572,7 @@ export default function OrganizationDashboard() {
               margin: 0,
             }}
           >
-            {bookings.length}
+            {bookingHistory.totals.total ?? "—"}
           </p>
         </div>
         <div className="card" style={{ background: "var(--theme-surface)", textAlign: "center" }}>
@@ -627,7 +614,7 @@ export default function OrganizationDashboard() {
               margin: 0,
             }}
           >
-            {totalRevenue}
+            {totalRevenue ?? "—"}
           </p>
         </div>
         <div className="card" style={{ background: "var(--theme-surface)", textAlign: "center" }}>
@@ -648,7 +635,7 @@ export default function OrganizationDashboard() {
               margin: 0,
             }}
           >
-            {Math.round(orgEarnings)}
+            {orgEarnings === null ? "—" : Math.round(orgEarnings)}
           </p>
           <p
             style={{
@@ -657,7 +644,7 @@ export default function OrganizationDashboard() {
               margin: 0,
             }}
           >
-            After {organizationData?.commissionRate ?? 15}% fee
+            Recorded booking earnings
           </p>
         </div>
       </div>
@@ -679,7 +666,7 @@ export default function OrganizationDashboard() {
           style={getTabStyle("bookings")}
           onClick={() => selectTab("bookings")}
         >
-          Bookings ({bookings.length})
+          Bookings ({bookingHistory.totals.total ?? "—"})
         </button>
         <button
           type="button"
@@ -932,7 +919,7 @@ export default function OrganizationDashboard() {
 
           {/* Add Caregiver Modal */}
           {showAddCaregiverModal && (
-            <div
+            <AccessibleDialog onDismiss={() => setShowAddCaregiverModal(false)}
               style={{
                 position: "fixed",
                 inset: 0,
@@ -1434,7 +1421,7 @@ export default function OrganizationDashboard() {
                   </button>
                 </form>
               </div>
-            </div>
+            </AccessibleDialog>
           )}
         </div>
       )}
@@ -1442,7 +1429,12 @@ export default function OrganizationDashboard() {
       {/* BOOKINGS TAB */}
       {activeTab === "bookings" && (
         <div>
-          {bookings.length === 0 ? (
+          <label>Booking status <select value={bookingHistory.filter} onChange={(event) => bookingHistory.setFilter(event.target.value)}><option value="">All statuses</option>{["pending", "accepted", "in_progress", "completed", "cancelled"].map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select></label>
+          <p>{bookingHistory.totals.matching ?? "…"} matching bookings. Showing up to 25 per page.</p>
+          {bookingHistory.stale && <p role="status">Showing cached history. Reconnect for current status.</p>}
+          {bookingHistory.error && <p role="alert">{bookingHistory.error}</p>}
+          <div><button className="btn btn-outline" disabled={!bookingHistory.hasPrevious || bookingHistory.loading} onClick={bookingHistory.previous}>Previous page</button><button className="btn btn-outline" disabled={!bookingHistory.hasNext || bookingHistory.loading} onClick={bookingHistory.next}>Next page</button></div>
+          {bookingHistory.loading ? <p role="status">Loading bookings…</p> : bookingHistory.error ? null : bookings.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon" />
               <p className="empty-state-title">No bookings yet</p>
@@ -1567,7 +1559,7 @@ export default function OrganizationDashboard() {
 
           {/* Add Service Modal */}
           {showAddServiceModal && (
-            <div
+            <AccessibleDialog onDismiss={() => setShowAddServiceModal(false)}
               style={{
                 position: "fixed",
                 inset: 0,
@@ -1669,7 +1661,7 @@ export default function OrganizationDashboard() {
                   </button>
                 </form>
               </div>
-            </div>
+            </AccessibleDialog>
           )}
 
           <h4 style={{ color: "var(--theme-text)", marginBottom: 12 }}>
@@ -2131,7 +2123,7 @@ export default function OrganizationDashboard() {
           </div>
 
           {editingProfile && (
-            <div
+            <AccessibleDialog onDismiss={undefined}
               style={{
                 position: "fixed",
                 inset: 0,
@@ -2208,10 +2200,7 @@ export default function OrganizationDashboard() {
                       setEditingProfile(false);
                       alert("Profile updated.");
                     } catch (err) {
-                      console.error(
-                        "Error updating organization profile",
-                        err,
-                      );
+                      console.error("Error updating organization profile", { code: err?.code || "unknown" });
                       setError("Could not update profile.");
                     }
                   }}
@@ -2307,7 +2296,7 @@ export default function OrganizationDashboard() {
                   </div>
                 </form>
               </div>
-            </div>
+            </AccessibleDialog>
           )}
         </div>
       )}

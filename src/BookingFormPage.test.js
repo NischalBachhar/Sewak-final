@@ -1,0 +1,24 @@
+import React from "react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import BookingFormPage from "./BookingFormPage";
+import { createCashBooking } from "./bookingService";
+jest.mock("./firebaseConfig", () => ({ db: {} }));
+jest.mock("firebase/firestore", () => ({ collection: jest.fn(), documentId: jest.fn(), query: jest.fn(), where: jest.fn(), getDocs: async () => ({ docs: [{ id: "care", data: () => ({ label: "Care", isActive: true }) }] }) }));
+jest.mock("./bookingService", () => ({ createCashBooking: jest.fn(), clearAttempt: jest.fn(), recoverBooking: jest.fn() }));
+jest.mock("./AuthContext", () => ({ useAuth: () => ({ user: { uid: "customer" }, userDoc: { name: "Test Customer", phone: "9800000000", address: "Test Street", city: "Hetauda" } }) }));
+test("Continue enters review without saving; only explicit confirmation submits", async () => {
+  createCashBooking.mockResolvedValue({ id: "customer_test", caregiverName: "Test Caregiver" });
+  render(<BookingFormPage caregiver={{ id: "caregiver", name: "Test Caregiver", hourlyRate: 500, servicesOffered: ["care"], workType: "parttime" }} />);
+  await screen.findByRole("option", { name: "Care" });
+  fireEvent.change(screen.getByLabelText(/Person needing care/), { target: { value: "Test recipient" } });
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  fireEvent.change(screen.getByLabelText(/Date/), { target: { value: "2090-01-01" } });
+  fireEvent.change(screen.getByLabelText(/Preferred start time/), { target: { value: "10:00" } });
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  expect(screen.getByRole("button", { name: "Confirm booking" })).toBeVisible();
+  expect(createCashBooking).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Confirm booking" }));
+  await screen.findByRole("heading", { name: /Your request is with/ });
+  expect(createCashBooking).toHaveBeenCalledTimes(1);
+});
