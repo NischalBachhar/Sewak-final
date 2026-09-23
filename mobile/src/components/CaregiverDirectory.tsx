@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { CaregiverCard } from "@/components/CaregiverCard";
 import { listCaregivers } from "@/api/sewak";
@@ -40,10 +40,30 @@ export function CaregiverDirectory({ title = "Find a caregiver" }: { title?: str
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>
-        Compare care type, location, experience and hourly rate before requesting care.
-      </Text>
+      <View style={styles.headingRow}>
+        <View style={styles.headingCopy}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>
+            Compare care type, location, experience and hourly rate before requesting care.
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Refresh caregiver list"
+          onPress={() => {
+            setRefreshing(true);
+            load();
+          }}
+          disabled={refreshing}
+          style={({ pressed }) => [styles.refreshButton, pressed && styles.pressed]}
+        >
+          {refreshing ? (
+            <ActivityIndicator size="small" color={colors.accent} />
+          ) : (
+            <Text style={styles.refreshText}>Refresh</Text>
+          )}
+        </Pressable>
+      </View>
 
       {error ? (
         <View style={styles.error}>
@@ -76,8 +96,6 @@ export function CaregiverDirectory({ title = "Find a caregiver" }: { title?: str
           />
         ))}
       </View>
-
-      <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />
     </View>
   );
 }
@@ -86,9 +104,24 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
   list: { gap: spacing.sm },
   center: { alignItems: "center", paddingVertical: 48, gap: 10 },
+  headingRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm },
+  headingCopy: { flex: 1, gap: 6 },
   title: { color: colors.text, fontSize: 28, fontWeight: "900" },
   subtitle: { color: colors.muted, fontSize: 14, lineHeight: 21 },
   muted: { color: colors.muted, lineHeight: 20 },
+  refreshButton: {
+    minHeight: 40,
+    minWidth: 72,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+  },
+  refreshText: { color: colors.accent, fontWeight: "800", fontSize: 12 },
+  pressed: { opacity: 0.75 },
   error: {
     padding: spacing.md,
     borderWidth: 1,
