@@ -2,14 +2,22 @@
 
 # dependencies
 /node_modules
+/mobile/node_modules
 /.pnp
 .pnp.js
+
+# Expo / mobile local state
+/mobile/.expo
+/mobile/.env
+/mobile/.env.local
+/mobile/.env.*.local
 
 # testing
 /coverage
 
 # production
 /build
+/mobile/dist
 
 # misc
 .DS_Store
