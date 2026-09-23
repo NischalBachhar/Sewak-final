@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Sewak",
+    "slug": "sewak-mobile",
+    "scheme": "sewak",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": ["expo-router"],
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#EDF5F7"
+      }
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
