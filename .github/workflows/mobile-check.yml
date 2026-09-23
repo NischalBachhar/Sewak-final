@@ -1,0 +1,35 @@
+name: Mobile checks
+
+on:
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-check.yml"
+  push:
+    branches:
+      - "mobile/react-native-foundation"
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-check.yml"
+
+jobs:
+  validate-mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.1"
+          cache: npm
+          cache-dependency-path: mobile/package.json
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Expo dependency check
+        run: npx expo-doctor
+      - name: TypeScript check
+        run: npm run typecheck
