@@ -170,6 +170,10 @@ async function authorizeWrite(repo: Repository, user: Actor, write: Write, after
     else { onlyKeys(data, [...serviceEditable,'organizationId','organizationName','createdAt','createdBy']); requireThat(admin || data.createdBy === user.uid); data.createdAt = now; }
     textField(data.label || data.serviceName, 'Service name', 1, 160);
     if (data.price != null) badInput(typeof data.price === 'number' && data.price >= 0 && data.price <= 1000000, 'Invalid service price.');
+    if (old && old.isActive !== false && data.isActive === false) {
+      const assigned = await repo.env.DB.prepare("SELECT 1 AS assigned FROM caregivers c, json_each(COALESCE(c.services_offered,'[]')) j WHERE j.value=? LIMIT 1").bind(id).first();
+      requireThat(!assigned, 'Unassign this service from every caregiver before retiring it.');
+    }
     return;
   }
   if (name === 'bookings') {
