@@ -1,0 +1,120 @@
+name: Mobile checks
+
+on:
+  pull_request:
+    paths:
+      - "mobile/**"
+      - "scripts/smoke-mobile-e2e-production.mjs"
+      - "scripts/run-mobile-production-e2e.ps1"
+      - ".github/workflows/mobile-check.yml"
+  push:
+    branches:
+      - "mobile/cloudflare-production"
+    paths:
+      - "mobile/**"
+      - "scripts/smoke-mobile-e2e-production.mjs"
+      - "scripts/run-mobile-production-e2e.ps1"
+      - "wrangler.production.toml"
+      - ".github/workflows/mobile-check.yml"
+
+jobs:
+  validate-mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Use Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22.13.1"
+          cache: npm
+          cache-dependency-path: mobile/package.json
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Expo dependency check
+        run: npx expo-doctor
+      - name: TypeScript check
+        run: npm run typecheck
+      - name: Expo Android bundle check
+        run: npx expo export --platform android --output-dir dist-android-ci
+      - name: Expo iOS bundle check
+        run: npx expo export --platform ios --output-dir dist-ios-ci
+      - name: Production E2E runner syntax
+        working-directory: .
+        run: node --check scripts/smoke-mobile-e2e-production.mjs
+      - name: Production activation wrapper syntax
+        working-directory: .
+        shell: pwsh
+        run: "[scriptblock]::Create((Get-Content scripts/run-mobile-production-e2e.ps1 -Raw)) | Out-Null"
+      - name: Wrangler OAuth fallback check
+        working-directory: .
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { tmpdir } from 'node:os';
+          import { cloudflareToken } from './scripts/cloudflare-operator.mjs';
+          const priorToken = process.env.CLOUDFLARE_API_TOKEN;
+          const priorXdg = process.env.XDG_CONFIG_HOME;
+          const priorAppdata = process.env.APPDATA;
+          const dir = mkdtempSync(join(tmpdir(), 'sewak-wrangler-oauth-'));
+          try {
+            delete process.env.CLOUDFLARE_API_TOKEN;
+            delete process.env.XDG_CONFIG_HOME;
+            process.env.APPDATA = dir;
+            const configDir = join(dir, 'xdg.config', '.wrangler', 'config');
+            mkdirSync(configDir, { recursive: true });
+            writeFileSync(join(configDir, 'default.toml'), 'oauth_token = "unit-oauth-token"\n');
+            assert.equal(cloudflareToken(), 'unit-oauth-token');
+            console.log('Wrangler OAuth fallback: PASS');
+          } finally {
+            if (priorToken === undefined) delete process.env.CLOUDFLARE_API_TOKEN; else process.env.CLOUDFLARE_API_TOKEN = priorToken;
+            if (priorXdg === undefined) delete process.env.XDG_CONFIG_HOME; else process.env.XDG_CONFIG_HOME = priorXdg;
+            if (priorAppdata === undefined) delete process.env.APPDATA; else process.env.APPDATA = priorAppdata;
+            rmSync(dir, { recursive: true, force: true });
+          }
+          NODE
+      - name: Inspect production deployment
+        working-directory: .
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token = process.env.CLOUDFLARE_API_TOKEN || '';
+          if (!token) {
+            console.log(JSON.stringify({ operatorCredentialAvailable: false }));
+            process.exit(0);
+          }
+          const account = '860970f755498a4fe10e16c2fa99ce55';
+          const base = 'https://api.cloudflare.com/client/v4/accounts/' + account + '/workers/scripts/sewak-final';
+          const headers = { Authorization: 'Bearer ' + token };
+          const read = async (path) => {
+            const response = await fetch(base + path, { headers, signal: AbortSignal.timeout(15000) });
+            const body = await response.json();
+            if (!response.ok || body.success === false) throw new Error('Cloudflare read failed: HTTP ' + response.status);
+            return body.result;
+          };
+          const [settings, deployments] = await Promise.all([read('/settings'), read('/deployments')]);
+          const writeBinding = settings.bindings?.find((item) => item.name === 'APP_WRITES_ENABLED');
+          const versionId = deployments.deployments?.[0]?.versions?.[0]?.version_id || null;
+          console.log(JSON.stringify({
+            operatorCredentialAvailable: true,
+            versionId,
+            writesBinding: writeBinding?.text ?? writeBinding?.value ?? null,
+          }));
+          NODE
+      - name: Production Worker health
+        working-directory: .
+        run: |
+          node --input-type=module <<'NODE'
+          const origin = 'https://sewak-final.nischalbachhar9.workers.dev';
+          const response = await fetch(origin + '/api/health', { signal: AbortSignal.timeout(15000) });
+          if (!response.ok) throw new Error('Production health returned HTTP ' + response.status);
+          const body = await response.json();
+          console.log(JSON.stringify({ ok: response.ok, writesEnabled: body.writesEnabled, auth: body.auth || null, worker: body.worker || null }));
+          if (body.writesEnabled !== true) throw new Error('Production writes are not enabled.');
+          NODE

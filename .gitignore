@@ -44,3 +44,8 @@ firebase-adminsdk*.json
 /.wrangler
 /worker/.wrangler
 /migration-output
+
+# React Native / Expo local state
+/mobile/node_modules
+/mobile/.expo
+/mobile/dist
