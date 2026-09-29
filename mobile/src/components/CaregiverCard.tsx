@@ -13,6 +13,8 @@ export function CaregiverCard({
   caregiver: Caregiver;
   onPress: () => void;
 }) {
+  const services = caregiver.serviceLabels || caregiver.servicesOffered || [];
+  const bookable = services.length > 0;
   return (
     <Pressable
       onPress={onPress}
@@ -26,17 +28,18 @@ export function CaregiverCard({
       <View style={styles.body}>
         <View style={styles.row}>
           <Text style={styles.name}>{caregiver.name}</Text>
-          {caregiver.isAvailable !== false ? (
+          {caregiver.isAvailable !== false && bookable ? (
             <Text style={styles.available}>Available</Text>
+          ) : !bookable ? (
+            <Text style={styles.noService}>No service</Text>
           ) : null}
         </View>
         <Text style={styles.meta}>
           {caregiver.location || "Location not listed"}
           {caregiver.experience != null ? ` · ${caregiver.experience} yrs exp.` : ""}
         </Text>
-        <Text style={styles.services} numberOfLines={2}>
-          {(caregiver.serviceLabels || caregiver.servicesOffered || []).join(" · ") ||
-            "Care support"}
+        <Text style={[styles.services, !bookable && styles.servicesUnavailable]} numberOfLines={2}>
+          {bookable ? services.join(" · ") : "No active booking service assigned"}
         </Text>
         <View style={styles.row}>
           <Text style={styles.rate}>{formatRate(caregiver.hourlyRate)}</Text>
@@ -88,8 +91,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
   },
+  noService: {
+    color: colors.warning,
+    backgroundColor: colors.warningSoft,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    fontSize: 11,
+    fontWeight: "800",
+  },
   meta: { color: colors.muted, fontSize: 13 },
   services: { color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
+  servicesUnavailable: { color: colors.warning, fontWeight: "700" },
   rate: { color: colors.accent, fontWeight: "900" },
   rating: { color: colors.warning, fontWeight: "800" },
 });
