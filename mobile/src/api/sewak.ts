@@ -11,6 +11,8 @@ import {
   CareUpdate,
   PublicReview,
   PublicService,
+  Organization,
+  OrganizationApplication,
   Quote,
   SewakProfile,
   SewakUser,
@@ -532,6 +534,123 @@ export async function submitBookingReport(input: {
     },
   ]);
   return { duplicate: false, id };
+}
+
+
+export async function getOrganization(uid: string) {
+  return getRecord<Omit<Organization, "id">>(`organizations/${uid}`, true);
+}
+
+export async function getMyOrganizationApplication(uid: string) {
+  return getRecord<Omit<OrganizationApplication, "id">>(`organizationApplications/${uid}`, true).catch(() => null);
+}
+
+export async function listOrganizationCaregivers(uid: string) {
+  return queryResource<Omit<Caregiver, "id">>("vendors", {
+    authenticated: true,
+    filters: [{ field: "organizationId", op: "==", value: uid }],
+    order: { field: "__name__", direction: "asc" },
+    limit: 50,
+  });
+}
+
+export async function listOrganizationServices(uid: string) {
+  return queryResource<Omit<PublicService, "id">>("services", {
+    authenticated: true,
+    filters: [{ field: "organizationId", op: "==", value: uid }],
+    order: { field: "__name__", direction: "asc" },
+    limit: 50,
+  });
+}
+
+export async function updateOrganizationProfile(
+  uid: string,
+  data: { organizationName: string; businessPhone: string; businessAddress: string; businessCity: string },
+) {
+  await commit([{
+    path: `organizations/${uid}`,
+    kind: "update",
+    data: { ...data, profileComplete: true, updatedAt: new Date().toISOString() },
+  }]);
+}
+
+export async function provisionCaregiver(input: {
+  email: string;
+  displayName: string;
+  phone: string;
+  location: string;
+  category: "caregiver" | "vendor" | "both";
+  workType: "parttime" | "fulltime";
+  shifts: string[];
+  servicesOffered: string[];
+  hourlyRate: number;
+  experience: number;
+}) {
+  return apiRequest<{
+    uid: string;
+    email: string;
+    role: string;
+    invitation: { delivery?: string; activationToken: string; warning?: string };
+  }>("/api/actions/provisionCaregiverAccount", {
+    method: "POST",
+    authenticated: true,
+    json: input,
+  });
+}
+
+const serviceIdFor = (uid: string, label: string) =>
+  `${uid}_${label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 80)}`;
+
+export async function createOrganizationService(
+  uid: string,
+  organizationName: string,
+  label: string,
+  category: string,
+) {
+  const clean = label.trim();
+  if (!clean || clean.length > 160) throw new Error("Enter a service name of at most 160 characters.");
+  const id = serviceIdFor(uid, clean);
+  await commit([{
+    path: `services/${id}`,
+    kind: "set",
+    data: {
+      label: clean,
+      serviceName: clean,
+      category: category === "household" ? "vendor" : category,
+      organizationId: uid,
+      organizationName,
+      description: "",
+      price: 0,
+      isActive: true,
+      createdAt: serverTimestamp(),
+      createdBy: uid,
+      updatedAt: serverTimestamp(),
+    },
+  }]);
+  return id;
+}
+
+export async function updateOrganizationService(id: string, label: string, category: string) {
+  const clean = label.trim();
+  if (!clean || clean.length > 160) throw new Error("Enter a service name of at most 160 characters.");
+  await commit([{
+    path: `services/${id}`,
+    kind: "update",
+    data: {
+      label: clean,
+      serviceName: clean,
+      category: category === "household" ? "vendor" : category,
+      updatedAt: serverTimestamp(),
+    },
+  }]);
+}
+
+export async function retireOrganizationService(id: string) {
+  await commit([{
+    path: `services/${id}`,
+    kind: "update",
+    data: { isActive: false, updatedAt: serverTimestamp() },
+  }]);
 }
 
 export async function uploadProfileImage(uid: string, bytes: ArrayBuffer, mimeType = "image/jpeg") {
