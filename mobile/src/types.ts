@@ -101,6 +101,9 @@ export type Caregiver = {
   rating?: number | null;
   reviewCount?: number | null;
   jobsCompleted?: number | null;
+  isApproved?: boolean;
+  isSuspended?: boolean;
+  isBlacklisted?: boolean;
   isAvailable?: boolean;
   organizationId?: string;
   organizationName?: string;
