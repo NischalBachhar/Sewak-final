@@ -37,7 +37,9 @@ jobs:
       - name: TypeScript check
         run: npm run typecheck
       - name: Expo Android bundle check
-        run: npx expo export --platform android --output-dir dist-ci
+        run: npx expo export --platform android --output-dir dist-android-ci
+      - name: Expo iOS bundle check
+        run: npx expo export --platform ios --output-dir dist-ios-ci
       - name: Production E2E runner syntax
         working-directory: .
         run: node --check scripts/smoke-mobile-e2e-production.mjs
