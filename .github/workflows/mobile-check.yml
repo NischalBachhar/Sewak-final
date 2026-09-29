@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "mobile/**"
+      - "worker/**"
+      - "tests/d1/**"
       - "scripts/smoke-mobile-e2e-production.mjs"
       - "scripts/run-mobile-production-e2e.ps1"
       - ".github/workflows/mobile-check.yml"
@@ -38,6 +40,15 @@ jobs:
         run: npx expo-doctor
       - name: TypeScript check
         run: npm run typecheck
+      - name: Install Worker test dependencies
+        working-directory: worker
+        run: npm install --no-audit --no-fund
+      - name: Worker typecheck
+        working-directory: worker
+        run: npm run typecheck
+      - name: D1 tests
+        working-directory: .
+        run: node --experimental-strip-types --test tests/d1/*.test.mjs
       - name: Expo Android bundle check
         run: npx expo export --platform android --output-dir dist-android-ci
       - name: Expo iOS bundle check

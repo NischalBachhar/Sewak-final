@@ -21,6 +21,7 @@ export default function BookingScreen() {
   const router = useRouter();
   const { user, role } = useAuth();
   const [caregiver, setCaregiver] = useState<Caregiver | null>(null);
+  const [caregiverLoading, setCaregiverLoading] = useState(true);
   const [step, setStep] = useState(0);
   const [scheduleMode, setScheduleMode] = useState<"exact" | "window">("exact");
   const [draft, setDraft] = useState<BookingDraft>({
@@ -45,14 +46,14 @@ export default function BookingScreen() {
 
   useEffect(() => {
     if (!caregiverId) return;
+    setCaregiverLoading(true);
+    setCaregiver(null);
+    setError("");
+    setDraft((current) => ({ ...current, serviceId: "", serviceLabel: "" }));
     getCaregiver(caregiverId)
-      .then((value) => {
-        setCaregiver(value);
-        const first = value.servicesOffered?.[0] || "";
-        const label = value.serviceLabels?.[0] || first.replace(/_/g, " ");
-        setDraft((current) => current.serviceId ? current : { ...current, serviceId: first, serviceLabel: label });
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load caregiver."));
+      .then(setCaregiver)
+      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load caregiver."))
+      .finally(() => setCaregiverLoading(false));
   }, [caregiverId]);
 
   const quote = useMemo(() => {
@@ -66,6 +67,7 @@ export default function BookingScreen() {
   const partTime = ["parttime", "part_time"].includes(String(caregiver?.workType || ""));
   const serviceIds = caregiver?.servicesOffered || [];
   const serviceLabels = caregiver?.serviceLabels || [];
+  const hasServices = serviceIds.length > 0;
 
   const patch = <K extends keyof BookingDraft>(key: K, value: BookingDraft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
@@ -89,7 +91,7 @@ export default function BookingScreen() {
   };
 
   const stepValid = () => {
-    if (step === 0) return Boolean(draft.careRecipient.trim() && draft.serviceId);
+    if (step === 0) return Boolean(caregiver && draft.careRecipient.trim() && serviceIds.includes(draft.serviceId));
     if (step === 1) {
       return Boolean(
         draft.date &&
@@ -148,11 +150,22 @@ export default function BookingScreen() {
           <>
             <Field label="Who needs care? *" value={draft.careRecipient} onChangeText={(value) => patch("careRecipient", value)} placeholder="Example: My father" />
             <Text style={styles.label}>Care service *</Text>
-            <View style={styles.chips}>
-              {serviceIds.map((id, index) => (
-                <Choice key={id} label={serviceLabels[index] || id.replace(/_/g, " ")} active={draft.serviceId === id} onPress={() => chooseService(id, index)} />
-              ))}
-            </View>
+            {caregiverLoading ? (
+              <Text style={styles.serviceHint}>Loading available services…</Text>
+            ) : hasServices ? (
+              <View style={styles.chips}>
+                {serviceIds.map((id, index) => (
+                  <Choice key={id} label={serviceLabels[index] || id.replace(/_/g, " ")} active={draft.serviceId === id} onPress={() => chooseService(id, index)} />
+                ))}
+              </View>
+            ) : caregiver ? (
+              <View style={styles.serviceEmpty}>
+                <Text style={styles.serviceEmptyTitle}>No booking service is assigned to this caregiver.</Text>
+                <Text style={styles.serviceHint}>Please go back and choose another caregiver, or ask the caregiver's organization to assign an active service.</Text>
+              </View>
+            ) : (
+              <Text style={styles.serviceHint}>Care services could not be loaded.</Text>
+            )}
           </>
         ) : null}
 
@@ -228,7 +241,12 @@ export default function BookingScreen() {
 
       <View style={styles.actions}>
         {step > 0 ? <PrimaryButton label="Back" variant="secondary" onPress={() => setStep((current) => Math.max(0, current - 1))} /> : null}
-        <PrimaryButton label={step === 3 ? "Send care request" : "Continue"} onPress={step === 3 ? submit : next} loading={busy} disabled={!stepValid() || (step === 3 && !confirmedQuote)} />
+        <PrimaryButton
+          label={step === 0 && !caregiverLoading && caregiver && !hasServices ? "No service available" : step === 3 ? "Send care request" : "Continue"}
+          onPress={step === 3 ? submit : next}
+          loading={busy || (step === 0 && caregiverLoading)}
+          disabled={!stepValid() || (step === 3 && !confirmedQuote)}
+        />
       </View>
     </Screen>
   );
@@ -238,7 +256,7 @@ function Field({ label, multiline, ...props }: React.ComponentProps<typeof TextI
   return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput {...props} multiline={multiline} textAlignVertical={multiline ? "top" : "center"} placeholderTextColor="#7A8F9A" style={[styles.input, multiline && styles.multiline]} /></View>;
 }
 function Choice({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return <Pressable onPress={onPress} style={[styles.choice, active && styles.choiceActive]}><Text style={[styles.choiceText, active && styles.choiceTextActive]}>{label}</Text></Pressable>;
+  return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} onPress={onPress} style={[styles.choice, active && styles.choiceActive]}><Text style={[styles.choiceText, active && styles.choiceTextActive]}>{label}</Text></Pressable>;
 }
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return <View style={styles.reviewRow}><Text style={styles.muted}>{label}</Text><Text style={styles.reviewValue}>{value}</Text></View>;
@@ -257,6 +275,9 @@ const styles = StyleSheet.create({
   input: { minHeight: 50, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, paddingHorizontal: 14, color: colors.text, fontSize: 16 },
   multiline: { minHeight: 100, paddingTop: 12 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  serviceEmpty: { backgroundColor: colors.warningSoft, borderRadius: radius.sm, padding: spacing.sm, gap: 5 },
+  serviceEmptyTitle: { color: colors.warning, fontWeight: "900", lineHeight: 19 },
+  serviceHint: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   choice: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: colors.surfaceAlt },
   choiceActive: { backgroundColor: colors.accentLight, borderColor: colors.accent },
   choiceText: { color: colors.textSecondary, fontWeight: "800", fontSize: 13 },

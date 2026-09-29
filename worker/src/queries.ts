@@ -15,7 +15,7 @@ function projection(name: string, id: string, data: Data, row: Data): Data {
     isApproved: true, isSuspended: false, isBlacklisted: false, isOrganizationActive: true,
     isAvailable: data.isAvailable === true, allowZeroRate: data.allowZeroRate === true,
     commissionRate: row.org_commission ?? 15, reviewCount: row.verified_count || 0, rating: row.verified_rating || 0 };
-  if (name === 'publicServices') return { ...pick(data, ['label','serviceName','category','description','price','isActive','updatedAt']), serviceId: id, category: canonicalCategory(data.category), label: data.label || data.serviceName, isActive: true };
+  if (name === 'publicServices') return { ...pick(data, ['label','serviceName','category','description','price','isActive','organizationId','organizationName','updatedAt']), serviceId: id, category: canonicalCategory(data.category), label: data.label || data.serviceName, isActive: true };
   return { ...pick(data, ['caregiverId','rating','comment','createdAt','isVerifiedReview']), reviewId: id, reviewerName: 'Verified customer' };
 }
 const filtersByName: Record<string, string[]> = {

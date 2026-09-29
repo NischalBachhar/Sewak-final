@@ -45,7 +45,8 @@ export async function canRead(repo: Repository, actor: Actor | null, path: strin
 const userEditable = ['name', 'phone', 'address', 'city', 'location', 'businessPhone', 'businessAddress', 'businessCity', 'profileComplete', 'updatedAt'];
 const orgEditable = ['organizationName', 'businessPhone', 'businessAddress', 'businessCity', 'businessLicense', 'profileComplete', 'updatedAt'];
 const vendorEditable = ['name', 'phone', 'location', 'category', 'workType', 'shifts', 'hourlyRate', 'experience', 'bio', 'isAvailable', 'updatedAt'];
-const vendorAdmin = [...vendorEditable, 'servicesOffered', 'isApproved', 'approvedAt', 'approvedBy', 'allowZeroRate', 'verified', 'backgroundChecked', 'isCertified', 'identityVerificationStatus', 'phoneVerificationStatus', 'trainingVerificationStatus', 'backgroundVerificationStatus', 'referencesVerificationStatus'];
+const vendorOrganizationAdmin = [...vendorEditable, 'servicesOffered'];
+const vendorAdmin = [...vendorOrganizationAdmin, 'isApproved', 'approvedAt', 'approvedBy', 'allowZeroRate', 'verified', 'backgroundChecked', 'isCertified', 'identityVerificationStatus', 'phoneVerificationStatus', 'trainingVerificationStatus', 'backgroundVerificationStatus', 'referencesVerificationStatus'];
 const serviceEditable = ['label', 'serviceName', 'category', 'description', 'price', 'isActive', 'updatedAt'];
 function same(a: unknown, b: unknown) { return JSON.stringify(a) === JSON.stringify(b); }
 function changes(old: Data, data: Data) { return Object.keys({ ...old, ...data }).filter((key) => !same(old[key], data[key])); }
@@ -156,8 +157,9 @@ async function authorizeWrite(repo: Repository, user: Actor, write: Write, after
     limited(old!, data, admin ? [...orgEditable,'adminName','adminEmail','email','commissionRate','updatedBy'] : orgEditable); return;
   }
   if (name === 'vendors') {
-    requireThat(old && (admin || (id === user.uid && await caregiverActive(repo, id, false)) || (user.role === 'orgadmin' && old.organizationId === user.uid && await organizationActive(repo, user.uid))));
-    limited(old!, data, admin ? vendorAdmin : vendorEditable);
+    const organizationAdmin = Boolean(old && user.role === 'orgadmin' && old.organizationId === user.uid && await organizationActive(repo, user.uid));
+    requireThat(old && (admin || (id === user.uid && await caregiverActive(repo, id, false)) || organizationAdmin));
+    limited(old!, data, admin ? vendorAdmin : organizationAdmin ? vendorOrganizationAdmin : vendorEditable);
     if (data.isApproved && !old!.isApproved) requireThat(active(old), 'Blocked caregivers cannot be approved.');
     if (!same(old!.servicesOffered, data.servicesOffered)) await validateServices(repo, data.servicesOffered || [], data.organizationId, data.category);
     return;
@@ -168,6 +170,10 @@ async function authorizeWrite(repo: Repository, user: Actor, write: Write, after
     else { onlyKeys(data, [...serviceEditable,'organizationId','organizationName','createdAt','createdBy']); requireThat(admin || data.createdBy === user.uid); data.createdAt = now; }
     textField(data.label || data.serviceName, 'Service name', 1, 160);
     if (data.price != null) badInput(typeof data.price === 'number' && data.price >= 0 && data.price <= 1000000, 'Invalid service price.');
+    if (old && old.isActive !== false && data.isActive === false) {
+      const assigned = await repo.env.DB.prepare("SELECT 1 AS assigned FROM caregivers c, json_each(COALESCE(c.services_offered,'[]')) j WHERE j.value=? LIMIT 1").bind(id).first();
+      requireThat(!assigned, 'Unassign this service from every caregiver before retiring it.');
+    }
     return;
   }
   if (name === 'bookings') {

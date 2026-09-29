@@ -45,6 +45,7 @@ export default function CaregiverProfileScreen() {
   if (error || !caregiver) return <Screen><Text style={styles.error}>{error || "Caregiver not found."}</Text></Screen>;
 
   const services = caregiver.serviceLabels || caregiver.servicesOffered || [];
+  const hasBookableServices = services.length > 0;
   const verifiedReviews = reviews.filter((review) => review.isVerifiedReview !== false && Number(review.rating) >= 1);
   const rating = verifiedReviews.length
     ? verifiedReviews.reduce((sum, review) => sum + Number(review.rating), 0) / verifiedReviews.length
@@ -75,11 +76,18 @@ export default function CaregiverProfileScreen() {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Care & support offered</Text>
-        <View style={styles.chips}>
-          {(services.length ? services : ["Care support"]).map((service) => (
-            <View key={service} style={styles.chip}><Text style={styles.chipText}>{service}</Text></View>
-          ))}
-        </View>
+        {hasBookableServices ? (
+          <View style={styles.chips}>
+            {services.map((service) => (
+              <View key={service} style={styles.chip}><Text style={styles.chipText}>{service}</Text></View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.serviceEmpty}>
+            <Text style={styles.serviceEmptyTitle}>No active booking service is assigned yet.</Text>
+            <Text style={styles.muted}>This caregiver cannot receive new care requests until an approved service is assigned.</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.card}>
@@ -116,12 +124,12 @@ export default function CaregiverProfileScreen() {
 
       {role === "user" ? (
         <PrimaryButton
-          label={caregiver.isAvailable === false ? "Currently unavailable" : "Book caregiver"}
-          disabled={caregiver.isAvailable === false}
+          label={!hasBookableServices ? "No service available" : caregiver.isAvailable === false ? "Currently unavailable" : "Book caregiver"}
+          disabled={!hasBookableServices || caregiver.isAvailable === false}
           onPress={() => router.push({ pathname: "/booking/[caregiverId]", params: { caregiverId: caregiver.id } })}
         />
       ) : !user ? (
-        <PrimaryButton label="Sign in to book" onPress={() => router.push("/sign-in")} />
+        <PrimaryButton label="Sign in to book" disabled={!hasBookableServices} onPress={() => router.push("/sign-in")} />
       ) : null}
     </Screen>
   );
@@ -143,6 +151,8 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: "900" },
   body: { color: colors.textSecondary, lineHeight: 21 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  serviceEmpty: { backgroundColor: colors.warningSoft, borderRadius: radius.sm, padding: spacing.sm, gap: 4 },
+  serviceEmptyTitle: { color: colors.warning, fontWeight: "900", lineHeight: 19 },
   chip: { backgroundColor: colors.accentLight, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 6 },
   chipText: { color: colors.accentStrong, fontSize: 12, fontWeight: "800" },
   verifyRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderMuted, paddingVertical: 6 },
