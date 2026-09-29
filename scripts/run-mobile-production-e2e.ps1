@@ -135,7 +135,7 @@ $env:CLOUDFLARE_ACCOUNT_ID = $AccountId
 
 if (-not (Test-Path $WranglerCmd)) {
   Write-Host 'Installing Worker dependencies...'
-  npm.cmd --prefix worker ci
+  npm.cmd --prefix worker install --no-audit --no-fund
   if ($LASTEXITCODE -ne 0) { throw 'Worker dependency install failed.' }
 }
 if (-not (Test-Path $WranglerCmd)) {
@@ -168,21 +168,17 @@ $ActivatedByThisRun = $false
 $LifecyclePassed = $false
 
 try {
-  if ($Before.writesEnabled -ne $true) {
-    Write-Host 'Production is read-only but the reviewed steady-state config enables writes. Deploying the reviewed write-enabled state...'
+  $env:REACT_APP_CANONICAL_ORIGIN = $Origin
+  Write-Host 'Rebuilding the latest reviewed production release with the canonical origin...'
+  npm.cmd run build:release
+  if ($LASTEXITCODE -ne 0) { throw 'Release build failed.' }
 
-    $env:REACT_APP_CANONICAL_ORIGIN = $Origin
-    Write-Host 'Rebuilding the reviewed release with the canonical production origin...'
-    npm.cmd run build:release
-    if ($LASTEXITCODE -ne 0) { throw 'Release build failed.' }
+  Write-Host 'Deploying the latest reviewed main source to write-enabled sewak-final through the guarded deployment operator...'
+  npm.cmd run deploy:cloudflare -- --worker sewak-final --free-plan-confirmed --validation $Validation --auth-qa $AuthQa
+  if ($LASTEXITCODE -ne 0) { throw 'Guarded production deployment failed. E2E was not started.' }
 
-    Write-Host 'Deploying write-enabled sewak-final through the guarded deployment operator...'
-    npm.cmd run deploy:cloudflare -- --worker sewak-final --free-plan-confirmed --validation $Validation --auth-qa $AuthQa
-    if ($LASTEXITCODE -ne 0) { throw 'Guarded write-enabled production deployment failed. E2E was not started.' }
-
-    $ActivatedByThisRun = $true
-    Start-Sleep -Seconds 3
-  }
+  $ActivatedByThisRun = $true
+  Start-Sleep -Seconds 3
 
   $Enabled = Read-Health
   Write-Host ("Live after activation: auth={0}, writesEnabled={1}" -f $Enabled.auth, $Enabled.writesEnabled)
