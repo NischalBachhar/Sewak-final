@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Sewak",
+    "slug": "sewak-mobile",
+    "scheme": "sewak",
+    "version": "0.2.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Sewak to access a photo you choose for your profile."
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#EDF5F7"
+      }
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
