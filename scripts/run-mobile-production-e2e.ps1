@@ -35,12 +35,13 @@ if ($Dirty) {
   throw 'Tracked working-tree changes are present. Commit/stash them before production activation.'
 }
 
-git rev-parse --verify main *> $null
-if ($LASTEXITCODE -ne 0) { throw 'Local main branch is unavailable. Fetch origin/main first.' }
+git fetch origin main
+if ($LASTEXITCODE -ne 0) { throw 'Could not refresh origin/main.' }
 
 # The mobile PR may change mobile/, CI and operator scripts, but production
-# web/Worker/runtime source must still match main exactly before activation.
-git diff --quiet main...HEAD -- src worker public package.json package-lock.json wrangler.production.toml
+# web/Worker/runtime source must still match the latest origin/main exactly
+# before activation.
+git diff --quiet origin/main...HEAD -- src worker public package.json package-lock.json wrangler.production.toml
 if ($LASTEXITCODE -ne 0) {
   throw 'This branch changes production web/Worker runtime relative to main. Stop and review before deploying.'
 }
