@@ -47,8 +47,8 @@ jobs:
         working-directory: worker
         run: npm run typecheck
       - name: D1 tests
-        working-directory: worker
-        run: npm test
+        working-directory: .
+        run: node --experimental-strip-types --test tests/d1/*.test.mjs
       - name: Expo Android bundle check
         run: npx expo export --platform android --output-dir dist-android-ci
       - name: Expo iOS bundle check
