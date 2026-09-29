@@ -70,7 +70,14 @@ export default function ProfileScreen() {
   }, [user, role]);
 
   if (!user) return null;
-  if (loading) return <View style={styles.center}><ActivityIndicator color={colors.accent} /></View>;
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.accent} />
+        <Text style={styles.loadingText}>Loading your profile…</Text>
+      </View>
+    );
+  }
 
   const save = async () => {
     setError(""); setNotice("");
@@ -92,7 +99,12 @@ export default function ProfileScreen() {
         });
       } else if (role === "user") {
         if (address.trim().length < 5 || city.trim().length < 2) throw new Error("Address and city are required.");
-        await updateCustomerProfile(user.uid, { name: name.trim(), phone: phone.trim(), address: address.trim(), city: city.trim() });
+        await updateCustomerProfile(user.uid, {
+          name: name.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+          city: city.trim(),
+        });
       } else {
         throw new Error("Organization and superadmin profile editing stays on the secured web dashboard.");
       }
@@ -100,7 +112,9 @@ export default function ProfileScreen() {
       setNotice("Profile saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save profile.");
-    } finally { setWorking(false); }
+    } finally {
+      setWorking(false);
+    }
   };
 
   const uploadPhoto = async () => {
@@ -111,42 +125,59 @@ export default function ProfileScreen() {
         setNotice("Profile photo updated.");
         await refresh();
       }
-    } catch (err) { setError(err instanceof Error ? err.message : "Could not upload photo."); }
-    finally { setWorking(false); }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not upload photo.");
+    } finally {
+      setWorking(false);
+    }
   };
 
   const logout = async () => {
     setWorking(true);
-    try { await signOut(); router.replace("/"); }
-    finally { setWorking(false); }
+    try {
+      await signOut();
+      router.replace("/");
+    } finally {
+      setWorking(false);
+    }
   };
 
   const toggleShift = (shift: string) =>
-    setShifts((current) => current.includes(shift) ? current.filter((item) => item !== shift) : [...current, shift]);
+    setShifts((current) =>
+      current.includes(shift) ? current.filter((item) => item !== shift) : [...current, shift],
+    );
 
   const editable = role === "user" || role === "caregiver";
 
   return (
     <Screen>
-      <Text style={styles.title}>Profile</Text>
       <View style={styles.identity}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{name.slice(0, 1).toUpperCase() || "S"}</Text></View>
-        <Text style={styles.name}>{name || user.displayName || "Sewak member"}</Text>
-        <Text style={styles.email}>{user.email}</Text>
-        <Text style={styles.role}>{role}</Text>
-        {editable ? <PrimaryButton label="Choose / change profile photo" variant="secondary" disabled={working} onPress={uploadPhoto} /> : null}
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{name.slice(0, 1).toUpperCase() || "S"}</Text>
+        </View>
+        <View style={styles.identityCopy}>
+          <Text style={styles.name}>{name || user.displayName || "Sewak member"}</Text>
+          <Text style={styles.email} numberOfLines={1}>{user.email}</Text>
+          <Text style={styles.role}>{role === "user" ? "Customer" : role}</Text>
+        </View>
+        {editable ? (
+          <Pressable disabled={working} onPress={uploadPhoto} style={({ pressed }) => [styles.photoAction, pressed && { opacity: 0.72 }]}>
+            <Text style={styles.photoActionText}>Change photo</Text>
+          </Pressable>
+        ) : null}
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+      {error ? <View style={styles.errorBox}><Text style={styles.error}>{error}</Text></View> : null}
+      {notice ? <View style={styles.noticeBox}><Text style={styles.notice}>{notice}</Text></View> : null}
 
       {role === "user" ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Customer details</Text>
-          <Field label="Full name *" value={name} onChangeText={setName} />
-          <Field label="Phone *" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-          <Field label="Address *" value={address} onChangeText={setAddress} />
-          <Field label="City *" value={city} onChangeText={setCity} />
+          <Text style={styles.sectionHint}>Keep these details current so caregivers can reach the correct person and address.</Text>
+          <Field label="Full name *" value={name} onChangeText={setName} returnKeyType="next" />
+          <Field label="Phone *" value={phone} onChangeText={setPhone} keyboardType="phone-pad" textContentType="telephoneNumber" />
+          <Field label="Address *" value={address} onChangeText={setAddress} textContentType="fullStreetAddress" />
+          <Field label="City *" value={city} onChangeText={setCity} returnKeyType="done" />
           <PrimaryButton label="Save profile" loading={working} onPress={save} />
         </View>
       ) : null}
@@ -154,6 +185,7 @@ export default function ProfileScreen() {
       {role === "caregiver" ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Caregiver profile</Text>
+          <Text style={styles.sectionHint}>Your public availability and rate are controlled here; verification remains platform-authoritative.</Text>
           <Field label="Full name *" value={name} onChangeText={setName} />
           <Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
           <Field label="Location *" value={location} onChangeText={setLocation} />
@@ -171,13 +203,18 @@ export default function ProfileScreen() {
             <>
               <Text style={styles.label}>Available shifts</Text>
               <View style={styles.chips}>
-                {SHIFTS.map((shift) => <Choice key={shift} label={shift} active={shifts.includes(shift)} onPress={() => toggleShift(shift)} />)}
+                {SHIFTS.map((shift) => (
+                  <Choice key={shift} label={shift} active={shifts.includes(shift)} onPress={() => toggleShift(shift)} />
+                ))}
               </View>
             </>
           ) : null}
 
           <View style={styles.switchRow}>
-            <View style={{ flex: 1 }}><Text style={styles.label}>Accept new requests</Text><Text style={styles.muted}>Turn off when you are unavailable.</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>Accept new requests</Text>
+              <Text style={styles.muted}>Turn this off when you are unavailable.</Text>
+            </View>
             <Switch value={available} onValueChange={setAvailable} trackColor={{ true: colors.accentLight }} />
           </View>
 
@@ -193,42 +230,76 @@ export default function ProfileScreen() {
         </View>
       ) : null}
 
-      <PrimaryButton label="Account security" variant="secondary" onPress={() => router.push("/security")} />
-      <PrimaryButton label="Sign out" variant="secondary" loading={working} onPress={logout} />
+      <View style={styles.accountActions}>
+        <PrimaryButton label="Account security" variant="secondary" onPress={() => router.push("/security")} />
+        <PrimaryButton label="Sign out" variant="secondary" loading={working} onPress={logout} />
+      </View>
     </Screen>
   );
 }
 
 function Field({ label, multiline, ...props }: React.ComponentProps<typeof TextInput> & { label: string }) {
-  return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput {...props} multiline={multiline} textAlignVertical={multiline ? "top" : "center"} placeholderTextColor="#7A8F9A" style={[styles.input, multiline && styles.multiline]} /></View>;
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        {...props}
+        multiline={multiline}
+        textAlignVertical={multiline ? "top" : "center"}
+        placeholderTextColor="#7A8F9A"
+        style={[styles.input, multiline && styles.multiline]}
+      />
+    </View>
+  );
 }
+
 function Choice({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return <Pressable onPress={onPress} style={[styles.choice, active && styles.choiceActive]}><Text style={[styles.choiceText, active && styles.choiceTextActive]}>{label.replaceAll("_", " ")}</Text></Pressable>;
+  return (
+    <Pressable onPress={onPress} style={[styles.choice, active && styles.choiceActive]}>
+      <Text style={[styles.choiceText, active && styles.choiceTextActive]}>{label.replaceAll("_", " ")}</Text>
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
-  title: { color: colors.text, fontSize: 28, fontWeight: "900" },
-  identity: { alignItems: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg, gap: 7 },
-  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.accentLight, alignItems: "center", justifyContent: "center" },
-  avatarText: { color: colors.accentStrong, fontSize: 30, fontWeight: "900" },
-  name: { color: colors.text, fontSize: 20, fontWeight: "900" },
-  email: { color: colors.muted },
-  role: { color: colors.accent, backgroundColor: colors.accentLight, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, textTransform: "capitalize", fontWeight: "900", fontSize: 12 },
-  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, gap: spacing.md },
-  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: "900" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: colors.background },
+  loadingText: { color: colors.muted, fontSize: 13 },
+  identity: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: 12,
+  },
+  avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: colors.accentLight, alignItems: "center", justifyContent: "center" },
+  avatarText: { color: colors.accentStrong, fontSize: 25, fontWeight: "900" },
+  identityCopy: { flex: 1, minWidth: 0, gap: 3 },
+  name: { color: colors.text, fontSize: 18, fontWeight: "900" },
+  email: { color: colors.muted, fontSize: 13 },
+  role: { color: colors.accentStrong, fontWeight: "800", fontSize: 11, textTransform: "capitalize" },
+  photoAction: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt },
+  photoActionText: { color: colors.accentStrong, fontSize: 11, fontWeight: "900" },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.md, gap: 13 },
+  sectionTitle: { color: colors.text, fontSize: 19, fontWeight: "900" },
+  sectionHint: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: -5 },
   body: { color: colors.textSecondary, lineHeight: 21 },
   field: { gap: 6 },
   label: { color: colors.textSecondary, fontWeight: "800", fontSize: 13 },
   muted: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text },
-  multiline: { minHeight: 100, paddingTop: 10 },
+  input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15 },
+  multiline: { minHeight: 96, paddingTop: 11 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   choice: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, paddingVertical: 8 },
   choiceActive: { borderColor: colors.accent, backgroundColor: colors.accentLight },
   choiceText: { color: colors.textSecondary, fontWeight: "800", fontSize: 12, textTransform: "capitalize" },
   choiceTextActive: { color: colors.accentStrong },
-  switchRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  error: { color: colors.danger, fontWeight: "800" },
-  notice: { color: colors.positive, backgroundColor: colors.positiveSoft, padding: spacing.sm, borderRadius: radius.sm, fontWeight: "800" },
+  switchRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 2 },
+  errorBox: { backgroundColor: colors.dangerSoft, borderRadius: radius.sm, padding: spacing.sm },
+  error: { color: colors.danger, fontWeight: "800", fontSize: 13, lineHeight: 19 },
+  noticeBox: { backgroundColor: colors.positiveSoft, borderRadius: radius.sm, padding: spacing.sm },
+  notice: { color: colors.positive, fontWeight: "800", fontSize: 13 },
+  accountActions: { gap: 10, paddingBottom: spacing.sm },
 });

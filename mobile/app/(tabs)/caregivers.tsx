@@ -3,5 +3,9 @@ import { Screen } from "@/components/Screen";
 import { CaregiverDirectory } from "@/components/CaregiverDirectory";
 
 export default function CaregiversTab() {
-  return <Screen><CaregiverDirectory title="Caregivers" /></Screen>;
+  return (
+    <Screen>
+      <CaregiverDirectory title="Find care" />
+    </Screen>
+  );
 }

@@ -13,7 +13,7 @@ export default function LandingScreen() {
   if (!loading && user) return <Redirect href="/(tabs)/home" />;
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen safeTop safeBottom contentStyle={styles.content}>
       <View style={styles.brandRow}>
         <View style={styles.mark}><Text style={styles.markText}>S</Text></View>
         <Text style={styles.brand}>Sewak</Text>
@@ -51,22 +51,22 @@ export default function LandingScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { justifyContent: "center", paddingVertical: 28 },
+  content: { justifyContent: "center", paddingTop: spacing.lg, paddingBottom: spacing.xl },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  mark: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.accentStrong, alignItems: "center", justifyContent: "center" },
+  mark: { width: 42, height: 42, borderRadius: 13, backgroundColor: colors.accentStrong, alignItems: "center", justifyContent: "center" },
   markText: { color: "#FFF", fontSize: 22, fontWeight: "900" },
-  brand: { color: colors.text, fontSize: 22, fontWeight: "900" },
-  hero: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, gap: spacing.sm },
-  eyebrow: { color: colors.accent, fontSize: 12, fontWeight: "900", letterSpacing: 1.2 },
-  title: { color: colors.text, fontSize: 34, lineHeight: 40, fontWeight: "900" },
-  body: { color: colors.textSecondary, fontSize: 16, lineHeight: 24 },
+  brand: { color: colors.text, fontSize: 21, fontWeight: "900" },
+  hero: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: 22, gap: spacing.sm },
+  eyebrow: { color: colors.accent, fontSize: 11, fontWeight: "900", letterSpacing: 1.1 },
+  title: { color: colors.text, fontSize: 29, lineHeight: 35, fontWeight: "900", letterSpacing: -0.4 },
+  body: { color: colors.textSecondary, fontSize: 15, lineHeight: 22 },
   categoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { backgroundColor: colors.accentLight, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill },
-  chipText: { color: colors.accentStrong, fontSize: 13, fontWeight: "800" },
+  chipText: { color: colors.accentStrong, fontSize: 12, fontWeight: "800" },
   actions: { gap: 10 },
-  register: { textAlign: "center", color: colors.muted, marginTop: 4 },
+  register: { textAlign: "center", color: colors.muted, marginTop: 4, fontSize: 14 },
   link: { color: colors.help, fontWeight: "900" },
-  trust: { padding: spacing.md, alignItems: "center", gap: 4 },
-  trustTitle: { color: colors.textSecondary, fontWeight: "900" },
-  trustText: { color: colors.muted, textAlign: "center", fontSize: 12, lineHeight: 18 },
+  trust: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, alignItems: "center", gap: 4 },
+  trustTitle: { color: colors.textSecondary, fontWeight: "900", fontSize: 14 },
+  trustText: { color: colors.muted, textAlign: "center", fontSize: 11, lineHeight: 17 },
 });

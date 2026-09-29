@@ -14,7 +14,10 @@ export default function RootLayout() {
           screenOptions={{
             headerStyle: { backgroundColor: colors.surface },
             headerTintColor: colors.text,
-            headerTitleStyle: { fontWeight: "800" },
+            headerTitleAlign: "center",
+            headerTitleStyle: { fontWeight: "800", fontSize: 17 },
+            headerBackButtonDisplayMode: "minimal",
+            headerShadowVisible: false,
             contentStyle: { backgroundColor: colors.background },
           }}
         >

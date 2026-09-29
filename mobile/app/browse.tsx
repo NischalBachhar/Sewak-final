@@ -5,7 +5,7 @@ import { CaregiverDirectory } from "@/components/CaregiverDirectory";
 export default function BrowseScreen() {
   return (
     <Screen>
-      <CaregiverDirectory />
+      <CaregiverDirectory title="Available caregivers" />
     </Screen>
   );
 }

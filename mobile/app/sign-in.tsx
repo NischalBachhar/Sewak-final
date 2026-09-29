@@ -9,9 +9,7 @@ import { colors, radius, spacing } from "@/theme";
 
 const messageFor = (error: unknown) => {
   if (error instanceof ApiError) {
-    if (["invalid-credentials", "unauthenticated"].includes(error.code)) {
-      return "The email or password is incorrect. Please try again.";
-    }
+    if (["invalid-credentials", "unauthenticated"].includes(error.code)) return "The email or password is incorrect. Please try again.";
     if (error.status === 429) return "Too many attempts. Please wait before trying again.";
     if (error.status === 503) return "Sewak is temporarily unavailable. Please try again shortly.";
     return error.message;
@@ -45,17 +43,21 @@ export default function SignInScreen() {
 
   return (
     <Screen contentStyle={styles.content}>
-      <View style={styles.card}>
+      <View style={styles.intro}>
         <Text style={styles.eyebrow}>WELCOME BACK</Text>
-        <Text style={styles.title}>Sign in to Sewak</Text>
-        <Text style={styles.subtitle}>Use your Cloudflare Sewak account.</Text>
+        <Text style={styles.title}>Continue to Sewak</Text>
+        <Text style={styles.subtitle}>Use the same Cloudflare account as the Sewak web application.</Text>
+      </View>
 
+      <View style={styles.card}>
         <View style={styles.field}>
           <Text style={styles.label}>Email</Text>
           <TextInput
             autoCapitalize="none"
             autoComplete="email"
+            textContentType="emailAddress"
             keyboardType="email-address"
+            returnKeyType="next"
             value={email}
             onChangeText={setEmail}
             style={styles.input}
@@ -69,7 +71,10 @@ export default function SignInScreen() {
           <TextInput
             autoCapitalize="none"
             autoComplete="password"
+            textContentType="password"
             secureTextEntry
+            returnKeyType="go"
+            onSubmitEditing={submit}
             value={password}
             onChangeText={setPassword}
             style={styles.input}
@@ -78,18 +83,12 @@ export default function SignInScreen() {
           />
         </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <View style={styles.errorBox}><Text style={styles.error}>{error}</Text></View> : null}
         <PrimaryButton label="Sign in" loading={busy} onPress={submit} />
 
-        <Text style={styles.helper}>
-          New here? <Text style={styles.link} onPress={() => router.push("/register")}>Create an account</Text>
-        </Text>
-        <Text style={styles.helper}>
-          Have an invitation? <Text style={styles.link} onPress={() => router.push("/activate")}>Activate account</Text>
-        </Text>
-        <Text style={styles.recovery}>
-          Forgot your password? Sewak currently uses administrator-issued recovery invitations rather than reset email.
-        </Text>
+        <Text style={styles.helper}>New here? <Text style={styles.link} onPress={() => router.push("/register")}>Create an account</Text></Text>
+        <Text style={styles.helper}>Have an invitation? <Text style={styles.link} onPress={() => router.push("/activate")}>Activate account</Text></Text>
+        <Text style={styles.recovery}>Forgot your password? Sewak currently uses administrator-issued recovery invitations.</Text>
       </View>
     </Screen>
   );
@@ -97,15 +96,17 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   content: { justifyContent: "center" },
-  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
-  eyebrow: { color: colors.accent, fontWeight: "900", letterSpacing: 1, fontSize: 12 },
-  title: { color: colors.text, fontSize: 28, fontWeight: "900" },
-  subtitle: { color: colors.muted, lineHeight: 20 },
-  field: { gap: 7 },
+  intro: { gap: 5 },
+  eyebrow: { color: colors.accent, fontWeight: "900", letterSpacing: 1, fontSize: 11 },
+  title: { color: colors.text, fontSize: 23, lineHeight: 29, fontWeight: "900" },
+  subtitle: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.md, gap: 14 },
+  field: { gap: 6 },
   label: { color: colors.textSecondary, fontWeight: "800", fontSize: 13 },
-  input: { minHeight: 50, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 14, backgroundColor: colors.surfaceAlt, color: colors.text, fontSize: 16 },
-  error: { color: colors.danger, fontWeight: "700" },
-  helper: { textAlign: "center", color: colors.muted },
+  input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 13, backgroundColor: colors.surfaceAlt, color: colors.text, fontSize: 15 },
+  errorBox: { backgroundColor: colors.dangerSoft, borderRadius: radius.sm, padding: spacing.sm },
+  error: { color: colors.danger, fontWeight: "700", fontSize: 13, lineHeight: 19 },
+  helper: { textAlign: "center", color: colors.muted, fontSize: 13 },
   link: { color: colors.help, fontWeight: "900" },
-  recovery: { color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: "center" },
+  recovery: { color: colors.muted, fontSize: 11, lineHeight: 17, textAlign: "center" },
 });
