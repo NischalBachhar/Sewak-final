@@ -11,6 +11,7 @@ import {
   listOrganizationServices,
   provisionCaregiver,
   retireOrganizationService,
+  updateOrganizationCaregiverServices,
   updateOrganizationProfile,
 } from "@/api/sewak";
 import { Booking, Caregiver, Organization, PublicService } from "@/types";
@@ -18,7 +19,7 @@ import { formatNpr } from "@/domain/booking";
 import { colors, radius, spacing } from "@/theme";
 
 type Section = "overview" | "caregivers" | "services" | "bookings" | "profile";
-const SHIFTS = ["morning", "day", "night"];
+const SHIFTS = ["morning", "day", "evening", "night"];
 
 export default function OrganizationScreen() {
   const { user } = useAuth();
@@ -34,6 +35,8 @@ export default function OrganizationScreen() {
   const [invitation, setInvitation] = useState("");
 
   const [showCaregiverForm, setShowCaregiverForm] = useState(false);
+  const [editingCaregiverId, setEditingCaregiverId] = useState<string | null>(null);
+  const [editingServices, setEditingServices] = useState<string[]>([]);
   const [cgName, setCgName] = useState("");
   const [cgEmail, setCgEmail] = useState("");
   const [cgPhone, setCgPhone] = useState("");
@@ -85,6 +88,9 @@ export default function OrganizationScreen() {
   const completed = useMemo(() => bookings.filter((booking) => booking.status === "completed"), [bookings]);
   const revenue = useMemo(() => completed.reduce((sum, booking) => sum + Number(booking.totalAmount || 0), 0), [completed]);
   const caregiverEarnings = useMemo(() => completed.reduce((sum, booking) => sum + Number(booking.vendorEarnings || 0), 0), [completed]);
+  const activeServices = useMemo(() => services.filter((service) => service.isActive !== false), [services]);
+  const serviceName = (id: string) => services.find((service) => service.id === id || service.serviceId === id)?.label || services.find((service) => service.id === id || service.serviceId === id)?.serviceName || id.replaceAll("_", " ");
+  const serviceAssignedCount = (id: string) => caregivers.filter((caregiver) => (caregiver.servicesOffered || []).includes(id)).length;
 
   if (!user || user.role !== "orgadmin") return <Screen><Text style={styles.error}>Organization access is not available for this account.</Text></Screen>;
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.accent} /></View>;
@@ -158,6 +164,27 @@ export default function OrganizationScreen() {
       await createOrganizationService(user.uid, organization.organizationName, serviceLabel, serviceCategory);
       setServiceLabel("");
     }, "Service added.");
+  };
+
+  const beginCaregiverServiceEdit = (caregiver: Caregiver) => {
+    setError("");
+    setNotice("");
+    setEditingCaregiverId(caregiver.id);
+    setEditingServices((caregiver.servicesOffered || []).filter((id) => activeServices.some((service) => service.id === id || service.serviceId === id)));
+  };
+
+  const saveCaregiverServices = async (caregiverId: string) => {
+    if (!editingServices.length) return setError("Assign at least one active service to this caregiver.");
+    setWorking(true); setError(""); setNotice("");
+    try {
+      await updateOrganizationCaregiverServices(caregiverId, editingServices);
+      setEditingCaregiverId(null);
+      setEditingServices([]);
+      setNotice("Caregiver services updated.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update caregiver services.");
+    } finally { setWorking(false); }
   };
 
   const saveProfile = async () => {
@@ -246,12 +273,16 @@ export default function OrganizationScreen() {
                 </>
               ) : null}
               <Text style={styles.label}>Services *</Text>
-              <View style={styles.choices}>
-                {services.filter((service) => service.isActive !== false).map((service) => (
-                  <Choice key={service.id} label={service.label || service.serviceName || service.id} active={cgServices.includes(service.id)} onPress={() => setCgServices((current) => current.includes(service.id) ? current.filter((x) => x !== service.id) : [...current, service.id])} />
-                ))}
-              </View>
-              <PrimaryButton label="Create caregiver & invitation" loading={working} onPress={addCaregiver} />
+              {activeServices.length ? (
+                <View style={styles.choices}>
+                  {activeServices.map((service) => (
+                    <Choice key={service.id} label={service.label || service.serviceName || service.id} active={cgServices.includes(service.id)} onPress={() => setCgServices((current) => current.includes(service.id) ? current.filter((x) => x !== service.id) : [...current, service.id])} />
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.warnText}>Add an active organization service before creating a caregiver.</Text>
+              )}
+              <PrimaryButton label="Create caregiver & invitation" loading={working} disabled={!activeServices.length || !cgServices.length} onPress={addCaregiver} />
             </View>
           ) : null}
 
@@ -265,6 +296,23 @@ export default function OrganizationScreen() {
               <Row label="Rate" value={`${formatNpr(caregiver.hourlyRate)}/hr`} />
               <Row label="Experience" value={`${caregiver.experience ?? 0} years`} />
               <Row label="Availability" value={caregiver.isAvailable ? "Available" : "Unavailable"} />
+              <Row label="Services" value={(caregiver.servicesOffered || []).map(serviceName).join(", ") || "None assigned"} />
+              {editingCaregiverId === caregiver.id ? (
+                <View style={styles.serviceEditor}>
+                  <Text style={styles.label}>Assigned booking services *</Text>
+                  {activeServices.length ? (
+                    <View style={styles.choices}>
+                      {activeServices.map((service) => (
+                        <Choice key={service.id} label={service.label || service.serviceName || service.id} active={editingServices.includes(service.id)} onPress={() => setEditingServices((current) => current.includes(service.id) ? current.filter((x) => x !== service.id) : [...current, service.id])} />
+                      ))}
+                    </View>
+                  ) : <Text style={styles.warnText}>No active organization services are available.</Text>}
+                  <PrimaryButton label="Save services" loading={working} disabled={!editingServices.length || !activeServices.length} onPress={() => saveCaregiverServices(caregiver.id)} />
+                  <PrimaryButton label="Cancel" variant="secondary" disabled={working} onPress={() => { setEditingCaregiverId(null); setEditingServices([]); }} />
+                </View>
+              ) : (
+                <PrimaryButton label="Edit services" variant="secondary" disabled={working} onPress={() => beginCaregiverServiceEdit(caregiver)} />
+              )}
             </View>
           ))}
           {!caregivers.length ? <View style={styles.empty}><Text style={styles.body}>No caregivers yet.</Text></View> : null}
@@ -283,19 +331,23 @@ export default function OrganizationScreen() {
             </View>
             <PrimaryButton label="Add service" loading={working} onPress={addService} />
           </View>
-          {services.map((service) => (
-            <View key={service.id} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{service.label || service.serviceName || service.id}</Text>
-                  <Text style={styles.muted}>{service.category || "caregiver"} · {service.isActive === false ? "Retired" : "Active"}</Text>
+          {services.map((service) => {
+            const assignedCount = serviceAssignedCount(service.id);
+            return (
+              <View key={service.id} style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardTitle}>{service.label || service.serviceName || service.id}</Text>
+                    <Text style={styles.muted}>{service.category || "caregiver"} · {service.isActive === false ? "Retired" : "Active"} · {assignedCount} caregiver{assignedCount === 1 ? "" : "s"}</Text>
+                  </View>
+                  {service.isActive !== false && assignedCount === 0 ? (
+                    <Pressable disabled={working} onPress={() => run(() => retireOrganizationService(service.id), "Service retired.")}><Text style={styles.retire}>Retire</Text></Pressable>
+                  ) : null}
                 </View>
-                {service.isActive !== false ? (
-                  <Pressable disabled={working} onPress={() => run(() => retireOrganizationService(service.id), "Service retired.")}><Text style={styles.retire}>Retire</Text></Pressable>
-                ) : null}
+                {service.isActive !== false && assignedCount > 0 ? <Text style={styles.warnText}>Unassign this service from every caregiver before retiring it.</Text> : null}
               </View>
-            </View>
-          ))}
+            );
+          })}
         </>
       ) : null}
 
@@ -374,6 +426,8 @@ const styles = StyleSheet.create({
   status: { color: colors.accent, textTransform: "capitalize", fontWeight: "900", fontSize: 11 },
   field: { gap: 6 },
   label: { color: colors.textSecondary, fontWeight: "800", fontSize: 13 },
+  warnText: { color: colors.warning, backgroundColor: colors.warningSoft, borderRadius: radius.sm, padding: spacing.sm, fontSize: 12, lineHeight: 18, fontWeight: "700" },
+  serviceEditor: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderMuted, paddingTop: spacing.sm, gap: spacing.sm },
   input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text },
   choices: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   choice: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: colors.surfaceAlt },
