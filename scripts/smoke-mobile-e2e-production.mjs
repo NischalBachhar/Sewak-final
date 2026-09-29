@@ -9,7 +9,10 @@ import { openTarget } from './d1-target.mjs';
 import { encodeRecord, entities, insertSQL } from '../worker/src/model.mjs';
 
 const APPLY_FLAG = '--apply-controlled-mobile-e2e';
-assert.ok(process.argv.includes(APPLY_FLAG), `Explicit ${APPLY_FLAG} flag required`);
+const PREFLIGHT_FLAG = '--preflight';
+const apply = process.argv.includes(APPLY_FLAG);
+const preflight = process.argv.includes(PREFLIGHT_FLAG);
+assert.notEqual(apply, preflight, `Choose exactly one mode: ${PREFLIGHT_FLAG} or ${APPLY_FLAG}`);
 
 const origin = 'https://sewak-final.nischalbachhar9.workers.dev';
 const accountId = '860970f755498a4fe10e16c2fa99ce55';
@@ -18,32 +21,34 @@ const mediaId = 'c3721e25-4fb2-4a0d-b350-518ec9abbea2';
 const config = readFileSync('wrangler.production.toml', 'utf8');
 
 assert.match(config, /name = "sewak-final"/);
-assert.match(config, /APP_WRITES_ENABLED = "true"/);
 assert.ok(config.includes(mainId) && config.includes(mediaId), 'Exact production D1 bindings required');
+const writeModes = [...config.matchAll(/APP_WRITES_ENABLED\s*=\s*"(true|false)"/g)];
+assert.equal(writeModes.length, 1, 'Exactly one production APP_WRITES_ENABLED binding is required');
+if (apply) assert.equal(writeModes[0][1], 'true', 'Apply mode requires the temporary write-enabled production config');
 
-// Mandatory no-mutation gate. If production is read-only, stop before creating
-// an account or opening the remote D1 operator.
 const healthResponse = await fetch(origin + '/api/health', {
   signal: AbortSignal.timeout(15000),
   cache: 'no-store',
 });
 assert.equal(healthResponse.status, 200, 'Production health must return HTTP 200');
 const health = await healthResponse.json();
-assert.equal(
-  health.writesEnabled,
-  true,
-  'Production writes are disabled. No synthetic E2E data was created.',
-);
+assert.equal(health.auth, 'cloudflare-d1', 'Production must use Cloudflare-D1 authentication');
+if (apply) {
+  assert.equal(
+    health.writesEnabled,
+    true,
+    'Production writes are disabled. No synthetic E2E data was created.',
+  );
+}
 
 assert.equal(
   process.env.CLOUDFLARE_ACCOUNT_ID,
   accountId,
   'Exact CLOUDFLARE_ACCOUNT_ID required',
 );
-assert.ok(
-  process.env.CLOUDFLARE_API_TOKEN,
-  'CLOUDFLARE_API_TOKEN is required for deterministic fixture setup/cleanup',
-);
+// Remote D1 access intentionally uses scripts/cloudflare-operator.mjs, which
+// accepts either CLOUDFLARE_API_TOKEN or the existing Wrangler OAuth login.
+// Do not require a separate API token when Wrangler OAuth is already valid; CI verifies this fallback path.
 
 const run = randomUUID();
 const password = randomBytes(32).toString('base64url') + '!Aa9';
@@ -67,6 +72,7 @@ const report = {
 
 const mark = (name, extra = {}) => {
   report.steps.push({ name, at: new Date().toISOString(), ...extra });
+  console.log(`[E2E] PASS: ${name}`);
 };
 
 async function request(path, {
@@ -122,6 +128,45 @@ function digest(value) {
 
 const target = await openTarget({ remote: true, mainId, mediaId });
 const { DB, MEDIA_DB } = target;
+
+if (preflight) {
+  try {
+    const mainProbe = await DB.prepare('SELECT 1 AS ok').first();
+    const mediaProbe = await MEDIA_DB.prepare('SELECT 1 AS ok').first();
+    assert.equal(Number(mainProbe?.ok), 1, 'Main production D1 query failed');
+    assert.equal(Number(mediaProbe?.ok), 1, 'Media production D1 query failed');
+
+    const syntheticChecks = [
+      ['users', "SELECT id FROM users WHERE email LIKE 'mobile-e2e-%@example.invalid' LIMIT 5"],
+      ['caregivers', "SELECT id FROM caregivers WHERE email LIKE 'mobile-e2e-%@example.invalid' LIMIT 5"],
+      ['organizations', "SELECT id FROM organizations WHERE id LIKE 'org_mobile_e2e_%' LIMIT 5"],
+      ['services', "SELECT id FROM services WHERE id LIKE 'service_mobile_e2e_%' LIMIT 5"],
+      ['bookings', "SELECT id FROM bookings WHERE user_email LIKE 'mobile-e2e-%@example.invalid' LIMIT 5"],
+      ['reviews', "SELECT id FROM reviews WHERE comment='Synthetic verified mobile E2E review.' LIMIT 5"],
+    ];
+    for (const [label, sql] of syntheticChecks) {
+      const rows = await DB.prepare(sql).all();
+      assert.equal(rows.results?.length || 0, 0, `Leftover synthetic E2E records found in ${label}; inspect before enabling production writes`);
+    }
+
+    await request('/api/query', {
+      body: { path: 'publicCaregivers', limit: 1 },
+      label: 'public caregiver query preflight',
+    });
+
+    console.log(JSON.stringify({
+      preflight: true,
+      auth: health.auth,
+      writesEnabled: health.writesEnabled,
+      d1Operator: 'wrangler-oauth-or-api-token',
+      leftovers: 0,
+    }));
+  } finally {
+    await target.close();
+  }
+  process.exit(0);
+}
+
 let customer = null;
 let caregiver = null;
 let bookingId = null;
@@ -264,7 +309,11 @@ try {
   assert.equal(caregiverMe.data.user.role, 'caregiver');
 
   const publicCaregivers = await request('/api/query', {
-    body: { path: 'publicCaregivers', limit: 50 },
+    body: {
+      path: 'publicCaregivers',
+      filters: [{ field: '__name__', op: '==', value: caregiver.uid }],
+      limit: 2,
+    },
     label: 'customer-facing caregiver discovery',
   });
   assert.ok(

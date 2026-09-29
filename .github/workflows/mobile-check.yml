@@ -13,6 +13,8 @@ on:
     paths:
       - "mobile/**"
       - "scripts/smoke-mobile-e2e-production.mjs"
+      - "scripts/run-mobile-production-e2e.ps1"
+      - "wrangler.production.toml"
       - ".github/workflows/mobile-check.yml"
 
 jobs:
@@ -47,6 +49,35 @@ jobs:
         working-directory: .
         shell: pwsh
         run: "[scriptblock]::Create((Get-Content scripts/run-mobile-production-e2e.ps1 -Raw)) | Out-Null"
+      - name: Wrangler OAuth fallback check
+        working-directory: .
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { tmpdir } from 'node:os';
+          import { cloudflareToken } from './scripts/cloudflare-operator.mjs';
+          const priorToken = process.env.CLOUDFLARE_API_TOKEN;
+          const priorXdg = process.env.XDG_CONFIG_HOME;
+          const priorAppdata = process.env.APPDATA;
+          const dir = mkdtempSync(join(tmpdir(), 'sewak-wrangler-oauth-'));
+          try {
+            delete process.env.CLOUDFLARE_API_TOKEN;
+            delete process.env.XDG_CONFIG_HOME;
+            process.env.APPDATA = dir;
+            const configDir = join(dir, 'xdg.config', '.wrangler', 'config');
+            mkdirSync(configDir, { recursive: true });
+            writeFileSync(join(configDir, 'default.toml'), 'oauth_token = "unit-oauth-token"\n');
+            assert.equal(cloudflareToken(), 'unit-oauth-token');
+            console.log('Wrangler OAuth fallback: PASS');
+          } finally {
+            if (priorToken === undefined) delete process.env.CLOUDFLARE_API_TOKEN; else process.env.CLOUDFLARE_API_TOKEN = priorToken;
+            if (priorXdg === undefined) delete process.env.XDG_CONFIG_HOME; else process.env.XDG_CONFIG_HOME = priorXdg;
+            if (priorAppdata === undefined) delete process.env.APPDATA; else process.env.APPDATA = priorAppdata;
+            rmSync(dir, { recursive: true, force: true });
+          }
+          NODE
       - name: Inspect production deployment
         working-directory: .
         env:
