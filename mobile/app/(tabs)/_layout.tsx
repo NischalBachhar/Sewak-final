@@ -9,17 +9,15 @@ const Icon = ({ label, active }: { label: string; active: boolean }) => (
 );
 
 export default function TabsLayout() {
-  const { user, loading } = useAuth();
+  const { user, role, loading } = useAuth();
 
   if (loading) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
+    return <View style={styles.loading}><ActivityIndicator color={colors.accent} /></View>;
   }
-
   if (!user) return <Redirect href="/sign-in" />;
+
+  const customer = role === "user";
+  const caregiver = role === "caregiver";
 
   return (
     <Tabs
@@ -32,43 +30,28 @@ export default function TabsLayout() {
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.borderMuted },
       }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ focused }) => <Icon label="⌂" active={focused} />,
-        }}
-      />
+      <Tabs.Screen name="home" options={{ title: "Home", tabBarIcon: ({ focused }) => <Icon label="⌂" active={focused} /> }} />
       <Tabs.Screen
         name="caregivers"
-        options={{
-          title: "Caregivers",
-          tabBarIcon: ({ focused }) => <Icon label="♡" active={focused} />,
-        }}
+        options={{ title: "Caregivers", href: customer ? undefined : null, tabBarIcon: ({ focused }) => <Icon label="♡" active={focused} /> }}
       />
       <Tabs.Screen
         name="bookings"
-        options={{
-          title: "Bookings",
-          tabBarIcon: ({ focused }) => <Icon label="▣" active={focused} />,
-        }}
+        options={{ title: "Bookings", href: customer ? undefined : null, tabBarIcon: ({ focused }) => <Icon label="▣" active={focused} /> }}
       />
       <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ focused }) => <Icon label="◉" active={focused} />,
-        }}
+        name="jobs"
+        options={{ title: "Jobs", href: caregiver ? undefined : null, tabBarIcon: ({ focused }) => <Icon label="▤" active={focused} /> }}
       />
+      <Tabs.Screen
+        name="earnings"
+        options={{ title: "Earnings", href: caregiver ? undefined : null, tabBarIcon: ({ focused }) => <Icon label="₨" active={focused} /> }}
+      />
+      <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: ({ focused }) => <Icon label="◉" active={focused} /> }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.background,
-  },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
 });

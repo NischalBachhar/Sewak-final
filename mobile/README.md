@@ -1,49 +1,90 @@
 # Sewak Mobile
 
-Cross-platform Sewak mobile app foundation built with React Native, Expo Router and TypeScript.
+Cross-platform React Native / Expo application for Sewak, using the same production Cloudflare Worker + D1 platform as the web app.
 
-## Implemented
-- light Sewak theme aligned with the current web dashboard
-- public caregiver browsing
-- caregiver profile screen
-- Firebase email/password sign-in with persistent native session
-- role-aware Home, Caregivers, Bookings and Profile tabs
-- customer care-request foundation
-- centralized Cloudflare Worker/D1 API adapter
-- development-only sample caregiver data while the Worker endpoint is unavailable
+## Architecture
 
-## Run locally
+```text
+React Native / Expo
+      |
+      | HTTPS + opaque Bearer session
+      v
+Cloudflare Worker
+      |
+      +--> D1 application/auth database
+      +--> D1 media database
+      +--> PasswordHasher Durable Object
+```
+
+There is **no Firebase runtime dependency** in the mobile app. Native login, registration and activation request `sessionMode: "bearer"`. The opaque credential is stored with Expo SecureStore (iOS Keychain / Android Keystore-backed storage) and never placed in AsyncStorage, logs, URLs or analytics.
+
+Production API defaults to:
+
+`https://sewak-final.nischalbachhar9.workers.dev`
+
+Override `EXPO_PUBLIC_API_BASE_URL` only for isolated staging/local development.
+
+## Implemented mobile flows
+
+### Public / customer
+- public caregiver discovery
+- caregiver profile, services, verification signals, verified reviews and rate
+- Cloudflare registration/login and invitation activation
+- customer profile
+- exact-hour or supported time-window booking
+- one-time / recurring care requests
+- schema-v2 quote review and duplicate-safe booking submission
+- booking history/detail
+- pending cancellation
+- active care-session tasks and family updates
+- completed-care verified reviews
+
+### Caregiver
+- role-aware mobile dashboard
+- job request/status filters
+- accept / decline
+- check in on arrival
+- care task creation/completion
+- family care updates
+- shift checkout
+- conduct reporting
+- completed-job earnings summary
+- editable caregiver profile, work type, shifts, rate, experience and availability
+
+### Account / security
+- profile photo resize/compress/upload to D1 media
+- session list/revocation
+- sign out all devices
+- password change (revokes all sessions)
+- secure local bearer-token storage
+
+Organization-admin and superadmin high-risk controls intentionally remain on the secured web dashboard for this milestone; they are not duplicated as an under-tested privileged mobile surface.
+
+## Run
+
+Node 22.13+.
+
 ```bash
 cd mobile
 cp .env.example .env
 npm install
-npm run start
+npm run doctor
+npm run typecheck
+npm start
 ```
 
-Set the Firebase public client configuration in `.env`. Never put service-account keys, Cloudflare API tokens or other server secrets in `EXPO_PUBLIC_*`.
+For a physical device, keep the production Worker URL or use a staging URL reachable from the device.
 
-## Backend boundary
-The app must never connect directly to D1.
+## Backend source of truth
 
-```
-React Native app
-      |
-      | HTTPS + Firebase ID token
-      v
-Cloudflare Worker API
-      |
-      v
-Cloudflare D1
-```
+The mobile app follows:
 
-The mobile adapter currently expects:
-- GET /api/public/caregivers
-- GET /api/public/caregivers/:id
-- GET /api/me
-- GET /api/bookings/me
-- POST /api/bookings
+- `docs/MOBILE_API.md`
+- `docs/openapi.json`
+- `docs/CLOUDFLARE_AUTH.md`
+- `src/d1Client.js`
+- `src/bookingService.js`
+- `src/bookingValidation.js`
+- `src/careSessionService.js`
 
-Those endpoint names are isolated in `src/api/sewak.ts` because the Firebase-to-D1 Worker implementation is not present in the GitHub branches currently visible here. When that code is pushed, update the adapter rather than every screen.
-
-## Next milestone
-Mirror the hardened web booking validation and booking schema exactly, then add caregiver job requests, active care sessions, availability, earnings, notifications and profile-image upload.
+The Worker remains authoritative for authorization, roles, current caregiver/organization safety state, pricing, booking transitions and all D1 writes.
