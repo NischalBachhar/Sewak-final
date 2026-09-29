@@ -18,6 +18,7 @@ export default function TabsLayout() {
 
   const customer = role === "user";
   const caregiver = role === "caregiver";
+  const organization = role === "orgadmin";
 
   return (
     <Tabs
@@ -46,6 +47,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="earnings"
         options={{ title: "Earnings", href: caregiver ? undefined : null, tabBarIcon: ({ focused }) => <Icon label="₨" active={focused} /> }}
+      />
+      <Tabs.Screen
+        name="organization"
+        options={{ title: "Manage", href: organization ? undefined : null, tabBarIcon: ({ focused }) => <Icon label="▦" active={focused} /> }}
       />
       <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: ({ focused }) => <Icon label="◉" active={focused} /> }} />
     </Tabs>
