@@ -48,7 +48,7 @@ assert.equal(
 );
 // Remote D1 access intentionally uses scripts/cloudflare-operator.mjs, which
 // accepts either CLOUDFLARE_API_TOKEN or the existing Wrangler OAuth login.
-// Do not require a separate API token when Wrangler OAuth is already valid.
+// Do not require a separate API token when Wrangler OAuth is already valid; CI verifies this fallback path.
 
 const run = randomUUID();
 const password = randomBytes(32).toString('base64url') + '!Aa9';
