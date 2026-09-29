@@ -1,11 +1,10 @@
+param([Parameter(Mandatory = $true)][string]$AuthQa)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $AccountId = '860970f755498a4fe10e16c2fa99ce55'
 $Origin = 'https://sewak-final.nischalbachhar9.workers.dev'
-$Validation = '.local-tools/d1-migration/final-validation.json'
-$AuthQa = '.local-tools/cloudflare-auth/sewak-final-qa-b3725c93-56ea-4cea-846b-cf8b3b25c310.json'
-$Restoration = '.local-tools/cloudflare-auth/readonly-restoration.json'
+$Validation = '.local-tools/cloudflare-auth/cloudflare-data-check.json'
 $ProductionConfig = 'wrangler.production.toml'
 $WranglerCmd = Join-Path $PSScriptRoot '..\worker\node_modules\.bin\wrangler.cmd'
 
@@ -31,18 +30,6 @@ function Require-PassingReport([string]$Path, [string]$Label) {
   return $Report
 }
 
-function Require-CurrentRestoration([string]$Path) {
-  if (-not (Test-Path $Path)) {
-    throw "Current read-only restoration evidence is missing: $Path"
-  }
-  $Report = Get-Content $Path -Raw | ConvertFrom-Json
-  $PassProperty = $Report.PSObject.Properties['pass']
-  if ($null -ne $PassProperty -and $PassProperty.Value -ne $true) {
-    throw "Current read-only restoration evidence is not passing: $Path"
-  }
-  return $Report
-}
-
 function Read-Health {
   return Invoke-RestMethod -Uri "$Origin/api/health" -Method Get -TimeoutSec 20
 }
@@ -62,7 +49,9 @@ function Deploy-ReadOnly([string]$ValidationPath, [string]$AuthQaPath, [string]$
   )
   Write-Utf8NoBom $ProductionConfig $RollbackConfig
   try {
-    npm.cmd run deploy:cloudflare -- --worker sewak-final --cutover-maintenance --free-plan-confirmed --source-frozen --validation $ValidationPath --auth-qa $AuthQaPath
+    node scripts/verify-cloudflare-data.mjs
+    if ($LASTEXITCODE -ne 0) { throw 'Cloudflare D1 integrity verification failed before maintenance deployment.' }
+    npm.cmd run deploy:cloudflare -- --worker sewak-final --cutover-maintenance --free-plan-confirmed --validation $ValidationPath --auth-qa $AuthQaPath
     if ($LASTEXITCODE -ne 0) {
       throw 'CRITICAL: automatic read-only rollback deployment failed. Do not continue using production until manually verified.'
     }
@@ -119,9 +108,7 @@ if ((& $NormalizeWrites $OriginalConfig) -ne (& $NormalizeWrites $MainProduction
   throw 'The production config differs from origin/main by more than the reviewed write-state cutover.'
 }
 
-$ValidationReport = Require-PassingReport $Validation 'Final D1 validation'
 $AuthReport = Require-PassingReport $AuthQa 'Current production Cloudflare Auth QA'
-$RestorationReport = Require-CurrentRestoration $Restoration
 
 $AuthName = Get-JsonPropertyValue $AuthReport 'auth'
 $WorkerName = Get-JsonPropertyValue $AuthReport 'worker'
@@ -173,6 +160,9 @@ if ($LASTEXITCODE -ne 0) {
   throw 'Production E2E preflight failed. No deployment or lifecycle mutation was attempted.'
 }
 Write-Host 'Production E2E preflight passed.'
+node scripts/verify-cloudflare-data.mjs
+if ($LASTEXITCODE -ne 0) { throw 'Cloudflare D1 integrity verification failed.' }
+$ValidationReport = Require-PassingReport $Validation 'Cloudflare D1 integrity'
 
 $ActivatedByThisRun = $false
 $LifecyclePassed = $false
@@ -187,7 +177,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Release build failed.' }
 
     Write-Host 'Deploying write-enabled sewak-final through the guarded deployment operator...'
-    npm.cmd run deploy:cloudflare -- --worker sewak-final --free-plan-confirmed --source-frozen --validation $Validation --auth-qa $AuthQa
+    npm.cmd run deploy:cloudflare -- --worker sewak-final --free-plan-confirmed --validation $Validation --auth-qa $AuthQa
     if ($LASTEXITCODE -ne 0) { throw 'Guarded write-enabled production deployment failed. E2E was not started.' }
 
     $ActivatedByThisRun = $true
