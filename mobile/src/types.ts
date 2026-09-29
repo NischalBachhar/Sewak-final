@@ -45,6 +45,42 @@ export type PublicService = {
   description?: string;
   price?: number;
   isActive?: boolean;
+  organizationId?: string;
+  organizationName?: string;
+  createdAt?: string;
+  createdBy?: string;
+};
+
+export type Organization = {
+  id: string;
+  organizationId?: string;
+  adminUid?: string;
+  adminName?: string;
+  adminEmail?: string;
+  organizationName: string;
+  businessPhone?: string;
+  businessAddress?: string;
+  businessCity?: string;
+  commissionRate?: number;
+  isApproved?: boolean;
+  verified?: boolean;
+  isSuspended?: boolean;
+  isBlacklisted?: boolean;
+  profileComplete?: boolean;
+  totalCaregivers?: number;
+};
+
+export type OrganizationApplication = {
+  id: string;
+  applicantId?: string;
+  applicantName?: string;
+  applicantEmail?: string;
+  organizationName: string;
+  businessPhone?: string;
+  businessAddress?: string;
+  businessCity?: string;
+  status: "pending" | "approved" | "rejected" | string;
+  createdAt?: string;
 };
 
 export type Caregiver = {
