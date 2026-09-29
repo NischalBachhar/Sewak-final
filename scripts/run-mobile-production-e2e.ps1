@@ -52,18 +52,30 @@ function Write-Utf8NoBom([string]$Path, [string]$Text) {
   [System.IO.File]::WriteAllText((Resolve-Path $Path), $Text, $Utf8)
 }
 
-function Deploy-ReadOnly([string]$ValidationPath, [string]$AuthQaPath) {
+function Deploy-ReadOnly([string]$ValidationPath, [string]$AuthQaPath, [string]$SteadyStateConfig) {
   Write-Host 'Safety rollback: redeploying verified production read-only configuration...'
-  npm.cmd run deploy:cloudflare -- --worker sewak-final --cutover-maintenance --free-plan-confirmed --source-frozen --validation $ValidationPath --auth-qa $AuthQaPath
-  if ($LASTEXITCODE -ne 0) {
-    throw 'CRITICAL: automatic read-only rollback deployment failed. Do not continue using production until manually verified.'
+  $RollbackConfig = [regex]::Replace(
+    $SteadyStateConfig,
+    'APP_WRITES_ENABLED\s*=\s*"(true|false)"',
+    'APP_WRITES_ENABLED = "false"',
+    1
+  )
+  Write-Utf8NoBom $ProductionConfig $RollbackConfig
+  try {
+    npm.cmd run deploy:cloudflare -- --worker sewak-final --cutover-maintenance --free-plan-confirmed --source-frozen --validation $ValidationPath --auth-qa $AuthQaPath
+    if ($LASTEXITCODE -ne 0) {
+      throw 'CRITICAL: automatic read-only rollback deployment failed. Do not continue using production until manually verified.'
+    }
+    Start-Sleep -Seconds 3
+    $Health = Read-Health
+    if ($Health.auth -ne 'cloudflare-d1' -or $Health.writesEnabled -ne $false) {
+      throw 'CRITICAL: read-only rollback could not be verified. Stop all testing and inspect production.'
+    }
+    Write-Host 'Safety rollback verified: production writes are disabled.'
   }
-  Start-Sleep -Seconds 3
-  $Health = Read-Health
-  if ($Health.auth -ne 'cloudflare-d1' -or $Health.writesEnabled -ne $false) {
-    throw 'CRITICAL: read-only rollback could not be verified. Stop all testing and inspect production.'
+  finally {
+    Write-Utf8NoBom $ProductionConfig $SteadyStateConfig
   }
-  Write-Host 'Safety rollback verified: production writes are disabled.'
 }
 
 Write-Host 'Sewak production activation + mobile E2E'
@@ -85,9 +97,26 @@ if ($Dirty) {
 git fetch origin main
 if ($LASTEXITCODE -ne 0) { throw 'Could not refresh origin/main.' }
 
-git diff --quiet origin/main HEAD -- src worker public package.json wrangler.production.toml wrangler.toml scripts/deploy-worker.mjs scripts/deployment-policy.mjs scripts/release-build.cjs scripts/worker-command.mjs scripts/check-build-ci.cjs scripts/check-worker-entry.mjs
+git diff --quiet origin/main HEAD -- src worker public package.json wrangler.toml scripts/deploy-worker.mjs scripts/deployment-policy.mjs scripts/release-build.cjs scripts/worker-command.mjs scripts/check-build-ci.cjs scripts/check-worker-entry.mjs
 if ($LASTEXITCODE -ne 0) {
   throw 'This branch does not match the latest production web/Worker/deployment runtime from main. Stop and review before deploying.'
+}
+
+$OriginalConfig = Get-Content $ProductionConfig -Raw
+$MainProductionConfig = (git show "origin/main:$ProductionConfig") -join "`n"
+if ($LASTEXITCODE -ne 0) {
+  throw 'Could not read the production config from origin/main.'
+}
+$NormalizeWrites = {
+  param([string]$Value)
+  return [regex]::Replace(
+    $Value.TrimEnd(),
+    'APP_WRITES_ENABLED\s*=\s*"(true|false)"',
+    'APP_WRITES_ENABLED = "<reviewed-write-state>"'
+  )
+}
+if ((& $NormalizeWrites $OriginalConfig) -ne (& $NormalizeWrites $MainProductionConfig)) {
+  throw 'The production config differs from origin/main by more than the reviewed write-state cutover.'
 }
 
 $ValidationReport = Require-PassingReport $Validation 'Final D1 validation'
@@ -100,11 +129,13 @@ if ($AuthName -ne 'cloudflare-d1' -or $WorkerName -ne 'sewak-final') {
   throw 'The current Auth QA report is not for Cloudflare-D1 production sewak-final.'
 }
 
-$OriginalConfig = Get-Content $ProductionConfig -Raw
-$FalsePattern = 'APP_WRITES_ENABLED\s*=\s*"false"'
-$FalseMatches = [regex]::Matches($OriginalConfig, $FalsePattern)
-if ($FalseMatches.Count -ne 1) {
-  throw 'Committed production config must contain exactly one APP_WRITES_ENABLED="false" safety default.'
+$WritePattern = 'APP_WRITES_ENABLED\s*=\s*"(true|false)"'
+$WriteMatches = [regex]::Matches($OriginalConfig, $WritePattern)
+if ($WriteMatches.Count -ne 1) {
+  throw 'Committed production config must contain exactly one APP_WRITES_ENABLED value.'
+}
+if ($WriteMatches[0].Groups[1].Value -ne 'true') {
+  throw 'The reviewed production config must record APP_WRITES_ENABLED="true" after the successful production cutover.'
 }
 if ($OriginalConfig -notmatch 'name\s*=\s*"sewak-final"' -or
     $OriginalConfig -notmatch 'AUTH_AUDIENCE\s*=\s*"sewak-production"' -or
@@ -136,33 +167,19 @@ if ($Before.auth -ne 'cloudflare-d1') {
   throw 'Production is not reporting Cloudflare-only authentication. Stop before deployment.'
 }
 
-Write-Host 'Running read-only production E2E preflight before enabling writes...'
+Write-Host 'Running non-mutating production E2E preflight...'
 node scripts/smoke-mobile-e2e-production.mjs --preflight
 if ($LASTEXITCODE -ne 0) {
-  throw 'Production E2E preflight failed while production was still read-only. No write activation was attempted.'
+  throw 'Production E2E preflight failed. No deployment or lifecycle mutation was attempted.'
 }
-Write-Host 'Read-only E2E preflight passed.'
+Write-Host 'Production E2E preflight passed.'
 
 $ActivatedByThisRun = $false
 $LifecyclePassed = $false
 
 try {
   if ($Before.writesEnabled -ne $true) {
-    Write-Host 'Production is verified read-only. Preparing a temporary write-enabled production config for this authorized cutover...'
-
-    $WriteConfig = [regex]::Replace(
-      $OriginalConfig,
-      $FalsePattern,
-      'APP_WRITES_ENABLED = "true"',
-      1
-    )
-
-    Write-Utf8NoBom $ProductionConfig $WriteConfig
-
-    $ChangedFiles = @(git diff --name-only -- $ProductionConfig)
-    if ($LASTEXITCODE -ne 0 -or $ChangedFiles.Count -ne 1 -or $ChangedFiles[0] -ne $ProductionConfig) {
-      throw 'Unexpected production-config mutation while preparing write enablement.'
-    }
+    Write-Host 'Production is read-only but the reviewed steady-state config enables writes. Deploying the reviewed write-enabled state...'
 
     $env:REACT_APP_CANONICAL_ORIGIN = $Origin
     Write-Host 'Rebuilding the reviewed release with the canonical production origin...'
@@ -197,12 +214,8 @@ try {
   $LifecyclePassed = $true
 }
 finally {
-  # The repository keeps a read-only safety default. Restore the working copy
-  # regardless of success; production state is verified separately above.
-  Write-Utf8NoBom $ProductionConfig $OriginalConfig
-
   if (-not $LifecyclePassed -and $ActivatedByThisRun) {
-    Deploy-ReadOnly $Validation $AuthQa
+    Deploy-ReadOnly $Validation $AuthQa $OriginalConfig
   }
 }
 
@@ -217,4 +230,4 @@ if ($DirtyAfter) {
 
 Write-Host ''
 Write-Host 'PASS: production writes are enabled and the controlled mobile lifecycle completed with cleanup verification.'
-Write-Host 'The committed production config remains read-only-by-default; update the reviewed repository state only after recording this successful cutover.'
+Write-Host 'The reviewed production config now records APP_WRITES_ENABLED=true; automatic rollback remains available for failed activation runs.'
