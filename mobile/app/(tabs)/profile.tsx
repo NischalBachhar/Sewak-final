@@ -14,7 +14,7 @@ import { pickAndUploadProfileImage } from "@/media/profileImage";
 import { Caregiver, SewakProfile } from "@/types";
 import { colors, radius, spacing } from "@/theme";
 
-const SHIFTS = ["morning", "day", "evening", "night"];
+const SHIFTS = ["morning", "day", "night"];
 
 export default function ProfileScreen() {
   const router = useRouter();
