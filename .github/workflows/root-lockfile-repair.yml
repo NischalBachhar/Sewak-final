@@ -1,0 +1,37 @@
+name: One-time root lockfile repair
+
+on:
+  push:
+    branches:
+      - mobile/cloudflare-production
+    paths:
+      - ".github/workflows/root-lockfile-repair.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: mobile/cloudflare-production
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.13.1"
+      - name: Regenerate lockfile only
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify npm ci
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Commit repaired lockfile
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "Lockfile already compatible."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore: repair root npm lockfile for Node 22"
+          git push origin HEAD:mobile/cloudflare-production
