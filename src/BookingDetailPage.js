@@ -5,9 +5,10 @@ import {
   onSnapshot,
   orderBy,
   query,
-} from "firebase/firestore";
+} from "./d1Client";
 import { useNavigate, useParams } from "react-router-dom";
-import { db } from "./firebaseConfig";
+import { db } from "./d1Client";
+
 import { formatNpr } from "./config/brand";
 import { bookingScheduleLabel, getBookingStatus, normalizeBooking } from "./bookingModel";
 import { submitVerifiedReview } from "./careSessionService";

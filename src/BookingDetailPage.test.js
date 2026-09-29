@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { SessionReview } from "./BookingDetailPage";
 import { submitVerifiedReview } from "./careSessionService";
-jest.mock("firebase/firestore",()=>({}));
+jest.mock("./d1Client",()=>({}));
 jest.mock("react-router-dom",()=>({useNavigate:()=>jest.fn(),useParams:()=>({})}),{virtual:true});
-jest.mock("./firebaseConfig",()=>({db:{}}));
 jest.mock("./AuthContext",()=>({useAuth:()=>({user:{uid:"customer"}})}));
 jest.mock("./careSessionService",()=>({submitVerifiedReview:jest.fn()}));
 test("successful verified review is immediately confirmed before the listener catches up",async()=>{

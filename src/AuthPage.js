@@ -1,9 +1,8 @@
-import React, { useState } from "react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import React, { useEffect, useState } from "react";
+import { auth, signIn, register } from "./authClient";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { completeRegistration } from "./registrationService";
-import { auth } from "./firebaseConfig";
 import "./AuthPage.css";
 
 const GENERIC_SIGN_IN_ERROR =
@@ -14,12 +13,11 @@ const getAuthErrorMessage = (errorCode, mode) => {
     return "Please enter a valid email address.";
   }
 
-  // Firebase intentionally returns a single invalid-credential code for many
-  // email/password failures. Keep the older variants generic too so the sign-in
-  // screen never reveals whether an account exists.
+  // Do not reveal whether an account exists through login failures.
   if (
     mode === "login" &&
     [
+      "invalid-credentials",
       "auth/invalid-credential",
       "auth/invalid-login-credentials",
       "auth/user-not-found",
@@ -29,15 +27,15 @@ const getAuthErrorMessage = (errorCode, mode) => {
     return GENERIC_SIGN_IN_ERROR;
   }
 
-  if (errorCode === "auth/email-already-in-use") {
+  if (errorCode === "account-exists") {
     return "This email is already registered. Please log in.";
   }
 
   if (errorCode === "auth/weak-password") {
-    return "Password must be at least 6 characters long.";
+    return "Password must be at least 12 characters long.";
   }
 
-  if (errorCode === "auth/too-many-requests") {
+  if (errorCode === "rate-limited") {
     return "Too many attempts. Please wait a moment and try again.";
   }
 
@@ -58,6 +56,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  useEffect(() => { if (userDoc?.registrationIncomplete) setMode("register"); }, [userDoc?.registrationIncomplete]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,7 +65,7 @@ export default function AuthPage() {
 
     try {
       if (mode === "login") {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signIn(email, password);
         if (registrationPending) {
           setMode("register");
           setSuccess("Signed in. Complete your profile/application setup to continue.");
@@ -77,12 +76,12 @@ export default function AuthPage() {
         beginRegistration(selectedRole);
         let account = auth.currentUser;
         if (!account || account.email?.toLowerCase() !== email.trim().toLowerCase()) {
-          try { account = (await createUserWithEmailAndPassword(auth, email.trim(), password)).user; }
+          try { account = await register({ email: email.trim(), password, name: fullName.trim() }); }
           catch (error) {
-            if (error.code !== "auth/email-already-in-use") throw error;
-            // Resume only after Firebase verifies the password; never overwrite
+            if (error.code !== "account-exists") throw error;
+            // Resume only after the server verifies the password; never overwrite
             // another account or assign an organization role from the browser.
-            account = (await signInWithEmailAndPassword(auth, email.trim(), password)).user;
+            account = await signIn(email.trim(), password);
           }
         }
         await completeRegistration(account, { fullName, selectedRole, organizationName });
@@ -98,17 +97,8 @@ export default function AuthPage() {
     }
   };
 
-  const forgotPassword = async () => {
-    if (!email.trim()) { setError("Enter your email address first."); return; }
-    setLoading(true); setError("");
-    try {
-      await sendPasswordResetEmail(auth, email.trim());
-      setSuccess("If this address can receive a reset email, check its inbox for the secure reset link.");
-    } catch (error) {
-      if (["auth/user-not-found", "auth/invalid-credential"].includes(error.code)) setSuccess("If this address can receive a reset email, check its inbox for the secure reset link.");
-      else setError("The reset request could not be completed. Check the address and connection, then try again.");
-    } finally { setLoading(false); }
-  };
+  const forgotPassword = () => { setError(''); setSuccess('Contact your Sewak administrator for account recovery. Automated reset email is not configured.'); };
+
   return (
     <div className="auth-shell">
       <div className="auth-hero">
@@ -169,8 +159,8 @@ export default function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required={mode === "login" || !auth.currentUser}
-              minLength={6}
-              placeholder={mode === "login" ? "Your password" : "At least 6 characters"}
+              minLength={mode === "login" ? 1 : 12} maxLength={128}
+              placeholder={mode === "login" ? "Your password" : "At least 12 characters"}
             />
           </div>
 

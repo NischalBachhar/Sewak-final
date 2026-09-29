@@ -1,0 +1,11 @@
+const {spawnSync}=require('node:child_process');
+const fs=require('node:fs');
+const env={...process.env};
+for(const key of Object.keys(env))if(/^REACT_APP_(FIREBASE|USE_EMULATORS)/.test(key))delete env[key];
+delete env.DEBUG;
+const result=spawnSync(process.execPath,['node_modules/react-scripts/scripts/build.js'],{env,stdio:'inherit'});
+if(result.status!==0)process.exit(result.status??1);
+const metadata=spawnSync(process.execPath,['scripts/public-metadata.cjs'],{env,stdio:'inherit'});
+if(metadata.status!==0)process.exit(metadata.status??1);
+fs.mkdirSync('.local-tools',{recursive:true});
+fs.writeFileSync('.local-tools/last-build.json',JSON.stringify({authMode:'cloudflare-production',builtAt:new Date().toISOString()}));

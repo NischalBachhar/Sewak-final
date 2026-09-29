@@ -1,5 +1,7 @@
 // src/CaregiverDashboardPage.js
 import React, { useEffect, useState } from "react";
+import { uploadProfileImage } from "./profileImages";
+import ProfileImage from "./components/ProfileImage";
 import {
   collection,
   query,
@@ -10,14 +12,11 @@ import {
   getDocs,
   serverTimestamp,
   updateDoc,
-} from "firebase/firestore";
-import {
-  updatePassword,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-} from "firebase/auth";
+} from "./d1Client";
+import { changePassword } from "./authClient";
 import { useNavigate, useLocation } from "react-router-dom";
-import { db } from "./firebaseConfig";
+import { db } from "./d1Client";
+
 import { useAuth } from "./AuthContext";
 import CaregiverShiftWorkflow from "./CaregiverShiftWorkflow";
 import { formatNpr } from "./config/brand";
@@ -369,8 +368,8 @@ export default function CaregiverDashboardPage() {
       setError("Please fill all password fields.");
       return;
     }
-    if (newPassword.length < 6) {
-      setError("New password must be at least 6 characters.");
+    if (newPassword.length < 12) {
+      setError("New password must be at least 12 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -384,12 +383,7 @@ export default function CaregiverDashboardPage() {
 
     try {
       setChangingPassword(true);
-      const credential = EmailAuthProvider.credential(
-        user.email,
-        currentPassword
-      );
-      await reauthenticateWithCredential(user, credential);
-      await updatePassword(user, newPassword);
+      await changePassword(currentPassword, newPassword);
       alert("Password changed successfully!");
       setCurrentPassword("");
       setNewPassword("");
@@ -397,7 +391,7 @@ export default function CaregiverDashboardPage() {
       setShowPasswordSection(false);
     } catch (err) {
       console.error("Error changing password", { code: err?.code || "unknown" });
-      if (err.code === "auth/wrong-password") {
+      if (err.code === "invalid-credentials") {
         setError("Current password is incorrect.");
       } else if (err.code === "auth/requires-recent-login") {
         setError(
@@ -1021,6 +1015,18 @@ export default function CaregiverDashboardPage() {
             Edit Your Profile
           </h3>
           <form onSubmit={handleSaveProfile} className="form">
+            <ProfileImage src={profileData?.profileImage} alt={editName || "Caregiver"} style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover" }} />
+            <label htmlFor="caregiver-profile-photo">Profile photo</label>
+            <input id="caregiver-profile-photo" type="file" accept="image/jpeg,image/webp,image/png" disabled={savingProfile} onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              setSavingProfile(true); setError(null);
+              try {
+                const image = await uploadProfileImage(user.uid, file);
+                setProfileData((previous) => ({ ...previous, profileImage: image.url }));
+              } catch (failure) { setError(failure.message); }
+              finally { setSavingProfile(false); }
+            }} />
             <label>Full Name</label>
             <input
               value={editName}
@@ -1353,7 +1359,7 @@ export default function CaregiverDashboardPage() {
                     setNewPassword(e.target.value)
                   }
                   required
-                  minLength={6}
+                  minLength={12} maxLength={128}
                   placeholder="At least 6 characters"
                 />
 
@@ -1365,7 +1371,7 @@ export default function CaregiverDashboardPage() {
                     setConfirmPassword(e.target.value)
                   }
                   required
-                  minLength={6}
+                  minLength={12} maxLength={128}
                   placeholder="Re-enter new password"
                 />
 

@@ -1,7 +1,9 @@
+import ProfileImage from "./components/ProfileImage";
 import React, { useEffect, useMemo, useState } from "react";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where } from "./d1Client";
 import { useNavigate, useParams } from "react-router-dom";
-import { db } from "./firebaseConfig";
+import { db } from "./d1Client";
+
 import { formatNpr } from "./config/brand";
 import { getCaregiverVerification } from "./bookingModel";
 import {
@@ -189,7 +191,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
         <div className="caregiver-profile-hero__identity">
           <div className="caregiver-profile-avatar">
             {caregiver.profileImage ? (
-              <img src={caregiver.profileImage} alt={`${caregiver.name || "Caregiver"} profile`} />
+              <ProfileImage src={caregiver.profileImage} alt={`${caregiver.name || "Caregiver"} profile`} />
             ) : (
               <span aria-hidden="true">{initials}</span>
             )}

@@ -1,12 +1,13 @@
-import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import { doc, runTransaction, serverTimestamp } from "./d1Client";
+import { db } from "./d1Client";
+
 
 export const reportReceipt = (report) => ({
   bookingId: report.bookingId, reportedBy: report.reportedBy, reason: report.reason,
   status: report.status, createdAt: report.createdAt,
 });
 // One conduct report per assigned booking. A receipt is a separate, limited
-// document: Firestore cannot redact moderator fields from a document read.
+// record so moderator fields never appear in reporter responses.
 export async function submitBookingReport(report) {
   const receiptRef = doc(db, "reportReceipts", report.bookingId);
   const lockRef = doc(db, "reportLocks", report.bookingId);

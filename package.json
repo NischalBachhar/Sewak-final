@@ -7,16 +7,22 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^13.5.0",
-    "firebase": "^12.7.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "react-router-dom": "^7.12.0",
+    "react-router-dom": "^7.18.2",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:release": "node scripts/release-build.cjs",
+    "typecheck": "npm --prefix worker run typecheck",
+    "test:d1": "node --test tests/d1/*.test.mjs",
+    "dev:worker": "npm --prefix worker run dev",
+    "d1:local": "node scripts/local-d1.mjs",
+    "d1:provision": "node scripts/provision-cloudflare.mjs",
+    "deploy:cloudflare": "node scripts/deploy-worker.mjs",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "postbuild": "node scripts/public-metadata.cjs",
@@ -25,7 +31,7 @@
     "test:migration": "node --test tests/migration.test.cjs",
     "test:rules": "node scripts/test-emulators.cjs \"node --test tests/rules.test.cjs\"",
     "test:backend": "node scripts/test-emulators.cjs \"node --test functions/test/*.test.cjs\"",
-    "lint": "eslint src --ext .js && npm --prefix functions run lint"
+    "lint": "eslint src --ext .js,.mjs && npm --prefix functions run lint"
   },
   "eslintConfig": {
     "extends": [

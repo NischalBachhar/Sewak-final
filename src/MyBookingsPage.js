@@ -3,8 +3,9 @@ import {
   doc,
   serverTimestamp,
   updateDoc,
-} from "firebase/firestore";
-import { db } from "./firebaseConfig";
+} from "./d1Client";
+import { db } from "./d1Client";
+
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import useCustomerBookings from "./useCustomerBookings";

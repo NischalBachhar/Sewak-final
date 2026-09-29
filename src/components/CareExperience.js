@@ -1,3 +1,4 @@
+import ProfileImage from "./ProfileImage";
 import React from "react";
 import "./CareExperience.css";
 
@@ -1593,7 +1594,7 @@ export function ActiveCareCard({
 
       <div className="ce-active-care-card__caregiver">
         {actualCaregiverImage ? (
-          <img
+          <ProfileImage
             className="ce-active-care-card__avatar"
             src={actualCaregiverImage}
             alt={actualCaregiverName ? actualCaregiverName + ", caregiver" : "Caregiver"}

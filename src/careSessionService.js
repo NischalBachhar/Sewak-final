@@ -7,8 +7,9 @@ import {
   setDoc,
   updateDoc,
   writeBatch,
-} from "firebase/firestore";
-import { db } from "./firebaseConfig";
+} from "./d1Client";
+import { db } from "./d1Client";
+
 import { normalizeBooking } from "./bookingModel";
 
 const sessionRefFor = (bookingId) => doc(db, "careSessions", bookingId);

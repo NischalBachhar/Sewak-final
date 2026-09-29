@@ -1,0 +1,36 @@
+name = "sewak-final"
+account_id = "860970f755498a4fe10e16c2fa99ce55"
+main = "worker/src/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[assets]
+directory = "./build"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/auth/*"]
+
+[vars]
+AUTH_AUDIENCE = "sewak-production"
+APP_WRITES_ENABLED = "true"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sewak-db"
+database_id = "36fa1df1-aa5d-43a1-ad0e-a4e310c513c3"
+migrations_dir = "migrations/main"
+
+[[d1_databases]]
+binding = "MEDIA_DB"
+database_name = "sewak-media"
+database_id = "c3721e25-4fb2-4a0d-b350-518ec9abbea2"
+migrations_dir = "migrations/media"
+
+[[durable_objects.bindings]]
+name = "PASSWORD_HASHER"
+class_name = "PasswordHasher"
+
+[[migrations]]
+tag = "cloudflare-auth-v1"
+new_sqlite_classes = ["PasswordHasher"]

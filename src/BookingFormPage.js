@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { collection, documentId, getDocs, query, where } from "firebase/firestore";
+import { collection, documentId, getDocs, query, where } from "./d1Client";
 import { calculateQuote, kathmanduDate, validateBooking } from "./bookingValidation";
 import { clearAttempt, createCashBooking, recoverBooking } from "./bookingService";
-import { db } from "./firebaseConfig";
+import { db } from "./d1Client";
+
 import { useAuth } from "./AuthContext";
 import { formatNpr } from "./config/brand";
 import { BookingStepper, ErrorState } from "./components/CareExperience";

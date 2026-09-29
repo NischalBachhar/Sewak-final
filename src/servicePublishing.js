@@ -1,5 +1,5 @@
-import { doc, getDoc, serverTimestamp, writeBatch } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import { getDoc, serverTimestamp, setDoc } from "./d1Client";
+
 import { canonicalCategory } from "./bookingValidation";
 
 export function publicServiceData(id, record) {
@@ -12,11 +12,9 @@ export async function saveService(ref, values, merge = false) {
   const previous = merge ? await getDoc(ref) : null;
   if (merge && !previous.exists()) throw new Error("This service no longer exists.");
   const record = { ...(previous?.data() || {}), ...values, category: canonicalCategory(values.category || previous?.data()?.category) };
-  const projection = publicServiceData(ref.id, record);
-  const batch = writeBatch(db);batch.set(ref, record);
-  if (projection.isActive) batch.set(doc(db, "publicServices", ref.id), projection);
-  else batch.delete(doc(db, "publicServices", ref.id));
-  await batch.commit();
+  publicServiceData(ref.id, record);
+  // The Worker derives the public projection from this authorized source row.
+  await setDoc(ref, record);
 }
 export async function retireService(ref) {
   // Keep historical references recoverable; stop offering the retired service.

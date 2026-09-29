@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { collection, doc, onSnapshot, orderBy, query } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import { collection, doc, onSnapshot, orderBy, query } from "./d1Client";
+import { db } from "./d1Client";
+
 import {
   addCareTask,
   addCareUpdate,

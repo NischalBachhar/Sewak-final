@@ -1,0 +1,40 @@
+name = "sewak"
+# Staging target. Guarded final deployment uses --worker sewak-final to retain
+# the existing https://sewak-final.nischalbachhar9.workers.dev production URL.
+account_id = "860970f755498a4fe10e16c2fa99ce55"
+# Pinned to the separate Sewak account verified after the user's login.
+main = "worker/src/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[assets]
+directory = "./build"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/auth/*"]
+
+[vars]
+AUTH_AUDIENCE = "sewak-staging"
+# Keep writes closed until both imports and validation are complete.
+APP_WRITES_ENABLED = "false"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sewak-staging-db"
+database_id = "764b3560-fc46-4273-9026-f049941ab4c3"
+migrations_dir = "migrations/main"
+
+[[d1_databases]]
+binding = "MEDIA_DB"
+database_name = "sewak-staging-media"
+database_id = "0060c4f7-828c-478d-b951-c1be0b43921e"
+migrations_dir = "migrations/media"
+
+[[durable_objects.bindings]]
+name = "PASSWORD_HASHER"
+class_name = "PasswordHasher"
+
+[[migrations]]
+tag = "cloudflare-auth-v1"
+new_sqlite_classes = ["PasswordHasher"]

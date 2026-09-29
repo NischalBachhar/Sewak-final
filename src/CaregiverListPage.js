@@ -1,7 +1,9 @@
+import ProfileImage from "./components/ProfileImage";
 import React, { useEffect, useRef, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "./d1Client";
 import { useNavigate } from "react-router-dom";
-import { db } from "./firebaseConfig";
+import { db } from "./d1Client";
+
 import { hasVerifiedRating } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
@@ -76,7 +78,7 @@ function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, req
       <div className="browse-caregiver-card__top">
         <div className="browse-caregiver-card__avatar">
           {caregiver.profileImage ? (
-            <img src={caregiver.profileImage} alt={caregiver.name || "Caregiver"} />
+            <ProfileImage src={caregiver.profileImage} alt={caregiver.name || "Caregiver"} />
           ) : (
             getInitials(caregiver.name)
           )}
@@ -217,7 +219,7 @@ function CaregiverCard({ caregiver, services, onSelect, onViewProfile, requireLo
       {/* Header */}
       <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
         {caregiver.profileImage ? (
-          <img
+          <ProfileImage
             src={caregiver.profileImage}
             alt={caregiver.name || "Caregiver"}
             style={{

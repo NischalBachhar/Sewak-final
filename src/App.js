@@ -1,6 +1,7 @@
 import React, { lazy, useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
+import { signOut } from "./authClient";
+import AccountSetupPage from "./AccountSetupPage";
 import useCustomerBookings from "./useCustomerBookings";
 import NotFound from "./components/NotFound";
 import { useAuth } from "./AuthContext";
@@ -11,7 +12,6 @@ import BrowsePage from "./BrowsePage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
-import { auth } from "./firebaseConfig";
 import "./App.css";
 import "./DashboardExperience.css";
 
@@ -56,7 +56,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await signOut();
     } catch (err) {
       console.error("Logout error:", { code: err?.code || "unknown" });
     }
@@ -173,6 +173,7 @@ function App() {
     }
   }, [user, userRole, userDoc?.profileComplete, navigate]);
 
+  if (window.location.pathname === "/account/setup") return <AccountSetupPage />;
   if (registrationPending || userDoc?.registrationIncomplete || (!user && window.location.pathname === "/auth")) return <AuthPage />;
 
   if (loading) {

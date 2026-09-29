@@ -2,8 +2,7 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import BookingFormPage from "./BookingFormPage";
 import { createCashBooking } from "./bookingService";
-jest.mock("./firebaseConfig", () => ({ db: {} }));
-jest.mock("firebase/firestore", () => ({ collection: jest.fn(), documentId: jest.fn(), query: jest.fn(), where: jest.fn(), getDocs: async () => ({ docs: [{ id: "care", data: () => ({ label: "Care", isActive: true }) }] }) }));
+jest.mock("./d1Client", () => ({ collection: jest.fn(), documentId: jest.fn(), query: jest.fn(), where: jest.fn(), getDocs: async () => ({ docs: [{ id: "care", data: () => ({ label: "Care", isActive: true }) }] }) }));
 jest.mock("./bookingService", () => ({ createCashBooking: jest.fn(), clearAttempt: jest.fn(), recoverBooking: jest.fn() }));
 jest.mock("./AuthContext", () => ({ useAuth: () => ({ user: { uid: "customer" }, userDoc: { name: "Test Customer", phone: "9800000000", address: "Test Street", city: "Hetauda" } }) }));
 test("Continue enters review without saving; only explicit confirmation submits", async () => {

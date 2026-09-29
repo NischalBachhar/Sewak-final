@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import { doc, setDoc } from "./d1Client";
+import { db } from "./d1Client";
+
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import { SkeletonCard } from "./components/CareExperience";

@@ -1,5 +1,6 @@
-import { doc, getDocFromServer, runTransaction, serverTimestamp, Timestamp } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import { doc, getDocFromServer, runTransaction, serverTimestamp, Timestamp } from "./d1Client";
+import { db } from "./d1Client";
+
 import { calculateQuote, canonicalCategory, normalizePhone, scheduleBoundary, validateBooking } from "./bookingValidation";
 
 const attemptKey = (uid, caregiverId) => `sewak.bookingAttempt.v1:${uid}:${caregiverId}`;

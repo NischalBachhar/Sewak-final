@@ -13,13 +13,10 @@ import {
   serverTimestamp,
   query,
   where,
-} from "firebase/firestore";
-import {
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-} from "firebase/auth";
-import { httpsCallable } from "firebase/functions";
-import { db, auth, functions } from "./firebaseConfig";
+} from "./d1Client";
+import { onSessionChanged } from "./authClient";
+import { httpsCallable } from "./apiClient";
+import { db } from "./d1Client";
 import CaregiverEditor from "./components/CaregiverEditor";
 import { normalizeBooking } from "./bookingModel";
 import { formatNpr } from "./config/brand";
@@ -37,7 +34,6 @@ const dashboardTabs = [
   "analytics",
 ];
 
-const PUBLIC_CAREGIVER_WRITE_BATCH_SIZE = 5;
 
 const caregiverVerificationFields = [
   {
@@ -106,87 +102,6 @@ function getCaregiverVerificationItems(caregiver) {
           : undefined,
     };
   });
-}
-
-function publicString(value, maximum) {
-  return typeof value === "string" ? value.slice(0, maximum) : "";
-}
-
-function publicNumber(value, minimum, maximum, fallback = 0) {
-  const number = Number(value);
-  return Number.isFinite(number) && number >= minimum && number <= maximum
-    ? number
-    : fallback;
-}
-
-function publicList(value, maximum) {
-  return Array.isArray(value) ? value.slice(0, maximum) : [];
-}
-
-function publicVerificationStatus(value) {
-  return ["verified", "pending", "not_verified", "unavailable"].includes(value)
-    ? value
-    : "not_verified";
-}
-
-function isActiveOrganizationForTrial(organization) {
-  return Boolean(
-    organization &&
-      organization.isApproved === true &&
-      organization.isSuspended !== true &&
-      organization.isBlacklisted !== true,
-  );
-}
-
-function buildPublicCaregiverListing(caregiver, organizationActive, commissionRate = 15) {
-  const reviewCount = publicNumber(caregiver.reviewCount, 0, 1000000);
-  const rating = reviewCount > 0
-    ? publicNumber(caregiver.rating, 0, 5)
-    : 0;
-
-  return {
-    caregiverId: caregiver.id,
-    commissionRate,
-    allowZeroRate: caregiver.allowZeroRate === true,
-    name: publicString(caregiver.name, 120),
-    location: publicString(caregiver.location, 160),
-    category: caregiver.category === "household" ? "vendor" : publicString(caregiver.category, 32),
-    workType: publicString(caregiver.workType, 32),
-    shifts: publicList(caregiver.shifts, 3),
-    servicesOffered: publicList(caregiver.servicesOffered, 20),
-    hourlyRate: publicNumber(caregiver.hourlyRate, 0, 1000000),
-    experience: publicNumber(caregiver.experience, 0, 100),
-    bio: publicString(caregiver.bio, 1000),
-    jobsCompleted: publicNumber(caregiver.jobsCompleted, 0, 1000000),
-    rating,
-    reviewCount,
-    verified: caregiver.verified === true,
-    backgroundChecked: caregiver.backgroundChecked === true,
-    isCertified: caregiver.isCertified === true,
-    isAvailable: caregiver.isAvailable === true,
-    isApproved: true,
-    isSuspended: false,
-    isBlacklisted: false,
-    isOrganizationActive: organizationActive === true,
-    organizationId: publicString(caregiver.organizationId, 128),
-    organizationName: publicString(caregiver.organizationName, 160),
-    identityVerificationStatus: publicVerificationStatus(
-      caregiver.identityVerificationStatus,
-    ),
-    phoneVerificationStatus: publicVerificationStatus(
-      caregiver.phoneVerificationStatus,
-    ),
-    trainingVerificationStatus: publicVerificationStatus(
-      caregiver.trainingVerificationStatus,
-    ),
-    backgroundVerificationStatus: publicVerificationStatus(
-      caregiver.backgroundVerificationStatus,
-    ),
-    referencesVerificationStatus: publicVerificationStatus(
-      caregiver.referencesVerificationStatus,
-    ),
-    updatedAt: serverTimestamp(),
-  };
 }
 
 function DashboardLoadingState({ label, cards = 3 }) {
@@ -507,7 +422,7 @@ export default function AdminDashboardPage() {
     let cancelled = false;
 
     setLoadingAuth(true);
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onSessionChanged(async (user) => {
       if (!user || cancelled) {
         setPermissionsError("Please log in to access the Admin Dashboard.");
         setCurrentUser(null);
@@ -586,7 +501,7 @@ export default function AdminDashboardPage() {
     setAddingOrg(true);
 
     try {
-      const provision = httpsCallable(functions, "provisionOrganizationAccount");
+      const provision = httpsCallable(null, "provisionOrganizationAccount");
       const result = await provision({
         email: newOrgEmail,
         displayName: newOrgAdminName,
@@ -595,11 +510,11 @@ export default function AdminDashboardPage() {
         businessAddress: newOrgAddress,
         businessCity: newOrgCity,
       });
-      const invitation = result.data?.invitation?.passwordResetLink || "";
+      const invitation = result.data?.invitation?.activationToken ? `${window.location.origin}/account/setup#token=${encodeURIComponent(result.data.invitation.activationToken)}` : "";
       setProvisioningInvitation(invitation);
       setSuccessMessage(invitation
         ? "Organization account provisioned. Send the one-time invitation link using an approved secure channel."
-        : "Organization account provisioned. Configure Firebase Auth email delivery before inviting this administrator.");
+        : "Organization account provisioned. The invitation is unavailable; retry account provisioning.");
       setNewOrgName("");
       setNewOrgAdminName("");
       setNewOrgEmail("");
@@ -681,10 +596,11 @@ export default function AdminDashboardPage() {
       return;
     }
     try {
-      await sendPasswordResetEmail(auth, recipientEmail);
-      setSuccessMessage(`A password reset email was sent to ${recipientEmail}. No password was collected or stored by Sewak.`);
+      const result = await httpsCallable(null, 'createAccountRecoveryInvitation')({ targetUid: org.id });
+      setProvisioningInvitation(window.location.origin + '/account/setup#token=' + encodeURIComponent(result.data.invitation.activationToken));
+      setSuccessMessage("A one-time recovery link is ready. Deliver it through an approved secure channel.");
     } catch (resetError) {
-      setError(`Could not send a password reset email: ${resetError.message}`);
+      setError(`Could not create a recovery link: ${resetError.message}`);
     }
   };
 
@@ -696,15 +612,27 @@ export default function AdminDashboardPage() {
 
   const runAccountSafetyAction = async (payload) => {
     const applySafetyAction = httpsCallable(
-      functions,
+      null,
       "applyAccountSafetyAction",
     );
     const response = await applySafetyAction(payload);
     const result = response?.data || {};
 
     if (result.authRevocationStatus === "partial") {
+      const drain = httpsCallable(null, "processAccountOperations");
+      let remaining = result.remaining;
+      for (let page = 0; remaining > 0 && page < 20; page += 1) {
+        const next = (await drain({}))?.data?.remaining;
+        if (!Number.isInteger(next) || next >= remaining) break;
+        remaining = next;
+      }
+      result.remaining = remaining;
+      result.authRevocationStatus = remaining === 0 ? "complete" : "partial";
+    }
+
+    if (result.authRevocationStatus === "partial") {
       setError(
-        "Safety restrictions were saved, but Firebase Authentication revocation could not be completed. Retry this action before treating account access as revoked.",
+        "Safety restrictions were saved, but session revocation could not be completed. Retry this action before treating account access as revoked.",
       );
       return { complete: false, result };
     }
@@ -760,7 +688,7 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const approveOrganization = httpsCallable(functions, "approveOrganizationAccount");
+      const approveOrganization = httpsCallable(null, "approveOrganizationAccount");
       await approveOrganization({ organizationId: orgId });
       setSuccessMessage("Organization approved and its secure organization-admin claim was updated.");
       await loadAllData();
@@ -772,7 +700,7 @@ export default function AdminDashboardPage() {
   const handleApproveOrganizationApplication = async (applicationId) => {
     try {
       const approveApplication = httpsCallable(
-        functions,
+      null,
         "approveOrganizationApplication",
       );
       await approveApplication({ applicationId });
@@ -860,71 +788,8 @@ export default function AdminDashboardPage() {
     setPublicCaregiverSyncProgress("Preparing public caregiver listings…");
 
     try {
-      const organizationsById = new Map(
-        organizations.map((organization) => [organization.id, organization]),
-      );
-      const existingPublicListings = await getDocs(
-        collection(db, "publicCaregivers"),
-      );
-      const writes = [];
-      let published = 0;
-
-      vendors.forEach((caregiver) => {
-        const organizationId = publicString(caregiver.organizationId, 128);
-        const organizationActive = organizationId
-          ? isActiveOrganizationForTrial(organizationsById.get(organizationId))
-          : true;
-        const eligible =
-          caregiver.isApproved === true &&
-          caregiver.isSuspended !== true &&
-          caregiver.isBlacklisted !== true &&
-          organizationActive;
-
-        if (eligible) {
-          writes.push({
-            type: "set",
-            ref: doc(db, "publicCaregivers", caregiver.id),
-            data: buildPublicCaregiverListing(caregiver, organizationActive, organizationsById.get(organizationId)?.commissionRate ?? 15),
-          });
-          published += 1;
-        }
-      });
-
-      const eligibleIds = new Set(
-        writes.filter((entry) => entry.type === "set").map((entry) => entry.ref.id),
-      );
-      existingPublicListings.docs.forEach((listing) => {
-        if (!eligibleIds.has(listing.id)) {
-          writes.push({ type: "delete", ref: listing.ref });
-        }
-      });
-
-      for (
-        let offset = 0;
-        offset < writes.length;
-        offset += PUBLIC_CAREGIVER_WRITE_BATCH_SIZE
-      ) {
-        const batch = writeBatch(db);
-        const chunk = writes.slice(
-          offset,
-          offset + PUBLIC_CAREGIVER_WRITE_BATCH_SIZE,
-        );
-        chunk.forEach((entry) => {
-          if (entry.type === "set") {
-            batch.set(entry.ref, entry.data);
-          } else {
-            batch.delete(entry.ref);
-          }
-        });
-        await batch.commit();
-        setPublicCaregiverSyncProgress(
-          `Publishing public listings… ${Math.min(offset + chunk.length, writes.length)} of ${writes.length} changes saved.`,
-        );
-      }
-
-      setSuccessMessage(
-        `${published} approved caregiver profile${published === 1 ? "" : "s"} published for Browse.`,
-      );
+      await httpsCallable(null, "backfillPublicCaregivers")({});
+      setSuccessMessage("Approved caregiver listings are up to date.");
       await loadAllData();
     } catch (err) {
       console.error("Error publishing trial caregiver listings:", { code: err?.code || "unknown" });
@@ -972,10 +837,11 @@ export default function AdminDashboardPage() {
       return;
     }
     try {
-      await sendPasswordResetEmail(auth, caregiver.email);
-      setSuccessMessage(`A password reset email was sent to ${caregiver.email}. No password was collected or stored by Sewak.`);
+      const result = await httpsCallable(null, 'createAccountRecoveryInvitation')({ targetUid: caregiver.id });
+      setProvisioningInvitation(window.location.origin + '/account/setup#token=' + encodeURIComponent(result.data.invitation.activationToken));
+      setSuccessMessage("A one-time recovery link is ready. Deliver it through an approved secure channel.");
     } catch (resetError) {
-      setError(`Could not send a password reset email: ${resetError.message}`);
+      setError(`Could not create a recovery link: ${resetError.message}`);
     }
   };
 
@@ -1023,16 +889,16 @@ export default function AdminDashboardPage() {
     setAddingSuperAdmin(true);
 
     try {
-      const provision = httpsCallable(functions, "provisionSuperAdminAccount");
+      const provision = httpsCallable(null, "provisionSuperAdminAccount");
       const result = await provision({
         email: newSuperAdminEmail,
         displayName: newSuperAdminName,
       });
-      const invitation = result.data?.invitation?.passwordResetLink || "";
+      const invitation = result.data?.invitation?.activationToken ? `${window.location.origin}/account/setup#token=${encodeURIComponent(result.data.invitation.activationToken)}` : "";
       setProvisioningInvitation(invitation);
       setSuccessMessage(invitation
         ? "Superadmin account provisioned. Send the one-time invitation link using an approved secure channel."
-        : "Superadmin account provisioned. Configure Firebase Auth email delivery before inviting this administrator.");
+        : "Superadmin account provisioned. The invitation is unavailable; retry account provisioning.");
       setNewSuperAdminName("");
       setNewSuperAdminEmail("");
       setShowAddSuperAdminForm(false);
@@ -1234,7 +1100,7 @@ export default function AdminDashboardPage() {
         </p>
         <ol>
           <li>Ensure you are logged in as a superadmin account</li>
-          <li>Check Firestore Security Rules in Firebase Console</li>
+          <li>Check your Sewak account role and access</li>
           <li>Have a trusted administrator provision your account with the Admin SDK</li>
           <li>Contact system administrator if you need access</li>
         </ol>
@@ -1703,7 +1569,7 @@ export default function AdminDashboardPage() {
                             fontSize: 12,
                           }}
                         >
-                          Send reset email
+                          Create recovery link
                         </button>
 
                         <button
@@ -2175,7 +2041,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <p style={{ color: "var(--theme-text-muted)" }}>
-                  Passwords are never collected or stored here. Close this dialog and use the Send reset email action instead.
+                  Passwords are never collected or stored here. Close this dialog and use the Create recovery link action instead.
                 </p>
               </div>
             </AccessibleDialog>
@@ -2372,7 +2238,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <p style={{ color: "var(--theme-text-muted)" }}>
-                  Passwords are never collected or stored here. Close this dialog and use the Send reset email action instead.
+                  Passwords are never collected or stored here. Close this dialog and use the Create recovery link action instead.
                 </p>
               </div>
             </AccessibleDialog>
@@ -2899,7 +2765,7 @@ export default function AdminDashboardPage() {
                             fontSize: 12,
                           }}
                         >
-                          Send reset email
+                          Create recovery link
                         </button>
 
                         <button

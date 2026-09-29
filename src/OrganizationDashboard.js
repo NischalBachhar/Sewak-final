@@ -13,9 +13,10 @@ import {
   query,
   where,
   serverTimestamp,
-} from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
-import { db, functions } from "./firebaseConfig";
+} from "./d1Client";
+import { httpsCallable } from "./apiClient";
+import { db } from "./d1Client";
+
 import useOrganizationBookings from "./useOrganizationBookings";
 import { useAuth } from "./AuthContext";
 import "./OrganizationDashboard.css";
@@ -171,7 +172,7 @@ export default function OrganizationDashboard() {
     setAddingCaregiver(true);
 
     try {
-      const provision = httpsCallable(functions, "provisionCaregiverAccount");
+      const provision = httpsCallable(null, "provisionCaregiverAccount");
       const result = await provision({
         email: caregiverEmail,
         displayName: caregiverName,
@@ -184,7 +185,7 @@ export default function OrganizationDashboard() {
         hourlyRate: Number(caregiverHourlyRate) || 0,
         experience: Number(caregiverExperience) || 0,
       });
-      setCaregiverInvitation(result.data?.invitation?.passwordResetLink || "");
+      setCaregiverInvitation(result.data?.invitation?.activationToken ? `${window.location.origin}/account/setup#token=${encodeURIComponent(result.data.invitation.activationToken)}` : "");
       setNotice((result.data?.invitation?.warning ? result.data.invitation.warning + " " : "") + "Caregiver account provisioned. It remains unavailable and unverified until an authorized platform review is complete.");
 
       // reset

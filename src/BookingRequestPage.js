@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "./d1Client";
 import { useNavigate, useParams } from "react-router-dom";
-import { db } from "./firebaseConfig";
+import { db } from "./d1Client";
+
 import BookingFormPage from "./BookingFormPage";
 import { useAuth } from "./AuthContext";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";

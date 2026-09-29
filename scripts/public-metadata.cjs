@@ -18,6 +18,8 @@ if (raw) {
 fs.writeFileSync(htmlPath, html);
 fs.writeFileSync('build/robots.txt', robots);
 // Public HTML metadata is generic. Private routes get served HTTP noindex headers
-// in Firebase Hosting and Cloudflare Pages; JS metadata also follows navigation.
-fs.writeFileSync('build/_headers', ['/auth', '/user', '/user/*', '/caregiver', '/caregiver/*', '/organization', '/organization/*', '/superadmin', '/superadmin/*', '/payment-callback'].map(route => `${route}\n  X-Robots-Tag: noindex, nofollow\n`).join('\n'));
-fs.writeFileSync('build/_redirects', '/* /index.html 200\n');
+// in Firebase Hosting and Cloudflare Workers Assets; JS metadata also follows navigation.
+fs.writeFileSync('build/_headers', fs.readFileSync('public/_headers', 'utf8').trimEnd() + '\n\n' + ['/auth', '/user', '/user/*', '/caregiver', '/caregiver/*', '/organization', '/organization/*', '/superadmin', '/superadmin/*', '/payment-callback'].map(route => `${route}\n  X-Robots-Tag: noindex, nofollow\n`).join('\n'));
+// Workers Assets handles SPA navigation through not_found_handling in Wrangler.
+// A catch-all rewrite to /index.html loops with its automatic HTML redirects.
+fs.rmSync('build/_redirects', {force:true});

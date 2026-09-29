@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import {
-  updatePassword,
-  updateProfile,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-} from "firebase/auth";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "./firebaseConfig";
+import { doc, getDoc, setDoc } from "./d1Client";
+import { changePassword } from "./authClient";
+import { uploadProfileImage } from "./profileImages";
+import ProfileImage from "./components/ProfileImage";
+import { db } from "./d1Client";
+
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import { SkeletonCard } from "./components/CareExperience";
@@ -30,6 +27,9 @@ export default function UserProfilePage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  useEffect(() => () => {
+    if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+  }, [imagePreview]);
 
   // Change password
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -53,8 +53,8 @@ export default function UserProfilePage() {
           setPhone(data.phone || "");
           setAddress(data.address || "");
           setCity(data.city || "");
-          setProfilePicture(data.profilePicture || user.photoURL || "");
-          setImagePreview(data.profilePicture || user.photoURL || null);
+          setProfilePicture(data.profilePicture || "");
+          setImagePreview(data.profilePicture || null);
         }
       } catch (err) {
         console.error("Error loading profile:", { code: err?.code || "unknown" });
@@ -80,26 +80,22 @@ export default function UserProfilePage() {
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
+    if (!["image/jpeg", "image/webp", "image/png"].includes(file.type)) {
+      setError("Please select a JPEG, WebP or PNG photo");
       return;
     }
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setError("Image size must be less than 2MB");
+    // Bound source size before browser resizing.
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Choose a source photo smaller than 10 MB");
       return;
     }
 
     setImageFile(file);
     setError(""); // Clear any previous errors
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+    // Object URL preview; no base64 upload or database persistence.
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const uploadProfilePicture = async () => {
@@ -108,22 +104,8 @@ export default function UserProfilePage() {
     try {
       setUploadingImage(true);
 
-      // Upload to Firebase Storage
-      const storageRef = ref(
-        storage,
-        `profile_pictures/${user.uid}_${Date.now()}.jpg`,
-      );
-      await uploadBytes(storageRef, imageFile);
-
-      // Get download URL
-      const downloadURL = await getDownloadURL(storageRef);
-
-      // Update Firebase Auth profile
-      await updateProfile(user, {
-        photoURL: downloadURL,
-      });
-
-      return downloadURL;
+      const uploaded = await uploadProfileImage(user.uid, imageFile);
+      return uploaded.url;
     } catch (err) {
       console.error("Error uploading image:", { code: err?.code || "unknown" });
       throw new Error("Could not upload profile picture");
@@ -158,21 +140,16 @@ export default function UserProfilePage() {
         finalProfilePicture = await uploadProfilePicture();
       }
 
-      // Update or create Firestore document (use setDoc with merge to handle both cases)
+      // Merge editable profile fields through the authorized Worker API.
       await setDoc(doc(db, "users", user.uid), {
         name,
         phone,
         address,
         city,
-        profilePicture: finalProfilePicture,
         profileComplete: true,
         updatedAt: new Date().toISOString(),
       }, { merge: true });
 
-      // Update Firebase Auth display name
-      await updateProfile(user, {
-        displayName: name,
-      });
 
       setProfilePicture(finalProfilePicture);
       setImageFile(null); // Clear file after successful upload
@@ -201,8 +178,8 @@ export default function UserProfilePage() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError("New password must be at least 6 characters");
+    if (newPassword.length < 12) {
+      setError("New password must be at least 12 characters");
       return;
     }
 
@@ -214,15 +191,7 @@ export default function UserProfilePage() {
     try {
       setChangingPassword(true);
 
-      // Re-authenticate user first
-      const credential = EmailAuthProvider.credential(
-        user.email,
-        currentPassword,
-      );
-      await reauthenticateWithCredential(user, credential);
-
-      // Update password
-      await updatePassword(user, newPassword);
+      await changePassword(currentPassword, newPassword);
 
       setSuccess("Password changed successfully!");
       setCurrentPassword("");
@@ -234,7 +203,7 @@ export default function UserProfilePage() {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Error changing password:", { code: err?.code || "unknown" });
-      if (err.code === "auth/wrong-password") {
+      if (err.code === "invalid-credentials") {
         setError("Current password is incorrect");
       } else if (err.code === "auth/too-many-requests") {
         setError("Too many attempts. Please try again later.");
@@ -338,7 +307,7 @@ export default function UserProfilePage() {
               }}
             >
               {imagePreview ? (
-                <img
+                <ProfileImage
                   src={imagePreview}
                   alt="Profile"
                   style={{
@@ -360,7 +329,7 @@ export default function UserProfilePage() {
             <div>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/webp,image/png"
                 onChange={handleImageChange}
                 style={{ display: "none" }}
                 id="profile-picture-upload"
@@ -382,7 +351,7 @@ export default function UserProfilePage() {
                 📷 {imagePreview ? "Change Photo" : "Upload Photo"}
               </label>
               <p style={{ fontSize: 11, color: "var(--theme-text-muted)", margin: 0 }}>
-                Max size: 2MB • Formats: JPG, PNG, GIF
+                JPEG, WebP or PNG up to 10 MB. Photos are resized automatically.
               </p>
               {uploadingImage && (
                 <p style={{ fontSize: 12, color: "var(--theme-warning)", marginTop: 4 }}>
@@ -430,6 +399,7 @@ export default function UserProfilePage() {
             required
           >
             <option value="">Select city</option>
+            {city && !["Kathmandu", "Lalitpur", "Bhaktapur", "Pokhara", "Biratnagar", "Birgunj", "Butwal", "Dharan", "Other"].includes(city) && <option value={city}>{city}</option>}
             <option value="Kathmandu">Kathmandu</option>
             <option value="Lalitpur">Lalitpur</option>
             <option value="Bhaktapur">Bhaktapur</option>
@@ -491,7 +461,7 @@ export default function UserProfilePage() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={12} maxLength={128}
                 placeholder="At least 6 characters"
               />
 
@@ -501,7 +471,7 @@ export default function UserProfilePage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={12} maxLength={128}
                 placeholder="Re-enter new password"
               />
 

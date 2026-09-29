@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { doc, runTransaction, serverTimestamp } from "../d1Client";
+import { db } from "../d1Client";
+
 import { caregiverProfilePatch } from "../caregiverProfile";
 import AccessibleDialog from "./AccessibleDialog";
+import { uploadProfileImage } from "../profileImages";
 
 export default function CaregiverEditor({ caregiver, onClose, onSaved }) {
   const [values, setValues] = useState(() => Object.fromEntries(["name", "phone", "location", "bio", "hourlyRate", "experience"].map((key) => [key, caregiver[key] ?? (["hourlyRate", "experience"].includes(key) ? 0 : "")])));
@@ -30,6 +32,13 @@ export default function CaregiverEditor({ caregiver, onClose, onSaved }) {
       <h2>Edit caregiver profile</h2>
       {error && <p role="alert">{error}</p>}
       <form className="form" onSubmit={save}>
+        <label>Profile photo<input type="file" accept="image/jpeg,image/webp,image/png" disabled={saving} onChange={async (event) => {
+          const file = event.target.files?.[0]; if (!file) return;
+          setSaving(true); setError("");
+          try { await uploadProfileImage(caregiver.id, file); }
+          catch (failure) { setError(failure.message); }
+          finally { setSaving(false); }
+        }} /></label>
         {[["name", "Name"], ["phone", "Phone"], ["location", "Location"], ["bio", "Biography"], ["hourlyRate", "Hourly rate (NPR)"], ["experience", "Experience (years)"]].map(([key, label]) => <label key={key}>{label}<input value={values[key]} onChange={(event) => setValues({ ...values, [key]: event.target.value })} type={["hourlyRate", "experience"].includes(key) ? "number" : "text"} maxLength={key === "bio" ? 1000 : 160} /></label>)}
         <button className="btn btn-primary" disabled={saving} type="submit">{saving ? "Saving…" : "Save profile"}</button>
         <button className="btn btn-outline" disabled={saving} type="button" onClick={onClose}>Cancel</button>

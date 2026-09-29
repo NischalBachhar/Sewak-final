@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import { collection, onSnapshot, query, where } from "./d1Client";
+import { db } from "./d1Client";
+
 import { normalizeBooking } from "./bookingModel";
 
 const empty = { bookings: [], loading: false, error: "", stale: false };

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "./d1Client";
 import { submitBookingReport } from "./reportService";
-import { db } from "./firebaseConfig";
+import { db } from "./d1Client";
+
 import { useAuth } from "./AuthContext";
 
 const REPORT_REASONS = [
