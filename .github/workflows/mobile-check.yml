@@ -13,6 +13,8 @@ on:
     paths:
       - "mobile/**"
       - "scripts/smoke-mobile-e2e-production.mjs"
+      - "scripts/run-mobile-production-e2e.ps1"
+      - "wrangler.production.toml"
       - ".github/workflows/mobile-check.yml"
 
 jobs:
