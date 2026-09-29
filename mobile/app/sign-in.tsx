@@ -83,12 +83,13 @@ export default function SignInScreen() {
           />
         </View>
 
+        <Text style={styles.forgot} onPress={() => router.push("/forgot-password")}>Forgot password?</Text>
+
         {error ? <View style={styles.errorBox}><Text style={styles.error}>{error}</Text></View> : null}
         <PrimaryButton label="Sign in" loading={busy} onPress={submit} />
 
         <Text style={styles.helper}>New here? <Text style={styles.link} onPress={() => router.push("/register")}>Create an account</Text></Text>
         <Text style={styles.helper}>Have an invitation? <Text style={styles.link} onPress={() => router.push("/activate")}>Activate account</Text></Text>
-        <Text style={styles.recovery}>Forgot your password? Sewak currently uses administrator-issued recovery invitations.</Text>
       </View>
     </Screen>
   );
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 13, backgroundColor: colors.surfaceAlt, color: colors.text, fontSize: 15 },
   errorBox: { backgroundColor: colors.dangerSoft, borderRadius: radius.sm, padding: spacing.sm },
   error: { color: colors.danger, fontWeight: "700", fontSize: 13, lineHeight: 19 },
+  forgot: { alignSelf: "flex-end", color: colors.help, fontWeight: "900", fontSize: 13, marginTop: -4 },
   helper: { textAlign: "center", color: colors.muted, fontSize: 13 },
   link: { color: colors.help, fontWeight: "900" },
-  recovery: { color: colors.muted, fontSize: 11, lineHeight: 17, textAlign: "center" },
 });
