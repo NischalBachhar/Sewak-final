@@ -35,3 +35,14 @@ jobs:
         run: npm run typecheck
       - name: Expo Android bundle check
         run: npx expo export --platform android --output-dir dist-ci
+      - name: Production Worker health
+        working-directory: .
+        run: |
+          node --input-type=module <<'NODE'
+          const origin = 'https://sewak-final.nischalbachhar9.workers.dev';
+          const response = await fetch(origin + '/api/health', { signal: AbortSignal.timeout(15000) });
+          if (!response.ok) throw new Error('Production health returned HTTP ' + response.status);
+          const body = await response.json();
+          if (body.writesEnabled !== true) throw new Error('Production writes are not enabled.');
+          console.log(JSON.stringify({ ok: true, writesEnabled: body.writesEnabled, auth: body.auth || null, worker: body.worker || null }));
+          NODE
