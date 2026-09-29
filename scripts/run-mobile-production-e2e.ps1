@@ -57,10 +57,15 @@ if ($Dirty) {
 git fetch origin main
 if ($LASTEXITCODE -ne 0) { throw 'Could not refresh origin/main.' }
 
-git diff --quiet origin/main...HEAD -- src worker public package.json package-lock.json wrangler.production.toml
+git diff --quiet origin/main HEAD -- src worker public package.json wrangler.production.toml wrangler.toml scripts/deploy-worker.mjs scripts/deployment-policy.mjs scripts/release-build.cjs scripts/worker-command.mjs scripts/check-build-ci.cjs scripts/check-worker-entry.mjs
 if ($LASTEXITCODE -ne 0) {
-  throw 'This branch changes production web/Worker runtime relative to main. Stop and review before deploying.'
+  throw 'This branch does not match the latest production web/Worker/deployment runtime from main. Stop and review before deploying.'
 }
+
+# package-lock.json is intentionally allowed to differ on this mobile branch:
+# it contains only the npm-10 lock-placement repair already verified by a
+# clean Node 22 npm ci. package.json and all production runtime/deploy files
+# above must still match origin/main exactly.
 
 $ValidationReport = Require-PassingReport $Validation 'Final D1 validation'
 $AuthReport = Require-PassingReport $AuthQa 'Production Cloudflare Auth QA'

@@ -15,6 +15,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "prebuild": "node scripts/check-build-ci.cjs",
     "build": "react-scripts build",
     "build:release": "node scripts/release-build.cjs",
     "typecheck": "npm --prefix worker run typecheck",

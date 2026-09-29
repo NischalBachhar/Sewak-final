@@ -8,6 +8,9 @@ compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
+[build]
+command = "node scripts/check-worker-entry.mjs sewak"
+
 [assets]
 directory = "./build"
 binding = "ASSETS"
