@@ -5,6 +5,7 @@ on:
     paths:
       - "mobile/**"
       - "scripts/smoke-mobile-e2e-production.mjs"
+      - "scripts/run-mobile-production-e2e.ps1"
       - ".github/workflows/mobile-check.yml"
   push:
     branches:
@@ -40,6 +41,10 @@ jobs:
       - name: Production E2E runner syntax
         working-directory: .
         run: node --check scripts/smoke-mobile-e2e-production.mjs
+      - name: Production activation wrapper syntax
+        working-directory: .
+        shell: pwsh
+        run: "[scriptblock]::Create((Get-Content scripts/run-mobile-production-e2e.ps1 -Raw)) | Out-Null"
       - name: Inspect production deployment
         working-directory: .
         env:
