@@ -58,7 +58,15 @@ Override `EXPO_PUBLIC_API_BASE_URL` only for isolated staging/local development.
 - password change (revokes all sessions)
 - secure local bearer-token storage
 
-Organization-admin and superadmin high-risk controls intentionally remain on the secured web dashboard for this milestone; they are not duplicated as an under-tested privileged mobile surface.
+### Organization
+- pending organization application status
+- approved organization overview and booking history
+- caregiver roster
+- caregiver account provisioning with one-time activation token
+- organization service creation/retirement
+- organization profile editing
+
+Superadmin safety, account-restriction and platform-approval actions intentionally remain on the secured web dashboard for this milestone; they are not duplicated as an under-tested privileged mobile surface.
 
 ## Run
 
