@@ -33,3 +33,5 @@ jobs:
         run: npx expo-doctor
       - name: TypeScript check
         run: npm run typecheck
+      - name: Expo Android bundle check
+        run: npx expo export --platform android --output-dir dist-ci
