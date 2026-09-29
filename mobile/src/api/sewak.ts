@@ -89,9 +89,15 @@ const labelForService = (id: string, services: PublicService[]) => {
 };
 
 const resolveCaregiverServices = (caregiver: Caregiver, services: PublicService[]) => {
+  const caregiverCategory = caregiver.category === "household" ? "vendor" : caregiver.category;
+  const eligible = services.filter((service) => {
+    const serviceCategory = service.category === "household" ? "vendor" : service.category;
+    const organizationMatches = !service.organizationId || service.organizationId === caregiver.organizationId;
+    const categoryMatches = !serviceCategory || !caregiverCategory || caregiverCategory === "both" || serviceCategory === "both" || serviceCategory === caregiverCategory;
+    return service.isActive !== false && organizationMatches && categoryMatches;
+  });
   const activeIds = new Set<string>();
-  for (const service of services) {
-    if (service.isActive === false) continue;
+  for (const service of eligible) {
     if (service.id) activeIds.add(service.id);
     if (service.serviceId) activeIds.add(service.serviceId);
   }
@@ -99,7 +105,7 @@ const resolveCaregiverServices = (caregiver: Caregiver, services: PublicService[
   return {
     ...caregiver,
     servicesOffered,
-    serviceLabels: servicesOffered.map((id) => labelForService(id, services)),
+    serviceLabels: servicesOffered.map((id) => labelForService(id, eligible)),
   };
 };
 
