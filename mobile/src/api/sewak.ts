@@ -88,6 +88,21 @@ const labelForService = (id: string, services: PublicService[]) => {
   return match?.label || match?.serviceName || id.replace(/_/g, " ");
 };
 
+const resolveCaregiverServices = (caregiver: Caregiver, services: PublicService[]) => {
+  const activeIds = new Set<string>();
+  for (const service of services) {
+    if (service.isActive === false) continue;
+    if (service.id) activeIds.add(service.id);
+    if (service.serviceId) activeIds.add(service.serviceId);
+  }
+  const servicesOffered = (caregiver.servicesOffered || []).filter((id) => activeIds.has(id));
+  return {
+    ...caregiver,
+    servicesOffered,
+    serviceLabels: servicesOffered.map((id) => labelForService(id, services)),
+  };
+};
+
 export async function listPublicServices() {
   return queryResource<Omit<PublicService, "id">>("publicServices", { limit: 50 });
 }
@@ -107,12 +122,14 @@ export async function listCaregivers() {
     listPublicServices(),
   ]);
 
-  return caregivers.map((caregiver) => ({
-    ...caregiver,
-    serviceLabels: (caregiver.servicesOffered || []).map((id) => labelForService(id, services)),
-    profileImage: caregiver.profileImage ? absoluteApiUrl(caregiver.profileImage) : "",
-    profilePicture: caregiver.profilePicture ? absoluteApiUrl(caregiver.profilePicture) : "",
-  }));
+  return caregivers.map((caregiver) => {
+    const resolved = resolveCaregiverServices(caregiver as Caregiver, services);
+    return {
+      ...resolved,
+      profileImage: caregiver.profileImage ? absoluteApiUrl(caregiver.profileImage) : "",
+      profilePicture: caregiver.profilePicture ? absoluteApiUrl(caregiver.profilePicture) : "",
+    };
+  });
 }
 
 export async function getCaregiver(id: string) {
@@ -121,9 +138,9 @@ export async function getCaregiver(id: string) {
     listPublicServices(),
   ]);
   if (!caregiver) throw new Error("This caregiver profile is not available.");
+  const resolved = resolveCaregiverServices(caregiver as Caregiver, services);
   return {
-    ...caregiver,
-    serviceLabels: (caregiver.servicesOffered || []).map((serviceId) => labelForService(serviceId, services)),
+    ...resolved,
     profileImage: caregiver.profileImage ? absoluteApiUrl(caregiver.profileImage) : "",
     profilePicture: caregiver.profilePicture ? absoluteApiUrl(caregiver.profilePicture) : "",
   } as Caregiver;
@@ -561,6 +578,15 @@ export async function listOrganizationServices(uid: string) {
     order: { field: "__name__", direction: "asc" },
     limit: 50,
   });
+}
+
+export async function updateOrganizationCaregiverServices(caregiverId: string, servicesOffered: string[]) {
+  if (!servicesOffered.length) throw new Error("Assign at least one active service to this caregiver.");
+  await commit([{
+    path: `vendors/${caregiverId}`,
+    kind: "update",
+    data: { servicesOffered, updatedAt: new Date().toISOString() },
+  }]);
 }
 
 export async function updateOrganizationProfile(
