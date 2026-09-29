@@ -152,8 +152,8 @@ try {
 
     Write-Utf8NoBom $ProductionConfig $WriteConfig
 
-    $Changed = git diff --name-only -- $ProductionConfig
-    if ($LASTEXITCODE -ne 0 -or @($Changed).Count -ne 1 -or $Changed[0] -ne $ProductionConfig) {
+    $ChangedFiles = @(git diff --name-only -- $ProductionConfig)
+    if ($LASTEXITCODE -ne 0 -or $ChangedFiles.Count -ne 1 -or $ChangedFiles[0] -ne $ProductionConfig) {
       throw 'Unexpected production-config mutation while preparing write enablement.'
     }
 
