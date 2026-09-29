@@ -21,6 +21,18 @@ test('private reads, tenant lists, role escalation and SQL-shaped parameters are
  assert.equal((await call(env,'/api/records/constructor/id',{uid:'admin'})).status,400);
  assert.equal((await call(env,'/api/commit',{uid:'customer',method:'POST',json:{writes:[null]}})).status,400);
 });
+test('organization admins can repair caregiver services without weakening catalog controls',async()=>{
+ const env=environment();await seed(env);
+ await put(env,'services/respite',{label:'Respite Care',category:'caregiver',organizationId:'org',organizationName:'Test Organization',isActive:true,createdAt:timestamp});
+ const updateServices=(uid,services)=>call(env,'/api/commit',{uid,method:'POST',json:{writes:[{path:'vendors/caregiver',kind:'update',data:{servicesOffered:services,updatedAt:timestamp}}]}});
+ let result=await updateServices('org',['respite']);assert.equal(result.status,200,JSON.stringify(result.data));
+ const publicProfile=await call(env,'/api/records/publicCaregivers/caregiver');assert.deepEqual(publicProfile.data.items[0].data.servicesOffered,['respite']);
+ assert.equal((await updateServices('caregiver',['care'])).status,403);
+ result=await call(env,'/api/commit',{uid:'org',method:'POST',json:{writes:[{path:'services/respite',kind:'update',data:{isActive:false,updatedAt:timestamp}}]}});assert.equal(result.status,403);
+ assert.equal((await updateServices('org',['care'])).status,200);
+ result=await call(env,'/api/commit',{uid:'org',method:'POST',json:{writes:[{path:'services/respite',kind:'update',data:{isActive:false,updatedAt:timestamp}}]}});assert.equal(result.status,200,JSON.stringify(result.data));
+});
+
 test('cash booking rechecks price, ownership, schedule, availability and catalog',async()=>{
  for(const patch of [{totalAmount:1},{userId:'other'},{paymentStatus:'paid'},{organizationId:'wrong'},{date:'2090-02-30'},{serviceId:'missing'},{profilePicture:'data:image/png;base64,abc'}]){
   const env=environment();await seed(env);const b=booking();Object.assign(b.data,patch);
