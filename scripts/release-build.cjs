@@ -1,4 +1,5 @@
 const {spawnSync}=require('node:child_process');
+require('./check-build-ci.cjs');
 const fs=require('node:fs');
 const env={...process.env};
 for(const key of Object.keys(env))if(/^REACT_APP_(FIREBASE|USE_EMULATORS)/.test(key))delete env[key];

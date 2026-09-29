@@ -5,8 +5,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --test ../tests/d1/*.test.mjs",
-    "dev": "wrangler dev --config ../wrangler.toml",
-    "deploy": "wrangler deploy --config ../wrangler.toml"
+    "dev": "node ../scripts/worker-command.mjs dev",
+    "deploy": "node ../scripts/worker-command.mjs deploy"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260921.1",
