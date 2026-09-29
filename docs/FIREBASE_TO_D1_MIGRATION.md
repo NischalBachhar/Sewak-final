@@ -1,3 +1,23 @@
+# Sewak Cloudflare-only production
+
+## Current state — 2026-09-29
+
+D1 is authoritative. The user superseded historical Firebase QA, reconciliation and rollback instructions and explicitly authorized project retirement after Cloudflare-only gates. Do not recreate the migration, request Firebase credentials, unfreeze the source or touch Shoe Doctor.
+
+Production sewak-final uses sewak-db (36fa1df1-aa5d-43a1-ad0e-a4e310c513c3), sewak-media (c3721e25-4fb2-4a0d-b350-518ec9abbea2), audience sewak-production, and D1 scrypt credentials/opaque sessions. Account: 860970f755498a4fe10e16c2fa99ce55. Version d87823fe-52b0-4e36-bb3b-a64f64fc1a78 enables application writes after the new read-only gates passed. Git builds remain disconnected by owner confirmation.
+
+Clean root/Worker installs contain no Firebase packages. Legacy Functions, SDK/operator/emulator dependencies and temporary migration endpoints are removed from active source; archived copies and backups remain private. Both Workers have no Firebase secrets. Compiled frontend/Worker and dependency scans pass. No Firebase fallback exists.
+
+Validation: 35 frontend unit tests, 31 D1/workerd/security tests, all 18 browser journeys, typecheck, lint, real release build, secret scan and guarded Worker dry-run passed. Staging passed 54 checks; fresh production read-only QA passed 56 on version 1db66aa6-b092-4eed-a837-0ce2cd8b621b. It covers all roles, cookies, mobile Bearer sessions, expiry/revocation, CSRF, rate limits, private reads/media, cross-user/anonymous rejection and browser login/session restoration with Firebase hosts blocked and zero requests. Disposable records were removed. Private report: .local-tools/cloudflare-auth/sewak-final-qa-85417a7b-17f2-40a0-a93b-361e81d61e6b.json.
+
+Controlled production write smoke passed 14 checks: profile creation/update, an inactive service record, actual main/media D1 writes, exact private WebP bytes, unauthorized access rejection and session revocation. Only run-owned synthetic accounts, service, audit rows and media were removed; cleanup was independently verified. Report: .local-tools/cloudflare-auth/production-write-smoke-e5d77db8-f2d0-49a7-b8b9-41b3612c3542.json.
+
+Cloudflare-only D1 integrity checks pass. This continues the already verified 18-record checkpoint without repeated Firebase source comparison. Resource metadata inventory found no unrelated resources in care-53593; private backup existence/hashes were verified. Final Git delivery and retirement receipts will be recorded here after execution.
+
+## Historical checkpoint journal — superseded
+
+Everything below records earlier checkpoints. Statements that production is read-only, secrets remain, or project deletion is prohibited describe their historical time only. Old source-validation and Firebase recovery commands must not be run.
+
 # Sewak migration and operation
 
 ## Current checkpoint: production drift restored read-only, 2026-09-29

@@ -470,7 +470,6 @@ Primary/unique constraints also create SQLite indexes. Main booking participant 
 | PUT /api/profiles/:uid/image | Validated binary profile photo, own/authorized admin only |
 | DELETE /api/profiles/:uid/image | Authorized unlink and current binary removal |
 | GET /api/media/:id | Public eligible caregiver photo or authorized private owner view |
-| PUT /api/migration/profiles/:uid/image | Temporary secret-gated maintenance-only image import |
 
 Private requests verify opaque D1 session digests, audience, transport, expiry, idle time and credential version. Roles and restrictions come from current D1 rows, never client fields or Firebase claims. HttpOnly cookie requests require same-origin CSRF protection; native clients use Bearer sessions. No browser SQL endpoint exists. See CLOUDFLARE_AUTH.md and MOBILE_API.md.
 

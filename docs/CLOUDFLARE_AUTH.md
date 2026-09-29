@@ -24,7 +24,7 @@ The first production superadmin is reserved for `nischalbachhar9@gmail.com`. A g
 
 `APP_WRITES_ENABLED=false` blocks application commits, provisioning, organization applications, booking/actions and image writes. Registration, login, own basic onboarding, password changes and revocation remain available to verify authentication. Those explicit auth flows create only new account/profile/session state; they never adopt or mutate preserved legacy records.
 
-`wrangler.toml` targets isolated staging databases and audience `sewak-staging`. `wrangler.production.toml` targets `sewak-db`, `sewak-media`, and audience `sewak-production`. A staging session cannot authenticate to production. Worker assets serve the same-origin web app. Runtime Firebase secrets are removed only after Cloudflare Auth is verified.
+`wrangler.toml` targets isolated staging databases and audience `sewak-staging`. `wrangler.production.toml` targets `sewak-db`, `sewak-media`, and audience `sewak-production`. A staging session cannot authenticate to production. Worker assets serve the same-origin web app. Runtime Firebase secrets are absent from both Workers after successful Cloudflare Auth verification.
 
 ## Verification boundary
 

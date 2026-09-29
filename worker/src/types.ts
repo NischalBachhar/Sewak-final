@@ -6,8 +6,6 @@ export interface Env {
   PASSWORD_HASHER?: DurableObjectNamespace;
   ALLOWED_ORIGINS?: string;
   APP_WRITES_ENABLED?: string;
-  MIGRATION_TOKEN?: string;
-  MIGRATION_ENABLED?: string;
 }
 export type Data = Record<string, any>;
 // uid is the compatibility name of the application ID, never a Firebase UID.

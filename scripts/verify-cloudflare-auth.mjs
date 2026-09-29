@@ -5,6 +5,7 @@ import {randomBytes,randomUUID,createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {openTarget} from './d1-target.mjs';
 import {cloudflare} from './cloudflare-operator.mjs';
+import {assertLiveBindings} from './deployment-policy.mjs';
 import {entities} from '../worker/src/model.mjs';
 const worker=process.argv[process.argv.indexOf('--worker')+1];
 assert.ok(['sewak','sewak-final'].includes(worker),'Exact Sewak Worker required');
@@ -27,9 +28,12 @@ async function request(path,{body,headers={},method=body?'POST':'GET',expected=2
 }
 const authorization=u=>({Authorization:'Bearer '+u.token});
 try{
- if(staging)assert.equal((await DB.prepare('SELECT COUNT(*) n FROM cf_credentials').first()).n,0,'Investigate leftover staging QA credentials before another run');
+ // Staging can contain real accounts. Preserve them and create/clean only this
+ // run's random identities; appHash below proves existing profiles unchanged.
+ if(staging)report.preexistingAccounts=(await DB.prepare('SELECT COUNT(*) n FROM cf_credentials').first()).n;
  const health=(await request('/api/health')).data;assert.equal(health.auth,'cloudflare-d1');assert.equal(health.writesEnabled,false);
  const settings=await cloudflare(`/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${worker}/settings`);const bindings=settings.bindings;
+ assertLiveBindings(worker,bindings,false);
  for(const [name,id]of [['DB',ids[0]],['MEDIA_DB',ids[1]]])assert.equal(bindings.find(b=>b.name===name)?.id,id,'Exact remote database binding');
  report.version=(await cloudflare(`/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${worker}/deployments`)).deployments[0].versions[0].version_id;
  for(const role of ['user','caregiver','orgadmin','superadmin']){
@@ -61,22 +65,27 @@ try{
  await request('/api/commit',{headers:cookieHeaders,body:{writes:[]},expected:503,label:'application maintenance gate'});
  await request('/api/actions/provisionSuperAdminAccount',{headers:authorization(admin),body:{},expected:503,label:'admin maintenance gate'});
  for(const [headers,status,label]of [[{},403,'anonymous'],[authorization(caregiver),403,'cross-user'],[authorization(customer),404,'authorized missing']])await request('/api/media/profile_'+customer.uid,{headers,expected:status,label:label+' private media'});
- // The complete binary path is covered in local browser/workerd gates. Staging
- // additionally exercises the remote path using an isolated synthetic fixture.
- if(staging){
+ // Exercise private binary reads while normal image writes stay blocked. The
+ // operator fixture belongs only to this run's new identity and is removed.
+ {
   const require=createRequire(new URL('../worker/package.json',import.meta.url)),bytes=await require('sharp')({create:{width:32,height:24,channels:3,background:'#71665a'}}).webp().toBuffer(),digest=createHash('sha256').update(bytes).digest('hex'),id='profile_'+customer.uid,now=new Date().toISOString();
   await MEDIA_DB.prepare(`INSERT INTO media(id,owner_id,owner_type,mime_type,file_size,width,height,data,digest,created_at,updated_at) VALUES(?,?,?,'image/webp',?,32,24,X'${bytes.toString('hex')}',?,?,?)`).bind(id,customer.uid,'user',bytes.length,digest,now,now).run();
   await DB.prepare('UPDATE users SET profile_image_id=?,fields_present=json_insert(fields_present,\'$[#]\',\'profile_image_id\') WHERE id=?').bind(id,customer.uid).run();
   const image=await request('/api/media/'+id,{headers:authorization(customer),label:'remote authenticated media bytes'});assert.match(image.r.headers.get('Content-Type'),/^image\/webp/);assert.ok(image.data.length>0);assert.ok(image.data.equals(bytes));
+  await request('/api/media/'+id,{expected:403,label:'existing private media anonymous rejection'});await request('/api/media/'+id,{headers:authorization(caregiver),expected:403,label:'existing private media cross-user rejection'});
  }
  const expired=await request('/auth/login',{body:{email:customer.email,password,sessionMode:'bearer'},label:'mobile password login'});
  await DB.prepare('UPDATE cf_sessions SET expires_at=0 WHERE id=? AND user_id=?').bind(expired.data.session.id,customer.uid).run();await request('/auth/me',{headers:{Authorization:'Bearer '+expired.data.token},expected:401,label:'expired session'});
  const changed=randomBytes(32).toString('base64url');await request('/auth/change-password',{headers:authorization(caregiver),body:{currentPassword:password,newPassword:changed},label:'password change'});await request('/auth/me',{headers:authorization(caregiver),expected:401,label:'password revokes old session'});
  await request('/auth/logout',{headers:authorization(org),body:{},label:'logout'});await request('/auth/me',{headers:authorization(org),expected:401,label:'logout revokes session'});
  const missing=`qa-rate-${run}@example.invalid`;for(let i=0;i<10;i++)await request('/auth/login',{body:{email:missing,password,sessionMode:'bearer'},expected:401,label:'failed login '+(i+1)});await request('/auth/login',{body:{email:missing.toUpperCase(),password,sessionMode:'bearer'},expected:429,label:'persistent normalized-email rate limit'});
- const {chromium}=await import('@playwright/test');browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext(),external=[];context.on('request',r=>{if(/googleapis\.com|firebaseio\.com|firebaseapp\.com/.test(r.url()))external.push(new URL(r.url()).hostname);});
+ const {chromium}=await import('@playwright/test');browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext(),external=[];
+ const forbidden=url=>/googleapis\.com|firebaseio\.com|firebaseapp\.com|firebasestorage\.app/.test(new URL(url).hostname);
+ await context.route('**/*',route=>forbidden(route.request().url())?route.abort('internetdisconnected'):route.continue());
+ context.on('request',r=>{if(forbidden(r.url()))external.push(new URL(r.url()).hostname);});
  const page=await context.newPage();await page.goto(origin+'/auth');await page.getByLabel('Email',{exact:true}).fill(customer.email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL(url=>url.pathname==='/user');await page.goto(origin+'/user/profile');await page.getByRole('button',{name:'Save Profile',exact:true}).waitFor();
- const stored=await page.evaluate(()=>({local:Object.keys(localStorage),visibleCookie:document.cookie}));assert.ok(!stored.visibleCookie.includes('__Host-sewak_session'));assert.ok(!stored.local.some(k=>/firebase|token|session/i.test(k)));assert.deepEqual(external,[]);report.browser={realCookieLogin:true,privateProfile:true,firebaseRequests:0,httpOnly:true};await context.close();
+ await page.reload();await page.getByRole('button',{name:'Save Profile',exact:true}).waitFor();
+ const stored=await page.evaluate(()=>({local:Object.keys(localStorage),visibleCookie:document.cookie}));assert.ok(!stored.visibleCookie.includes('__Host-sewak_session'));assert.ok(!stored.local.some(k=>/firebase|token|session/i.test(k)));assert.deepEqual(external,[]);report.browser={realCookieLogin:true,sessionRestored:true,privateProfile:true,firebaseRequests:0,firebaseNetworkBlocked:true,httpOnly:true};await context.close();
  await request('/auth/revoke-sessions',{headers:authorization(customer),body:{all:true},label:'all-session revocation'});await request('/auth/me',{headers:cookieHeaders,expected:401,label:'cookie revoked with all sessions'});
  assert.equal((await request('/api/health',{label:'writes remain disabled'})).data.writesEnabled,false);
  report.checksPassed=true;

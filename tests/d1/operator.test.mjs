@@ -45,6 +45,6 @@ test('read-only staging cannot overwrite the existing production frontend',()=>{
   assert.equal(result.status,1);
   assert.match(result.stderr,/Keep the existing production frontend in place during staging/);
   const maintenance=spawnSync(process.execPath,[fileURLToPath(new URL('../../scripts/deploy-worker.mjs',import.meta.url)),'--worker','sewak-final','--cutover-maintenance'],{cwd:directory,encoding:'utf8',env:{...process.env,CLOUDFLARE_ACCOUNT_ID:'860970f755498a4fe10e16c2fa99ce55'}});
-  assert.equal(maintenance.status,1);assert.match(maintenance.stderr,/Freeze old structured-data writes/);
+  assert.equal(maintenance.status,1);assert.match(maintenance.stderr,/Cloudflare D1 validation/);
  }finally{unlinkSync(config);rmdirSync(directory);}
 });

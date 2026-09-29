@@ -56,7 +56,7 @@ export default function OrganizationProfilePage() {
     try {
       setSubmitting(true);
 
-      // Update Firestore (use setDoc with merge to create if doesn't exist)
+      // Merge the organization profile through the authorized Worker API.
       await setDoc(doc(db, "organizations", user.uid), {
         organizationName,
         businessPhone,

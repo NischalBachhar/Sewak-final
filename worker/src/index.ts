@@ -1,7 +1,6 @@
 import { authenticateSession, authRoute, enforceCsrf } from './cloudflare-auth.ts';
 export { PasswordHasher } from './passwords.ts';
 import { runAction } from './actions.ts';
-import { importProfileImage } from './migration.ts';
 import { boundedBytes, deleteProfileImage, serveProfileImage, uploadProfileImage } from './media.ts';
 import { commitClient } from './policy.ts';
 import { queryRecords } from './queries.ts';
@@ -38,9 +37,7 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
           await env.DB.prepare('SELECT user_id FROM cf_credentials LIMIT 1').first();
           return Response.json({ healthy: true, writesEnabled: env.APP_WRITES_ENABLED === 'true', auth: 'cloudflare-d1' },{headers});
         }
-        if (request.method === 'PUT' && /^\/api\/migration\/profiles\/[^/]+\/image$/.test(url.pathname)) {
-          return Response.json(await importProfileImage(request,env,decodeURIComponent(url.pathname.split('/')[4])),{headers});
-        }
+        if (url.pathname.startsWith('/api/migration/')) throw new ApiError(404,'not-found','Endpoint not found.');
         const publicAuth = authPath && /\/(login|register|bootstrap|activate)$/.test(url.pathname);
         const identity = publicAuth ? null : await authenticate(request,env);
         enforceCsrf(request,identity);

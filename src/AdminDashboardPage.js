@@ -1093,7 +1093,7 @@ export default function AdminDashboardPage() {
         <ul>
           <li>You are not logged in, or</li>
           <li>Your account does not have superadmin role, or</li>
-          <li>Firestore security rules are blocking access</li>
+          <li>Your account does not have access to this resource</li>
         </ul>
         <p>
           <strong>What to do:</strong>

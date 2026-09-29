@@ -3,7 +3,7 @@ import {spawnSync} from 'node:child_process';
 import {assertFreeAccount,cloudflare} from './cloudflare-operator.mjs';
 import {assertDeploymentConfig,assertLiveBindings} from './deployment-policy.mjs';
 const valueFlags=new Set(['--worker','--validation','--auth-qa']);
-const switches=new Set(['--cutover-maintenance','--source-frozen','--free-plan-confirmed','--dry-run']);
+const switches=new Set(['--cutover-maintenance','--free-plan-confirmed','--dry-run']);
 const seen=new Set();for(let i=2;i<process.argv.length;i++){const flag=process.argv[i];if(seen.has(flag))throw new Error('Duplicate deploy argument: '+flag);seen.add(flag);if(valueFlags.has(flag)){if(!process.argv[++i]||process.argv[i].startsWith('--'))throw new Error('Missing value for '+flag);}else if(!switches.has(flag))throw new Error('Unsupported deploy override: '+flag);}
 const dryRun=process.argv.includes('--dry-run');
 let config=readFileSync('wrangler.toml','utf8');
@@ -15,13 +15,12 @@ if(existsSync(configFile))config=readFileSync(configFile,'utf8');
 const writesEnabled=/APP_WRITES_ENABLED\s*=\s*"true"/.test(config);
 const cutoverMaintenance=process.argv.includes('--cutover-maintenance');
 if(cutoverMaintenance&&(worker!=='sewak-final'||writesEnabled))throw new Error('--cutover-maintenance is only for the read-only production cutover phase.');
-if(!dryRun&&worker==='sewak-final'&&!writesEnabled&&!cutoverMaintenance)throw new Error('Keep the existing production frontend in place during staging. Deploy sewak-final only for the reconciled, source-frozen cutover.');
-if(!dryRun&&worker==='sewak-final'&&(writesEnabled||cutoverMaintenance)&&!process.argv.includes('--source-frozen'))throw new Error('Freeze old structured-data writes and reconcile the final snapshot before opening D1 writes or replacing the production frontend.');
+if(!dryRun&&worker==='sewak-final'&&!writesEnabled&&!cutoverMaintenance)throw new Error('Keep the existing production frontend in place during staging. Use --cutover-maintenance for a reviewed read-only production release.');
+if(!dryRun&&worker==='sewak-final'&&!process.argv.includes('--validation'))throw new Error('Supply current Cloudflare D1 validation before deploying production.');
 config=readFileSync(configFile,'utf8');
 assertDeploymentConfig(worker,config);
 const account=config.match(/^account_id\s*=\s*"([^"]+)"/m)?.[1];
 const selectedWrites=/APP_WRITES_ENABLED\s*=\s*"true"/.test(config);
-if(!dryRun&&worker==='sewak-final'&&selectedWrites&&!process.argv.includes('--source-frozen'))throw new Error('Frozen source verification is required.');
 if(worker==='sewak'&&/database_name\s*=\s*"sewak-(db|media)"/.test(config))throw new Error('Staging must use isolated D1 databases.');
 if(account!==process.env.CLOUDFLARE_ACCOUNT_ID)throw new Error('Select the exact Sewak account pinned in wrangler.toml.');
 if(config.includes('00000000-0000'))throw new Error('Provision both databases before deployment.');
@@ -30,7 +29,8 @@ if(/FIREBASE_|MIGRATION_ENABLED\s*=\s*"true"/.test(config))throw new Error('Fire
 if(!dryRun)await assertFreeAccount(account,{attested:process.argv.includes('--free-plan-confirmed')});
 if(!dryRun&&worker==='sewak-final'&&(selectedWrites||cutoverMaintenance)){
  const reportPath=process.argv[process.argv.indexOf('--validation')+1];
- if(!process.argv.includes('--validation')||!JSON.parse(readFileSync(reportPath,'utf8')).pass)throw new Error('Supply --validation with the passing final remote report.');
+ const validation=JSON.parse(readFileSync(reportPath,'utf8'));
+ if(!validation.pass||validation.backend!=='cloudflare-d1'||validation.worker!=='sewak-final'||Date.now()-Date.parse(validation.checkedAt)>3600000)throw new Error('Supply --validation with a passing current Cloudflare-only production D1 report.');
  if(/MIGRATION_ENABLED\s*=\s*"true"/.test(config))throw new Error('Disable the migration endpoint before opening application writes.');
  if(worker==='sewak-final'){
   const qaPath=process.argv[process.argv.indexOf('--auth-qa')+1];
@@ -39,7 +39,7 @@ if(!dryRun&&worker==='sewak-final'&&(selectedWrites||cutoverMaintenance)){
   if(!qa.pass||qa.auth!=='cloudflare-d1'||(selectedWrites&&qa.worker!=='sewak-final'))throw new Error('Cloudflare Auth gates have not passed for this deployment phase.');
  }
 }
-const result=spawnSync(process.execPath,['worker/node_modules/wrangler/bin/wrangler.js','deploy','--config',configFile,...(dryRun?['--dry-run']:[])],{stdio:'inherit',env:{...process.env,WRANGLER_SEND_METRICS:'false',SEWAK_REVIEWED_TARGET:worker}});
+const result=spawnSync(process.execPath,['worker/node_modules/wrangler/bin/wrangler.js','deploy','--config',configFile,...(dryRun?['--dry-run','--outdir','.local-tools/cloudflare-auth-release']:[])],{stdio:'inherit',env:{...process.env,WRANGLER_SEND_METRICS:'false',SEWAK_REVIEWED_TARGET:worker}});
 if(result.status!==0)process.exit(result.status??1);
 if(!dryRun){
  const root=`/accounts/${account}/workers/scripts/${worker}`;

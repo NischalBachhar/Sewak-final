@@ -31,7 +31,7 @@ export async function uploadProfileImage(request: Request, repo: Repository, act
   const owner = await authorizeImageOwner(repo, actor, uid);
   return storeProfileImage(request,repo,uid,owner);
 }
-export async function storeProfileImage(request: Request, repo: Repository, uid: string, owner: {profile: Data | null; caregiver: Data | null; ownerType: string}, preserveTimestamps = false) {
+export async function storeProfileImage(request: Request, repo: Repository, uid: string, owner: {profile: Data | null; caregiver: Data | null; ownerType: string}) {
   const bytes = await boundedBytes(request, MAX_IMAGE_BYTES);
   let info;
   try { info = inspectImage(bytes, request.headers.get('Content-Type') || ''); }
@@ -46,7 +46,7 @@ export async function storeProfileImage(request: Request, repo: Repository, uid:
     VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(owner_id,media_type) DO UPDATE SET mime_type=excluded.mime_type,file_size=excluded.file_size,width=excluded.width,height=excluded.height,data=excluded.data,digest=excluded.digest,owner_type=excluded.owner_type,updated_at=excluded.updated_at`)
     .bind(id, uid, owner.ownerType, info.mime, info.size, info.width, info.height, bytes.buffer, digest, now, now).run();
   const writes = [];
-  const changed = preserveTimestamps ? {} : { updatedAt: now };
+  const changed = { updatedAt: now };
   if (owner.profile) writes.push({ path: `users/${uid}`, data: { ...owner.profile, profile_image_id: id, ...changed } });
   if (owner.caregiver) writes.push({ path: `vendors/${uid}`, data: { ...owner.caregiver, profile_image_id: id, ...changed } });
   await repo.commit(writes);

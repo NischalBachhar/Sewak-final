@@ -29,10 +29,7 @@
     "postbuild": "node scripts/public-metadata.cjs",
     "test:unit": "react-scripts test --watchAll=false --runInBand",
     "test:browser": "node scripts/test-browser.cjs",
-    "test:migration": "node --test tests/migration.test.cjs",
-    "test:rules": "node scripts/test-emulators.cjs \"node --test tests/rules.test.cjs\"",
-    "test:backend": "node scripts/test-emulators.cjs \"node --test functions/test/*.test.cjs\"",
-    "lint": "eslint src --ext .js,.mjs && npm --prefix functions run lint"
+    "lint": "eslint src --ext .js,.mjs"
   },
   "eslintConfig": {
     "extends": [
@@ -53,8 +50,6 @@
     ]
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^5.0.0",
-    "@playwright/test": "^1.63.0",
-    "firebase-tools": "^15.30.2"
+    "@playwright/test": "^1.63.0"
   }
 }

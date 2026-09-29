@@ -1,12 +1,12 @@
 # Rollback and retention
 
-## Cloudflare-only checkpoint (2026-09-29)
+## Cloudflare-only recovery (2026-09-29)
 
-The user has superseded the Firebase-Auth architecture. **Do not execute the historical restore/key-rotation commands below.** Firestore must remain frozen, no new Firebase signing keys/tokens may be created, and `care-53593` must not be deleted without separate authorization. The original snapshots, rules backups, SQL backups and prior Worker versions remain preserved.
+D1 is authoritative. The user explicitly authorized retiring care-53593 after Cloudflare-only verification and private backup inventory. Historical Firebase commands below are archived context, not executable recovery instructions. Do not restore Firebase dependencies, unfreeze the source, create signing credentials or compare application records with Firebase again.
 
-For a Cloudflare-only incident, close application writes in `wrangler.production.toml`, deploy the maintenance release, export D1 securely and investigate. Keep new D1 users/password hashes/sessions and application writes; they cannot be recovered from Firebase. The eight legacy Auth users are dummy accounts scheduled for deletion only after Cloudflare-only production verification. Their original export remains private rollback evidence, not a migration target.
+For a Cloudflare incident, close application writes in wrangler.production.toml, use the guarded maintenance deployment, and securely export both current D1 databases before investigating. Preserve current D1 accounts, password hashes, sessions and application writes; historical Firebase exports cannot recover them. Worker version rollback does not roll back D1 schema or data. Do not delete databases as routine recovery.
 
-Staging now uses separate `sewak-staging-db` / `sewak-staging-media`. Production remains `sewak-db` / `sewak-media`. Never redirect staging fixtures to production. The live status is in `FIREBASE_TO_D1_MIGRATION.md`.
+Private snapshots, raw exports, rules manifests and SQL backups remain outside Git. Staging uses separate staging databases; production uses sewak-db and sewak-media. Current deployment and retirement receipts are summarized in FIREBASE_TO_D1_MIGRATION.md.
 
 ## Historical Firebase-Auth rollback reference (superseded)
 
