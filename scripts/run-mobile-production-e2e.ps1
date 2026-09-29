@@ -98,8 +98,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 $NormalizeWrites = {
   param([string]$Value)
+  $Normalized = $Value -replace "`r`n?", "`n"
   return [regex]::Replace(
-    $Value.TrimEnd(),
+    $Normalized.TrimEnd(),
     'APP_WRITES_ENABLED\s*=\s*"(true|false)"',
     'APP_WRITES_ENABLED = "<reviewed-write-state>"'
   )
