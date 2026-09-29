@@ -23,7 +23,7 @@ test('private reads, tenant lists, role escalation and SQL-shaped parameters are
 });
 test('organization admins can repair caregiver services without weakening catalog controls',async()=>{
  const env=environment();await seed(env);
- await put(env,'services/respite',{label:'Respite Care',category:'caregiver',organizationId:'org',organizationName:'Test Organization',isActive:true,createdAt:timestamp});
+ await put(env,'services/respite',{label:'Respite Care',category:'caregiver',organizationId:'org',organizationName:'Test Organization',isActive:true});
  const updateServices=(uid,services)=>call(env,'/api/commit',{uid,method:'POST',json:{writes:[{path:'vendors/caregiver',kind:'update',data:{servicesOffered:services,updatedAt:timestamp}}]}});
  let result=await updateServices('org',['respite']);assert.equal(result.status,200,JSON.stringify(result.data));
  const publicProfile=await call(env,'/api/records/publicCaregivers/caregiver');assert.deepEqual(publicProfile.data.items[0].data.servicesOffered,['respite']);
