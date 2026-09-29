@@ -12,7 +12,19 @@ Validation: 35 frontend unit tests, 31 D1/workerd/security tests, all 18 browser
 
 Controlled production write smoke passed 14 checks: profile creation/update, an inactive service record, actual main/media D1 writes, exact private WebP bytes, unauthorized access rejection and session revocation. Only run-owned synthetic accounts, service, audit rows and media were removed; cleanup was independently verified. Report: .local-tools/cloudflare-auth/production-write-smoke-e5d77db8-f2d0-49a7-b8b9-41b3612c3542.json.
 
-Cloudflare-only D1 integrity checks pass. This continues the already verified 18-record checkpoint without repeated Firebase source comparison. Resource metadata inventory found no unrelated resources in care-53593; private backup existence/hashes were verified. Final Git delivery and retirement receipts will be recorded here after execution.
+Cloudflare-only D1 integrity checks pass. This continues the already verified 18-record checkpoint without repeated Firebase source comparison. Resource metadata inventory found no unrelated resources in care-53593; private backup existence/hashes were verified.
+
+### Final cleanup and delivery
+
+The Cloudflare-only implementation was pushed to GitHub main and fix/sewak-security-workflows at 2822abbb519f9857ec9dba95567a6162fad146ca, with independent remote SHA parity. Existing mobile development/CI commits were merged and preserved. The mobile production wrapper now uses Cloudflare-only integrity evidence and an explicit Auth QA report rather than the retired source gate. Its syntax and four deployment/operator tests pass; the merged root lockfile passed a clean install. Git builds were not reconnected.
+
+On 2026-09-29 at 17:08 UTC, exactly eight approved dummy Firebase Auth users were deleted and an independent listing confirmed none remain. Both user-managed keys on the dedicated Sewak Auth service account were deleted; independent listings for it and the legacy Admin SDK account confirmed no user-managed keys remain. No new Firebase credentials were created. Both Workers have no Firebase secrets. Private snapshot/rules/SQL artifacts and a private dummy-user export are preserved outside Git. Safe receipts are under .local-tools/retirement-operator.
+
+**Project retirement is blocked by automatic approval review.** The user explicitly authorized deleting care-53593 (1079707135149), but execution was rejected as critical-risk irreversible destruction. The deletion command did not run; no alternate route was attempted. The owner must manually shut down care-53593 in Google Cloud Console. Do not delete sewak-ff563 or any Shoe Doctor resource. Project retirement must not be reported complete.
+
+Final Cloudflare independence QA passed at 17:09:50 UTC after credential cleanup: real registration/password login, mobile Bearer authentication, private reads, anonymous rejection, logout/revocation, real browser HttpOnly-cookie login and session restoration. Firebase hosts were actively blocked and zero Firebase requests occurred. All disposable records were removed. This is a post-credential-cleanup test, **not a post-project-deletion test**; the private runner/report retain their originally planned post-retirement filenames. Production remains healthy on d87823fe-52b0-4e36-bb3b-a64f64fc1a78 with writes enabled. Compiled frontend/Worker scans report zero Firebase references and zero private credentials; both active dependency trees contain no Firebase packages.
+
+The one-time owner setup for nischalbachhar9@gmail.com remains unused, with no active Cloudflare superadmin yet. The private setup link is in .local-tools/cloudflare-auth/owner-setup-link.txt and expires 2026-09-30T06:44:09Z. Its token is excluded from Git and reports. The owner chooses the password on the setup page.
 
 ## Historical checkpoint journal — superseded
 

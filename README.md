@@ -4,6 +4,8 @@ React caregiver platform using a Cloudflare Worker API, D1 application/auth/sess
 
 **Production is Cloudflare-only with application writes enabled.** Production is [sewak-final.nischalbachhar9.workers.dev](https://sewak-final.nischalbachhar9.workers.dev), bound to `sewak-db`, `sewak-media` and audience `sewak-production`. Isolated staging remains read-only. Production read-only Auth QA passed 56 checks; controlled D1 application/profile/media write smoke passed 14 checks and removed its disposable records. Firebase runtime packages, migration endpoints and Worker secrets are removed. D1 is authoritative; do not restart source reconciliation. Git builds remain disconnected. Workers Free remains selected. Shoe Doctor is excluded. See the runbook for retirement evidence.
 
+The eight dummy Firebase users and obsolete service-account keys are deleted and verified absent. Final browser/API checks pass with Firebase traffic blocked. **Only project retirement remains:** automatic approval review rejected deletion of `care-53593`; its deletion command did not run. The owner must perform that final shutdown manually. Private backups are preserved.
+
 Start with [the migration runbook](docs/FIREBASE_TO_D1_MIGRATION.md), [validation](docs/MIGRATION_VALIDATION.md), [audit](docs/FIREBASE_TO_D1_AUDIT.md), [main schema](docs/D1_SCHEMA.md), [media schema](docs/D1_MEDIA_SCHEMA.md), [image pipeline](docs/PROFILE_IMAGE_PIPELINE.md), [Free limits](docs/D1_FREE_TIER_OPTIMIZATION.md), and [rollback](docs/MIGRATION_ROLLBACK.md). Earlier reports are historical.
 
 ## Local verification
