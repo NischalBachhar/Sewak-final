@@ -136,6 +136,13 @@ if ($Before.auth -ne 'cloudflare-d1') {
   throw 'Production is not reporting Cloudflare-only authentication. Stop before deployment.'
 }
 
+Write-Host 'Running read-only production E2E preflight before enabling writes...'
+node scripts/smoke-mobile-e2e-production.mjs --preflight
+if ($LASTEXITCODE -ne 0) {
+  throw 'Production E2E preflight failed while production was still read-only. No write activation was attempted.'
+}
+Write-Host 'Read-only E2E preflight passed.'
+
 $ActivatedByThisRun = $false
 $LifecyclePassed = $false
 
