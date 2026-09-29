@@ -6,18 +6,31 @@ $Origin = 'https://sewak-final.nischalbachhar9.workers.dev'
 $Validation = '.local-tools/d1-migration/final-validation.json'
 $AuthQa = '.local-tools/cloudflare-auth/sewak-final-qa-3fb2cbe2-6175-4ad0-b0f0-7c49125901c8.json'
 $PreviousSmoke = '.local-tools/cloudflare-auth/production-write-smoke-fce37aca-6d70-4705-a0fa-31b2f987471b.json'
+$WranglerCmd = Join-Path $PSScriptRoot '..\worker\node_modules\.bin\wrangler.cmd'
+
+function Get-JsonPropertyValue([object]$Object, [string]$Name) {
+  $Property = $Object.PSObject.Properties[$Name]
+  if ($null -eq $Property) { return $null }
+  return $Property.Value
+}
 
 function Require-PassingReport([string]$Path, [string]$Label) {
   if (-not (Test-Path $Path)) {
     throw "$Label evidence is missing: $Path. Do not reconstruct or bypass it."
   }
+
   $Report = Get-Content $Path -Raw | ConvertFrom-Json
-  if ($Report.pass -ne $true) {
+
+  $PassValue = Get-JsonPropertyValue $Report 'pass'
+  if ($PassValue -ne $true) {
     throw "$Label evidence is not a recorded PASS: $Path"
   }
-  if ($null -ne $Report.cleanupVerified -and $Report.cleanupVerified -ne $true) {
+
+  $CleanupProperty = $Report.PSObject.Properties['cleanupVerified']
+  if ($null -ne $CleanupProperty -and $CleanupProperty.Value -ne $true) {
     throw "$Label cleanup was not verified: $Path"
   }
+
   return $Report
 }
 
@@ -28,7 +41,13 @@ function Read-Health {
 Write-Host 'Sewak production activation + mobile E2E'
 Write-Host '----------------------------------------'
 
-# Never deploy unrelated local changes.
+$NodeVersion = (& node -p "process.versions.node").Trim()
+$NodeMajor = [int]($NodeVersion.Split('.')[0])
+if ($NodeMajor -ne 22) {
+  throw "Node 22 LTS is required for this production run. Current Node is $NodeVersion. Switch to Node 22, then rerun."
+}
+Write-Host ("Node runtime: {0}" -f $NodeVersion)
+
 $Dirty = git status --porcelain --untracked-files=no
 if ($LASTEXITCODE -ne 0) { throw 'Git status failed.' }
 if ($Dirty) {
@@ -38,9 +57,6 @@ if ($Dirty) {
 git fetch origin main
 if ($LASTEXITCODE -ne 0) { throw 'Could not refresh origin/main.' }
 
-# The mobile PR may change mobile/, CI and operator scripts, but production
-# web/Worker/runtime source must still match the latest origin/main exactly
-# before activation.
 git diff --quiet origin/main...HEAD -- src worker public package.json package-lock.json wrangler.production.toml
 if ($LASTEXITCODE -ne 0) {
   throw 'This branch changes production web/Worker runtime relative to main. Stop and review before deploying.'
@@ -50,24 +66,28 @@ $ValidationReport = Require-PassingReport $Validation 'Final D1 validation'
 $AuthReport = Require-PassingReport $AuthQa 'Production Cloudflare Auth QA'
 $SmokeReport = Require-PassingReport $PreviousSmoke 'Previous controlled production write smoke'
 
-if ($AuthReport.auth -ne 'cloudflare-d1' -or $AuthReport.worker -ne 'sewak-final') {
+$AuthName = Get-JsonPropertyValue $AuthReport 'auth'
+$WorkerName = Get-JsonPropertyValue $AuthReport 'worker'
+if ($AuthName -ne 'cloudflare-d1' -or $WorkerName -ne 'sewak-final') {
   throw 'The preserved Auth QA report is not for Cloudflare-D1 production sewak-final.'
 }
 
 $env:CLOUDFLARE_ACCOUNT_ID = $AccountId
 
-if (-not (Test-Path 'worker/node_modules/wrangler/bin/wrangler.js')) {
+if (-not (Test-Path $WranglerCmd)) {
   Write-Host 'Installing Worker dependencies...'
   npm.cmd --prefix worker ci
   if ($LASTEXITCODE -ne 0) { throw 'Worker dependency install failed.' }
 }
 
+if (-not (Test-Path $WranglerCmd)) {
+  throw "Wrangler executable was not found at: $WranglerCmd"
+}
+
 Write-Host 'Checking Wrangler identity...'
-& .worker
-ode_modules.binwrangler.cmd whoami
+& $WranglerCmd whoami
 if ($LASTEXITCODE -ne 0) {
-  throw 'Wrangler is not authenticated. Run: .worker
-ode_modules.binwrangler.cmd login'
+  throw "Wrangler is not authenticated. Run the Wrangler login command, then rerun this script."
 }
 
 $Before = Read-Health
