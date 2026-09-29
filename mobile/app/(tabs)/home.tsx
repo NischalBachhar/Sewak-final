@@ -4,8 +4,8 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/auth/AuthProvider";
-import { listBookings } from "@/api/sewak";
-import { Booking } from "@/types";
+import { getMyOrganizationApplication, listBookings } from "@/api/sewak";
+import { Booking, OrganizationApplication } from "@/types";
 import { colors, radius, spacing } from "@/theme";
 
 const todayNepal = () => {
@@ -20,6 +20,7 @@ export default function HomeScreen() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(role === "user" || role === "caregiver");
   const [error, setError] = useState("");
+  const [organizationApplication, setOrganizationApplication] = useState<OrganizationApplication | null>(null);
 
   useEffect(() => {
     if (!user || !["user", "caregiver"].includes(user.role)) {
@@ -27,8 +28,15 @@ export default function HomeScreen() {
       return;
     }
     let active = true;
-    listBookings(user)
-      .then((items) => active && setBookings(items))
+    Promise.all([
+      listBookings(user),
+      user.role === "user" ? getMyOrganizationApplication(user.uid) : Promise.resolve(null),
+    ])
+      .then(([items, application]) => {
+        if (!active) return;
+        setBookings(items);
+        setOrganizationApplication(application);
+      })
       .catch((err) => active && setError(err instanceof Error ? err.message : "Unable to load your dashboard."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
@@ -98,6 +106,12 @@ export default function HomeScreen() {
       <Text style={styles.title}>Welcome back, {firstName}</Text>
       <Text style={styles.body}>Find care, book by exact hours or time windows, and follow each care session in one place.</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {organizationApplication?.status === "pending" ? (
+        <View style={styles.application}>
+          <Text style={styles.applicationTitle}>Organization application pending</Text>
+          <Text style={styles.body}>{organizationApplication.organizationName} is waiting for Sewak platform review. Your customer account remains usable while it is reviewed.</Text>
+        </View>
+      ) : null}
 
       <View style={styles.heroCard}>
         <Text style={styles.cardTitle}>Who needs care today?</Text>
@@ -135,6 +149,8 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 28, fontWeight: "900" },
   body: { color: colors.muted, lineHeight: 21 },
   error: { color: colors.danger, fontWeight: "700" },
+  application: { backgroundColor: colors.warningSoft, borderWidth: 1, borderColor: colors.warning, borderRadius: radius.md, padding: spacing.md, gap: 5 },
+  applicationTitle: { color: colors.warning, fontWeight: "900", fontSize: 16 },
   heroCard: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, gap: spacing.md },
   cardEyebrow: { color: colors.accent, fontSize: 11, letterSpacing: 1, fontWeight: "900" },
   cardTitle: { color: colors.text, fontSize: 20, fontWeight: "900" },
