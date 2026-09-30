@@ -24,6 +24,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="browse" options={{ title: "Find caregivers" }} />
           <Stack.Screen name="sign-in" options={{ title: "Sign in" }} />
+          <Stack.Screen name="forgot-password" options={{ title: "Reset password" }} />
           <Stack.Screen name="register" options={{ title: "Create account" }} />
           <Stack.Screen name="activate" options={{ title: "Activate account" }} />
           <Stack.Screen name="caregiver/[id]" options={{ title: "Caregiver profile" }} />
