@@ -17,3 +17,26 @@ test('partial registration retries only after password authentication and logs n
  fireEvent.click(screen.getByRole('button',{name:'Sign up'}));await screen.findByRole('alert');expect(mockFinish).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'Sign up'}));await waitFor(()=>expect(mockFinish).toHaveBeenCalledTimes(1));expect(signIn).toHaveBeenCalledTimes(2);expect(JSON.stringify(log.mock.calls)).not.toMatch(/PRIVATE|test@example/);log.mockRestore();
 });
 test('recovery guidance does not pretend to send mail or expose account existence',()=>{mockMode='login';render(<AuthPage/>);fireEvent.click(screen.getByRole('button',{name:'Forgot password?'}));expect(screen.getByText(/Contact your Sewak administrator/)).toBeVisible();});
+
+test('login preserves loading feedback, credential errors, and retry values', async () => {
+  mockMode = 'login';
+  let rejectLogin;
+  signIn.mockImplementationOnce(() => new Promise((resolve, reject) => { rejectLogin = reject; }));
+  const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    render(<AuthPage />);
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.test' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test-password-123!' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(screen.getByRole('button', { name: 'Signing in...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Forgot password?' })).toBeDisabled();
+    expect(signIn).toHaveBeenCalledWith('test@example.test', 'Test-password-123!');
+    rejectLogin({ code: 'invalid-credentials' });
+    expect(await screen.findByRole('alert')).toHaveTextContent('The email or password is incorrect. Please try again.');
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+    expect(screen.getByLabelText('Email')).toHaveValue('test@example.test');
+    expect(screen.getByLabelText('Password')).toHaveValue('Test-password-123!');
+  } finally {
+    log.mockRestore();
+  }
+});
