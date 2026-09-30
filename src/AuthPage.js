@@ -3,6 +3,7 @@ import { auth, signIn, register } from "./authClient";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { completeRegistration } from "./registrationService";
+import LoginExperience, { LoginIcon } from "./components/LoginExperience";
 import "./AuthPage.css";
 
 const GENERIC_SIGN_IN_ERROR =
@@ -51,6 +52,7 @@ export default function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState(auth.currentUser?.email || "");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [selectedRole, setSelectedRole] = useState(sessionStorage.getItem("sewak.registrationRole") || "user");
   const [organizationName, setOrganizationName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -100,7 +102,8 @@ export default function AuthPage() {
   const forgotPassword = () => { setError(''); setSuccess('Contact your Sewak administrator for account recovery. Automated reset email is not configured.'); };
 
   return (
-    <div className="auth-shell">
+    <div className={`auth-shell${mode === "login" ? " auth-shell--login" : ""}`}>
+      {mode === "login" ? <LoginExperience /> : (
       <div className="auth-hero">
         <h1 className="auth-title">Sewak</h1>
         <p className="auth-tagline">
@@ -113,17 +116,19 @@ export default function AuthPage() {
           <li> Partner organizations manage their teams</li>
         </ul>
       </div>
+      )}
 
       <div className="auth-card">
+        {mode === "login" && <div className="login-card-mark" aria-hidden="true"><LoginIcon name="heart" /></div>}
         <h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2>
         <p>
           {mode === "login"
-            ? "Sign in to manage your bookings or organization."
+            ? "Continue to your Sewak account."
             : "Join Sewak as a customer or partner organization."}
         </p>
 
         {error && <div className="error-message" role="alert">{error}</div>}
-        {success && <div className="success-message">{success}</div>}
+        {success && <div className="success-message" role={mode === "login" ? "status" : undefined}>{success}</div>}
 
         <form className="form" onSubmit={handleSubmit}>
           {mode === "register" && (
@@ -143,6 +148,8 @@ export default function AuthPage() {
 
           <div>
             <label htmlFor="auth-email">Email</label>
+            <div className={mode === "login" ? "login-input-wrap" : undefined}>
+            {mode === "login" && <LoginIcon name="mail" />}
             <input
               id="auth-email" autoComplete="email" type="email"
               value={email}
@@ -150,18 +157,30 @@ export default function AuthPage() {
               required
               placeholder="your@email.com"
             />
+            </div>
           </div>
 
           <div>
             <label htmlFor="auth-password">Password</label>
+            <div className={mode === "login" ? "login-input-wrap login-password-wrap" : undefined}>
+            {mode === "login" && <LoginIcon name="lock" />}
             <input
-              id="auth-password" autoComplete={mode === "login" ? "current-password" : "new-password"} type="password"
+              id="auth-password" autoComplete={mode === "login" ? "current-password" : "new-password"} type={mode === "login" && passwordVisible ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required={mode === "login" || !auth.currentUser}
               minLength={mode === "login" ? 1 : 12} maxLength={128}
               placeholder={mode === "login" ? "Your password" : "At least 12 characters"}
             />
+            {mode === "login" && (
+              <button type="button" className="login-password-toggle"
+                aria-label={passwordVisible ? "Hide password" : "Show password"}
+                aria-controls="auth-password" aria-pressed={passwordVisible}
+                onClick={() => setPasswordVisible(!passwordVisible)}>
+                <LoginIcon name={passwordVisible ? "eye-off" : "eye"} />
+              </button>
+            )}
+            </div>
           </div>
 
           {/* Move role selection (I want to register as) after password */}
@@ -226,10 +245,11 @@ export default function AuthPage() {
               : mode === "login"
               ? "Sign in"
               : "Sign up"}
+            {mode === "login" && <span className={loading ? "login-spinner" : "login-submit-arrow"} aria-hidden="true">{!loading && <LoginIcon name="arrow" />}</span>}
           </button>
         </form>
 
-        {mode === "login" && <button type="button" className="link-button" disabled={loading} onClick={forgotPassword}>Forgot password?</button>}
+        {mode === "login" && <button type="button" className="link-button login-recovery" disabled={loading} onClick={forgotPassword}>Forgot password?</button>}
         <div className="auth-toggle">
           {mode === "login" ? (
             <p>

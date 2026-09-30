@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 340" fill="none">
+  <defs>
+    <linearGradient id="room" x1="300" y1="20" x2="300" y2="320" gradientUnits="userSpaceOnUse"><stop stop-color="#f1e6d2"/><stop offset="1" stop-color="#f8f0e3"/></linearGradient>
+    <linearGradient id="sofa" x1="280" y1="183" x2="280" y2="300" gradientUnits="userSpaceOnUse"><stop stop-color="#b6bf9f"/><stop offset="1" stop-color="#94a381"/></linearGradient>
+  </defs>
+  <!-- An original, local editorial illustration of a quiet moment at home. -->
+  <path d="M72 294V145C72 67 156 24 282 26c133 2 235 35 242 144l-5 124Z" fill="url(#room)"/>
+  <circle cx="468" cy="80" r="31" fill="#e9ce99" opacity=".5"/>
+  <path d="M123 182V99a43 43 0 0 1 86 0v83Z" fill="#fffbf2"/>
+  <path d="M166 57v125m-43-62h86" stroke="#e4d7bf" stroke-width="5"/>
+  <path d="m127 167 24-22 24 13 29-26v45h-77Z" fill="#d8ddcb"/>
+  <rect x="394" y="87" width="54" height="63" rx="3" fill="#fff9ee" stroke="#ceb791" stroke-width="4"/>
+  <path d="M421 136v-32m0 15c-17 0-18-14-18-14 17 0 18 14 18 14Zm0 8c17 0 18-15 18-15-16 0-18 15-18 15Z" fill="#a2ad8d"/>
+  <ellipse cx="301" cy="300" rx="240" ry="17" fill="#d9c6a6" opacity=".3"/>
+  <path d="M477 284c-3-45-5-74 7-109m-5 58c-33-4-35-26-35-26 31-3 35 26 35 26Zm1-27c-8-30 11-46 11-46 16 28-11 46-11 46Zm-1 41c28-4 36-31 36-31-32 0-36 31-36 31Z" fill="#869574"/>
+  <path d="m459 262 5 36h32l6-36Z" fill="#c48b63"/><path d="M457 261h47" stroke="#ae744f" stroke-width="5" stroke-linecap="round"/>
+  <path d="M152 208c0-18 12-31 30-31h202c21 0 32 14 32 32v63H152Z" fill="url(#sofa)"/>
+  <path d="M173 267v31m218-31v31" stroke="#796146" stroke-width="9" stroke-linecap="round"/>
+  <rect x="143" y="230" width="284" height="54" rx="17" fill="#a2af91"/>
+  <path d="M167 254h236" stroke="#8e9c7e" stroke-width="2"/>
+  <!-- Older family member, in a warm sari and shawl. -->
+  <path d="m282 233 3 53 28 2 8-57" fill="#7b6253"/>
+  <path d="m286 282-9 13c-3 4 1 7 7 7h31v-17" fill="#574337"/>
+  <path d="M266 162c-21 12-26 41-29 77 23 14 58 15 87 5l-13-72Z" fill="#c38a67"/>
+  <path d="M289 164c-5 27 0 57 24 83l19-9-22-65Z" fill="#e8ba88"/>
+  <path d="m289 178 29 52" stroke="#f7dbb1" stroke-width="3"/>
+  <path d="M271 159v17c6 8 19 7 24-2v-20" fill="#ba7c58"/>
+  <ellipse cx="279" cy="135" rx="26" ry="30" fill="#ce9670"/>
+  <path d="M254 137c-11-37 35-53 49-23l4 22c-15-2-26-15-29-22-6 13-12 16-24 16Z" fill="#ddd8cc"/>
+  <circle cx="301" cy="109" r="13" fill="#ddd8cc"/>
+  <path d="M258 137h17m6 0h15m-21 0h6" stroke="#6a5745" stroke-width="2"/>
+  <rect x="258" y="132" width="17" height="12" rx="5" stroke="#6a5745" stroke-width="2"/><rect x="281" y="132" width="15" height="12" rx="5" stroke="#6a5745" stroke-width="2"/>
+  <path d="M274 153q7 5 13-1" stroke="#82503e" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="278" cy="126" r="2" fill="#a65b43"/>
+  <!-- Caregiver sits alongside, offering a cup and a reassuring hand. -->
+  <path d="m188 226 15 60 21 1-4-65m1 5 17 59 22-2-6-63" fill="#5b7165"/>
+  <path d="m204 281-7 14c-1 4 3 6 8 6h23l-4-17m15-2-2 12c-1 4 3 6 8 6h23l-10-18" fill="#4c5144"/>
+  <path d="M182 157c-19 20-20 49-13 78 21 8 54 6 76-4l-17-77Z" fill="#e6ca8e"/>
+  <path d="M204 164v66m-27-49-7 37" stroke="#c5a771" stroke-width="2"/>
+  <path d="M197 138v22q10 12 23 0l-3-25" fill="#b77d59"/>
+  <path d="M185 130c-5-19-2-44 19-47 26-4 38 18 26 49l-7 15h-36Z" fill="#493e33"/>
+  <ellipse cx="211" cy="121" rx="22" ry="28" fill="#cc956e"/>
+  <path d="M185 116c-3-37 43-43 48-10-14 3-26-9-29-13-2 10-8 19-19 23Z" fill="#493e33"/>
+  <path d="M217 120h1m-13 0h1m1 14q6 4 11-1" stroke="#714d39" stroke-width="2" stroke-linecap="round"/>
+  <path d="m226 173 19 25 27 1" stroke="#cc956e" stroke-width="14" stroke-linecap="round"/>
+  <path d="m179 180 11 30 41 3" stroke="#cc956e" stroke-width="14" stroke-linecap="round"/>
+  <path d="m221 200 3 19h19l3-19Z" fill="#fffaf0"/><path d="M245 203c14-5 13 12-1 9" stroke="#fffaf0" stroke-width="4"/>
+  <path d="M229 192q-4-5 0-10m9 10q-4-5 0-10" stroke="#bfa684" stroke-width="2" stroke-linecap="round"/>
+  <path d="m310 186-10 18-27 1" stroke="#ce9670" stroke-width="13" stroke-linecap="round"/>
+  <!-- Child with a picture book. -->
+  <path d="m355 248-5 41m26-41 8 41" stroke="#ad7658" stroke-width="13" stroke-linecap="round"/>
+  <path d="m345 287-9 9h20l1-10m21 1 1 9h21l-10-9" fill="#b58a50"/>
+  <path d="M346 199c-13 13-15 38-10 53h51c3-22-2-41-16-53Z" fill="#e3ad75"/>
+  <path d="M352 187v15q8 6 17-1v-14" fill="#b9805f"/>
+  <ellipse cx="360" cy="174" rx="21" ry="24" fill="#cc9570"/>
+  <path d="M338 174c-6-30 36-41 44-13l-1 15c-5-7-10-14-12-20-5 9-17 13-31 12Z" fill="#514135"/>
+  <path d="M352 176h1m14 0h1m-12 11q5 3 9-1" stroke="#79523c" stroke-width="2" stroke-linecap="round"/>
+  <path d="m340 218-3 13 18 7m25-20 4 13-16 7" stroke="#cc9570" stroke-width="11" stroke-linecap="round"/>
+  <path d="m339 222 23 7 23-7-5 24-18 6-18-6Z" fill="#fff6df" stroke="#bda274" stroke-width="1.5"/><path d="M362 230v21" stroke="#bda274" stroke-width="1.5"/>
+  <path d="m349 233 6 2m16 0 6-2" stroke="#a9b596" stroke-width="3" stroke-linecap="round"/>
+  <path d="M95 287h36m-29 0 4-21h14l4 21" stroke="#b09772" stroke-width="3" stroke-linecap="round"/><path d="M112 265v-29m0 16c-19-3-15-18-15-18 16 0 15 18 15 18Zm0-8c16-1 15-18 15-18-15 4-15 18-15 18Z" fill="#a0aa83"/>
+</svg>
