@@ -4,7 +4,9 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { completeRegistration } from "./registrationService";
 import LoginExperience, { LoginIcon } from "./components/LoginExperience";
+import SignupExperience, { SignupIcon } from "./components/SignupExperience";
 import "./AuthPage.css";
+import "./SignupPage.css";
 
 const GENERIC_SIGN_IN_ERROR =
   "The email or password is incorrect. Please try again.";
@@ -102,56 +104,50 @@ export default function AuthPage() {
   const forgotPassword = () => { setError(''); setSuccess('Contact your Sewak administrator for account recovery. Automated reset email is not configured.'); };
 
   return (
-    <div className={`auth-shell${mode === "login" ? " auth-shell--login" : ""}`}>
-      {mode === "login" ? <LoginExperience /> : (
-      <div className="auth-hero">
-        <h1 className="auth-title">Sewak</h1>
-        <p className="auth-tagline">
-          Book trusted caregivers and household help in a few clicks.
-        </p>
-        <ul className="auth-points">
-          <li> Verified caregivers reviewed by admins</li>
-          <li> Clear timings, locations, and booking history</li>
-          <li> Designed for Nepali families and workers</li>
-          <li> Partner organizations manage their teams</li>
-        </ul>
-      </div>
-      )}
+    <div className={`auth-shell ${mode === "login" ? "auth-shell--login" : "auth-shell--signup"}`}>
+      {mode === "login" ? <LoginExperience /> : <SignupExperience />}
 
       <div className="auth-card">
         {mode === "login" && <div className="login-card-mark" aria-hidden="true"><LoginIcon name="heart" /></div>}
+        {mode === "register" && <div className="signup-card-eyebrow"><span aria-hidden="true" />LET’S MAKE CARE EASIER</div>}
         <h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2>
         <p>
           {mode === "login"
             ? "Continue to your Sewak account."
-            : "Join Sewak as a customer or partner organization."}
+            : "Join Sewak and make finding trusted care easier."}
         </p>
+        {mode === "register" && <div className="signup-context"><SignupIcon name="heart" />Your first step to care, closer to home.</div>}
 
-        {error && <div className="error-message" role="alert">{error}</div>}
-        {success && <div className="success-message" role={mode === "login" ? "status" : undefined}>{success}</div>}
+        {error && <div id="auth-error" className="error-message" role="alert">{error}</div>}
+        {success && <div className="success-message" role="status">{success}</div>}
 
-        <form className="form" onSubmit={handleSubmit}>
+        <form className="form" onSubmit={handleSubmit} aria-describedby={mode === "register" && error ? "auth-error" : undefined}>
           {mode === "register" && (
             <>
               <div>
                 <label htmlFor="auth-name">Full name</label>
+                <div className="signup-input-wrap">
+                <SignupIcon name="user" />
                 <input
                   id="auth-name" autoComplete="name" type="text"
+                  aria-describedby={error ? "auth-error" : undefined}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
                   placeholder="Your full name"
                 />
+                </div>
               </div>
             </>
           )}
 
           <div>
             <label htmlFor="auth-email">Email</label>
-            <div className={mode === "login" ? "login-input-wrap" : undefined}>
-            {mode === "login" && <LoginIcon name="mail" />}
+            <div className={mode === "login" ? "login-input-wrap" : "signup-input-wrap"}>
+            <LoginIcon name="mail" />
             <input
               id="auth-email" autoComplete="email" type="email"
+              aria-describedby={mode === "register" && error ? "auth-error" : undefined}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -162,34 +158,34 @@ export default function AuthPage() {
 
           <div>
             <label htmlFor="auth-password">Password</label>
-            <div className={mode === "login" ? "login-input-wrap login-password-wrap" : undefined}>
-            {mode === "login" && <LoginIcon name="lock" />}
+            <div className={mode === "login" ? "login-input-wrap login-password-wrap" : "signup-input-wrap signup-password-wrap"}>
+            <LoginIcon name="lock" />
             <input
-              id="auth-password" autoComplete={mode === "login" ? "current-password" : "new-password"} type={mode === "login" && passwordVisible ? "text" : "password"}
+              id="auth-password" autoComplete={mode === "login" ? "current-password" : "new-password"} type={passwordVisible ? "text" : "password"}
+              aria-describedby={mode === "register" ? `signup-password-help${error ? " auth-error" : ""}` : undefined}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required={mode === "login" || !auth.currentUser}
               minLength={mode === "login" ? 1 : 12} maxLength={128}
               placeholder={mode === "login" ? "Your password" : "At least 12 characters"}
             />
-            {mode === "login" && (
-              <button type="button" className="login-password-toggle"
+              <button type="button" className={mode === "login" ? "login-password-toggle" : "signup-password-toggle"}
                 aria-label={passwordVisible ? "Hide password" : "Show password"}
                 aria-controls="auth-password" aria-pressed={passwordVisible}
                 onClick={() => setPasswordVisible(!passwordVisible)}>
                 <LoginIcon name={passwordVisible ? "eye-off" : "eye"} />
               </button>
-            )}
             </div>
+            {mode === "register" && <p id="signup-password-help" className="signup-field-help">At least 12 characters.</p>}
           </div>
 
           {/* Move role selection (I want to register as) after password */}
           {mode === "register" && (
             <>
-              <div>
+              <div className="signup-roles">
                 <p id="registration-role-label">I want to register as</p>
                 <div className="role-selection" role="group" aria-labelledby="registration-role-label">
-                  <label className="role-option">
+                  <label className={`role-option${selectedRole === "user" ? " signup-role--selected" : ""}`}>
                     <input
                       type="radio"
                       name="role"
@@ -197,10 +193,12 @@ export default function AuthPage() {
                       checked={selectedRole === "user"}
                       onChange={() => setSelectedRole("user")}
                     />
-                    <span>👨‍👩‍👧 Customer (Book caregivers)</span>
+                    <span className="signup-role-icon"><SignupIcon name="home" /></span>
+                    <span className="signup-role-copy"><strong>Customer</strong><span>Find and book trusted caregivers for your family.</span></span>
+                    <span className="signup-role-check" aria-hidden="true"><SignupIcon name="check" /></span>
                   </label>
                   
-                  <label className="role-option">
+                  <label className={`role-option${selectedRole === "orgadmin" ? " signup-role--selected" : ""}`}>
                     <input
                       type="radio"
                       name="role"
@@ -208,26 +206,32 @@ export default function AuthPage() {
                       checked={selectedRole === "orgadmin"}
                       onChange={() => setSelectedRole("orgadmin")}
                     />
-                    <span>🏢 Organization/Company (Provide caregivers)</span>
+                    <span className="signup-role-icon"><SignupIcon name="organization" /></span>
+                    <span className="signup-role-copy"><strong>Organization/Company</strong><span>Manage your caregivers and provide care through Sewak.</span></span>
+                    <span className="signup-role-check" aria-hidden="true"><SignupIcon name="check" /></span>
                   </label>
                 </div>
-                <p className="text-muted" style={{ fontSize: 11, marginTop: 8 }}>
-                  {selectedRole === "user" && "Browse and book trusted caregivers for your family"}
-                  {selectedRole === "orgadmin" && "Partner with Sewak and manage your caregiver team"}
-                </p>
+                <div className="signup-role-context" aria-live="polite">
+                  <span className={selectedRole === "user" ? "is-active" : ""} aria-hidden={selectedRole !== "user"}>A helping hand for the people you love.</span>
+                  <span className={selectedRole === "orgadmin" ? "is-active" : ""} aria-hidden={selectedRole !== "orgadmin"}>Organization access follows application review.</span>
+                </div>
               </div>
 
               {/* Organization Name - Only for orgadmin */}
               {selectedRole === "orgadmin" && (
                 <div>
                   <label htmlFor="auth-organization">Organization/Company Name</label>
+                  <div className="signup-input-wrap">
+                  <SignupIcon name="organization" />
                   <input
                     type="text"
                     id="auth-organization" autoComplete="organization" value={organizationName}
+                    aria-describedby={error ? "auth-error" : undefined}
                     onChange={(e) => setOrganizationName(e.target.value)}
                     required
                     placeholder="e.g., ABC Care Services Pvt. Ltd."
                   />
+                  </div>
                 </div>
               )}
             </>
@@ -246,6 +250,7 @@ export default function AuthPage() {
               ? "Sign in"
               : "Sign up"}
             {mode === "login" && <span className={loading ? "login-spinner" : "login-submit-arrow"} aria-hidden="true">{!loading && <LoginIcon name="arrow" />}</span>}
+            {mode === "register" && <span className={loading ? "signup-spinner" : "signup-submit-arrow"} aria-hidden="true">{!loading && <SignupIcon name="arrow" />}</span>}
           </button>
         </form>
 
@@ -259,6 +264,7 @@ export default function AuthPage() {
                 className="link-button"
                 onClick={() => {
                   setMode("register");
+                  setPasswordVisible(false);
                   setError("");
                 }}
               >
@@ -273,6 +279,7 @@ export default function AuthPage() {
                 className="link-button"
                 onClick={() => {
                   setMode("login");
+                  setPasswordVisible(false);
                   setError("");
                 }}
               >
@@ -281,6 +288,7 @@ export default function AuthPage() {
             </p>
           )}
         </div>
+        {mode === "register" && <div className="signup-footer-note"><SignupIcon name="lock" />Care begins with a little trust.</div>}
       </div>
     </div>
   );
