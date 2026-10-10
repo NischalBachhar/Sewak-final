@@ -14,6 +14,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
+    "admin": "node --experimental-strip-types scripts/superadmin-recovery.mjs",
+    "admin:terminal": "node scripts/check-admin-terminal.mjs",
     "admin:recovery": "node --experimental-strip-types scripts/superadmin-recovery.mjs",
     "start": "react-scripts start",
     "prebuild": "node scripts/check-build-ci.cjs",
