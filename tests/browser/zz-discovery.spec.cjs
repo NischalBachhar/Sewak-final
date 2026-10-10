@@ -86,9 +86,9 @@ test('pending organization completes onboarding and retains role after logout, l
   await page.goto('/auth?mode=register');
   const email=`onboard-${Date.now()}@example.test`;
   await page.getByLabel('Full name').fill('Onboarding Owner');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill('Local-test-only-123!');
-  await page.getByRole('radio',{name:/Organization\/Company/}).check();await page.getByLabel('Organization/Company Name').fill('Onboarding Organization');
+  await page.getByRole('radio',{name:/Organization\/Company/}).check();await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByLabel('Organization/Company Name').fill('Onboarding Organization');
   await page.getByRole('combobox',{name:'Organization Type *',exact:true}).selectOption('Other');await page.getByLabel('Specify organization type *').fill('Community Support');await page.getByLabel('Phone Number *').fill('9800000000');await page.getByRole('combobox',{name:'City *',exact:true}).selectOption('Other');
-  await page.getByLabel('Enter your city *').fill('Tansen Town');await page.getByLabel('Address *',{exact:true}).fill('Synthetic street 12');await page.getByLabel('Elderly Care',{exact:true}).check();await page.getByRole('button',{name:'Sign up',exact:true}).click();
+  await page.getByLabel('Enter your city *').fill('Tansen Town');await page.getByLabel('Address *',{exact:true}).fill('Synthetic street 12');await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByLabel('Elderly Care',{exact:true}).check();await page.getByRole('button',{name:'Submit application',exact:true}).click();
   await expect(page).toHaveURL(/\/organization\/profile/);await expect(page.getByText('Pending Verification',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Save Profile',exact:true}).click();await expect(page.getByRole('heading',{name:'Approval Pending'})).toBeVisible();
   await page.getByRole('button',{name:/Account menu for/}).click();await page.getByRole('button',{name:/Logout/}).click();

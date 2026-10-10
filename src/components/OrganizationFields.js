@@ -1,18 +1,33 @@
-import React from 'react';
+import React, { useId } from 'react';
 import NepalCitySelect from './NepalCitySelect';
 import ServiceSelector from './ServiceSelector';
 
 export const ORGANIZATION_TYPES = ['Caregiver Agency','Home Care Service Provider','Household Staffing Agency','Nursing / Home Healthcare Provider','Other'];
-export default function OrganizationFields({ value, onChange, organizationId }) {
+export default function OrganizationFields({ value, onChange, organizationId, section = 'all', errors = {} }) {
+  const prefix = useId();
   const set = (key, field) => onChange({ ...value, [key]: field });
+  const field = (key, label, props = {}, options) => <div className="organization-field" key={key}>
+    <label htmlFor={`${prefix}-${key}`}>{label}</label>
+    {React.createElement(options ? 'select' : 'input', {
+      id: `${prefix}-${key}`, name: key, value: value[key] || '',
+      onChange: event => set(key, event.target.value), ...props,
+      'aria-invalid': errors[key] ? true : undefined,
+      'aria-describedby': errors[key] ? `${prefix}-${key}-error` : undefined,
+    }, options)}
+    {errors[key] && <span className="signup-field-error" id={`${prefix}-${key}-error`}>{errors[key]}</span>}
+  </div>;
   return <>
-    <label>Organization Type *<select required value={value.organizationType || ''} onChange={event => set('organizationType', event.target.value)}><option value="">Select organization type</option>{ORGANIZATION_TYPES.map(type => <option key={type}>{type}</option>)}</select></label>
-    {value.organizationType === 'Other' && <label>Specify organization type *<input required minLength={2} maxLength={100} value={value.organizationTypeOther || ''} onChange={event => set('organizationTypeOther', event.target.value)} /></label>}
-    <label>Phone Number *<input type="tel" required autoComplete="tel" maxLength={25} value={value.businessPhone || ''} onChange={event => set('businessPhone', event.target.value)} /></label>
-    <NepalCitySelect value={value.businessCity || ''} onChange={city => set('businessCity', city)} />
-    <label>Address *<input required autoComplete="street-address" minLength={5} maxLength={300} value={value.businessAddress || ''} onChange={event => set('businessAddress', event.target.value)} /></label>
-    <ServiceSelector organizationId={organizationId} value={value.servicesOffered || []} onChange={ids => set('servicesOffered', ids)} />
-    <label>Registration Number (optional)<input maxLength={100} value={value.businessLicense || ''} onChange={event => set('businessLicense', event.target.value)} /></label>
-    <label>PAN/VAT (optional)<input maxLength={100} value={value.panVat || ''} onChange={event => set('panVat', event.target.value)} /></label>
+    {section !== 'services' && <>
+      {field('organizationType', 'Organization Type *', { required: true }, <><option value="">Select organization type</option>{ORGANIZATION_TYPES.map(type => <option key={type}>{type}</option>)}</>)}
+      {value.organizationType === 'Other' && field('organizationTypeOther', 'Specify organization type *', { required: true, minLength: 2, maxLength: 100 })}
+      {field('businessPhone', 'Phone Number *', { type: 'tel', required: true, autoComplete: 'tel', maxLength: 25 })}
+      <NepalCitySelect value={value.businessCity || ''} onChange={city => set('businessCity', city)} name="businessCity" error={errors.businessCity} />
+      {field('businessAddress', 'Address *', { required: true, autoComplete: 'street-address', minLength: 5, maxLength: 300 })}
+    </>}
+    {section !== 'details' && <ServiceSelector organizationId={organizationId} value={value.servicesOffered || []} onChange={ids => set('servicesOffered', ids)} grouped={section === 'services'} />}
+    {section !== 'services' && <>
+      {field('businessLicense', 'Registration Number (optional)', { maxLength: 100 })}
+      {field('panVat', 'PAN/VAT (optional)', { maxLength: 100 })}
+    </>}
   </>;
 }
