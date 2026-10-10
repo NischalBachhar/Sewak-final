@@ -1,3 +1,4 @@
+import OrganizationFields from './components/OrganizationFields';
 import React, { useEffect, useState } from "react";
 import { auth, signIn, register } from "./authClient";
 import { useSearchParams } from "react-router-dom";
@@ -56,6 +57,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [selectedRole, setSelectedRole] = useState(sessionStorage.getItem("sewak.registrationRole") || "user");
+  const [organization, setOrganization] = useState({});
   const [organizationName, setOrganizationName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -80,7 +82,7 @@ export default function AuthPage() {
         beginRegistration(selectedRole);
         let account = auth.currentUser;
         if (!account || account.email?.toLowerCase() !== email.trim().toLowerCase()) {
-          try { account = await register({ email: email.trim(), password, name: fullName.trim() }); }
+          try { account = await register({ email: email.trim(), password, name: fullName.trim(), selectedRole, ...(selectedRole === 'orgadmin' ? { organizationName: organizationName.trim(), ...organization } : {}) }); }
           catch (error) {
             if (error.code !== "account-exists") throw error;
             // Resume only after the server verifies the password; never overwrite
@@ -88,14 +90,14 @@ export default function AuthPage() {
             account = await signIn(email.trim(), password);
           }
         }
-        await completeRegistration(account, { fullName, selectedRole, organizationName });
+        await completeRegistration(account, { fullName, selectedRole, organizationName, ...organization });
         await finishRegistration();
         setSuccess(selectedRole === "orgadmin" ? "Application submitted for review. Organization access requires approval." : "Registration complete.");
         setPassword("");
       }
     } catch (err) {
       console.error("Auth error:", { code: err?.code || "unknown" });
-      setError(err?.code ? getAuthErrorMessage(err.code, mode) : err.message);
+      setError(err?.code === 'invalid-argument' || err?.code === 'permission-denied' ? err.message : err?.code ? getAuthErrorMessage(err.code, mode) : err.message);
     } finally {
       setLoading(false);
     }
@@ -219,6 +221,7 @@ export default function AuthPage() {
 
               {/* Organization Name - Only for orgadmin */}
               {selectedRole === "orgadmin" && (
+                <>
                 <div>
                   <label htmlFor="auth-organization">Organization/Company Name</label>
                   <div className="signup-input-wrap">
@@ -229,10 +232,12 @@ export default function AuthPage() {
                     aria-describedby={error ? "auth-error" : undefined}
                     onChange={(e) => setOrganizationName(e.target.value)}
                     required
-                    placeholder="e.g., ABC Care Services Pvt. Ltd."
+                    maxLength={160} placeholder="e.g., ABC Care Services Pvt. Ltd."
                   />
                   </div>
                 </div>
+                <OrganizationFields value={organization} onChange={setOrganization} />
+                </>
               )}
             </>
           )}

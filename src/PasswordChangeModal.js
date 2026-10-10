@@ -1,3 +1,4 @@
+import { changePassword } from './authClient';
 import AccessibleDialog from "./components/AccessibleDialog";
 // src/components/PasswordChangeModal.js
 import React, { useState } from "react";
@@ -7,12 +8,13 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccessMsg("");
@@ -27,15 +29,14 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
       return;
     }
 
-    // Placeholder: call parent handler if provided
-    if (onPasswordChange) {
-      onPasswordChange({ currentPassword, newPassword });
-    }
-
-    setSuccessMsg("Password changed successfully (dummy handler).");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    if (saving) return;
+    setSaving(true);
+    try {
+      await (onPasswordChange || (({ currentPassword, newPassword }) => changePassword(currentPassword, newPassword)))({ currentPassword, newPassword });
+      setSuccessMsg('Password changed. Please sign in again.');
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+    } catch (error) { setError(error.message || 'Password could not be changed.'); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -57,8 +58,8 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
           <label>
             Current Password
             <input
-              type="password"
-              value={currentPassword}
+              type="password" required maxLength={128}
+              autoComplete="current-password" value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter current password"
             />
@@ -68,7 +69,7 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
             New Password
             <input
               type="password"
-              value={newPassword}
+              minLength={12} autoComplete="new-password" value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"
             />
@@ -88,7 +89,7 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
             <button type="button" onClick={onClose} className="secondary-btn">
               Cancel
             </button>
-            <button type="submit" className="primary-btn">
+            <button type="submit" className="primary-btn" disabled={saving}>
               Change Password
             </button>
           </div>

@@ -1,3 +1,4 @@
+import { registrationKeys, registrationWrites } from './onboarding.ts';
 import { ApiError, badInput, onlyKeys, requireThat, textField, type Data, type Env, type Identity } from './types.ts';
 import { Repository, requireActor, type Write } from './repository.ts';
 import { dummyPasswordHash } from './passwords.ts';
@@ -75,13 +76,17 @@ export async function authRoute(request:Request,env:Env,headers:Headers,body:Dat
     return sessionResponse(env,headers,c.user_id,c.email,profile,session,transport);
   }
   if(path==='/auth/register'||path==='/auth/bootstrap'){
-    const bootstrap=path.endsWith('/bootstrap');onlyKeys(body,['email','password','name','sessionMode',...(bootstrap?['bootstrapToken']:[])]);const transport=mode(request,body),email=normalizedEmail(body.email),name=textField(body.name,'Name',2,120);passwordInput(body.password);await authLimit(request,env,bootstrap?'bootstrap':'register',email);
+    const bootstrap=path.endsWith('/bootstrap');onlyKeys(body,['email','password','name','sessionMode',...(bootstrap?['bootstrapToken']:registrationKeys)]);const transport=mode(request,body),email=normalizedEmail(body.email),name=textField(body.name,'Name',2,120);passwordInput(body.password);await authLimit(request,env,bootstrap?'bootstrap':'register',email);
     let setup:Data|null=null;if(bootstrap){requireThat(typeof body.bootstrapToken==='string'&&body.bootstrapToken.length<=128,'Setup is unavailable.',403,'setup-unavailable');setup=await env.DB.prepare('SELECT * FROM cf_bootstrap WHERE id=1').first<Data>();requireThat(setup&&!setup.used_at&&setup.expires_at>epoch()&&setup.email===email&&setup.token_hash===await digest(body.bootstrapToken),'Setup is unavailable.',403,'setup-unavailable');}
     if(!bootstrap){const reserved=await env.DB.prepare('SELECT email FROM cf_bootstrap WHERE id=1 AND email=?').bind(email).first();requireThat(!reserved,'Use your one-time account setup invitation.',409,'account-exists');}
-    const uid='usr_'+crypto.randomUUID(),profile=newAccountProfile(uid,email,name,bootstrap?'superadmin':'user'),hash=await makePassword(env,body.password),session=await newSession(env,uid,1,transport);
+    const uid='usr_'+crypto.randomUUID();
+    let profile=newAccountProfile(uid,email,name,bootstrap?'superadmin':'user');
+    const writes:Write[]=!bootstrap && body.selectedRole!==undefined ? await registrationWrites(repo,profile,body) : [{path:'users/'+uid,data:profile}];
+    profile=writes[0].data!;
+    const hash=await makePassword(env,body.password),session=await newSession(env,uid,1,transport);
     const statements=[];if(bootstrap){statements.push(env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,EXISTS(SELECT 1 FROM cf_bootstrap WHERE id=1 AND used_at IS NULL AND expires_at>? AND token_hash=?) AND NOT EXISTS(SELECT 1 FROM cf_credentials c JOIN users u ON u.id=c.user_id WHERE u.role=\'superadmin\' AND c.disabled=0))').bind('bootstrap:'+uid,epoch(),setup!.token_hash));statements.push(env.DB.prepare('UPDATE cf_bootstrap SET used_at=? WHERE id=1 AND used_at IS NULL').bind(epoch()));}
     statements.push(env.DB.prepare('INSERT INTO cf_credentials(user_id,email,password_hash,created_at) VALUES(?,?,?,?)').bind(uid,email,hash,epoch()),session.statement);if(bootstrap)statements.push(env.DB.prepare('DELETE FROM commit_guards WHERE id=?').bind('bootstrap:'+uid));
-    try{await repo.commit([{path:'users/'+uid,data:profile}],statements);}catch(e){if(e instanceof ApiError&&e.code==='already-exists')throw new ApiError(409,'account-exists','Unable to create this account. Try signing in.');throw e;}
+    try{await repo.commit(writes,statements);}catch(e){if(e instanceof ApiError&&e.code==='already-exists')throw new ApiError(409,'account-exists','Unable to create this account. Try signing in.');throw e;}
     return sessionResponse(env,headers,uid,email,profile,session,transport);
   }
   if(path==='/auth/activate'){
@@ -100,8 +105,14 @@ export async function authRoute(request:Request,env:Env,headers:Headers,body:Dat
   }
   if(path==='/auth/revoke-sessions'){onlyKeys(body,['sessionId','all']);badInput(body.all===true||typeof body.sessionId==='string'&&body.sessionId.length<=100);if(body.all===true)await revokeUserSessions(env,user.uid);else await env.DB.prepare('DELETE FROM cf_sessions WHERE id=? AND user_id=?').bind(body.sessionId,user.uid).run();const signedOut=body.all===true||body.sessionId===identity!.sessionId;if(signedOut)setCookie(headers,'',0);return {revoked:true,signedOut};}
   if(path==='/auth/complete-registration'){
-    onlyKeys(body,['name','selectedRole','organizationName']);const name=textField(body.name,'Name',2,120);badInput(['user','orgadmin'].includes(body.selectedRole));requireThat(user.role==='user','This account is already configured.');const writes:Write[]=[{path:'users/'+user.uid,data:{...user.profile!,name,registrationComplete:true}}];
-    if(body.selectedRole==='orgadmin'){requireThat(env.APP_WRITES_ENABLED==='true','Organization applications are temporarily read-only.',503,'maintenance');const organizationName=textField(body.organizationName,'Organization name',2,160),path='organizationApplications/'+user.uid;if(!await repo.data(path))writes.push({path,data:{applicantId:user.uid,applicantName:name,applicantEmail:user.email,organizationName,businessPhone:'',businessAddress:'',businessCity:'',status:'pending',createdAt:new Date().toISOString()}});}
+    onlyKeys(body,['name',...registrationKeys]);
+    const name=textField(body.name,'Name',2,120);
+    badInput(['user','orgadmin'].includes(body.selectedRole), 'Choose Customer or Organization.');
+    if(user.profile?.registrationComplete===true || user.profile?.profileComplete===true || user.role!=='user') {
+      requireThat(user.role===body.selectedRole, 'An existing account cannot change its account type through registration.');
+      return {completed:true};
+    }
+    const writes=await registrationWrites(repo,{...user.profile!,name},body);
     await repo.commit(writes);return {completed:true};
   }
   throw new ApiError(404,'not-found','Authentication endpoint not found.');

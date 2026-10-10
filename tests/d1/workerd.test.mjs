@@ -13,8 +13,13 @@ test('actual workerd bindings enforce D1 auth and private media, reject retired 
  const mf=new Miniflare(convertV4MiniflareOptions(options));
  try{
   const DB=await mf.getD1Database('DB'),MEDIA_DB=await mf.getD1Database('MEDIA_DB');
-  for(const [db,file]of [[DB,'migrations/main/0001_sewak.sql'],[DB,'migrations/main/0002_auth_state.sql'],[DB,'migrations/main/0003_cloudflare_auth.sql'],[MEDIA_DB,'migrations/media/0001_profile_images.sql']])for(const sql of readFileSync(file,'utf8').split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
+  for(const [db,file]of [[DB,'migrations/main/0001_sewak.sql'],[DB,'migrations/main/0002_auth_state.sql'],[DB,'migrations/main/0003_cloudflare_auth.sql'],[DB,'migrations/main/0004_catalog_onboarding.sql'],[MEDIA_DB,'migrations/media/0001_profile_images.sql']])for(const sql of readFileSync(file,'utf8').split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
   await seed({DB,MEDIA_DB});
+  const orgResponse=await mf.dispatchFetch('http://localhost/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'workerd-org@example.test',password:'Workerd-test-password-2026!',name:'Workerd Organization',sessionMode:'bearer',selectedRole:'orgadmin',organizationName:'Workerd Care',organizationType:'Caregiver Agency',businessPhone:'9800000000',businessAddress:'Test street 12',businessCity:'Hetauda',servicesOffered:['catalog_elderly_care']})});
+  assert.equal(orgResponse.status,200,await orgResponse.clone().text()); const orgAccount=await orgResponse.json(); assert.equal(orgAccount.user.role,'orgadmin');
+  assert.equal((await DB.prepare('SELECT COUNT(*) n FROM organization_services WHERE organization_id=?').bind(orgAccount.user.uid).first()).n,1);
+  const listing=await mf.dispatchFetch('http://localhost/api/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'publicCaregivers',search:{serviceId:'care',minimumExperience:2,location:'hetauda'}})});
+  assert.equal(listing.status,200,await listing.clone().text()); assert.equal((await listing.json()).total,1);
   const authBody={email:'workerd@example.test',password:'Workerd-test-password-2026!',name:'Workerd Test',sessionMode:'bearer'};
   const authResponse=await mf.dispatchFetch('http://localhost/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(authBody)});
   assert.equal(authResponse.status,200,await authResponse.clone().text());const registered=await authResponse.json();

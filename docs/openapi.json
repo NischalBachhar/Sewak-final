@@ -18,7 +18,7 @@
   "paths": {
     "/auth/register": {
       "post": {
-        "summary": "Register a new customer",
+        "summary": "Atomically register a customer or pending organization; organization selection requires its name, type, phone, address and actual city",
         "operationId": "post_auth_register",
         "security": [],
         "responses": {
@@ -124,6 +124,62 @@
                     ],
                     "default": "cookie",
                     "description": "Native clients request bearer without Origin, Cookie or Sec-Fetch-Site. Web uses same-origin cookie."
+                  },
+                  "selectedRole": {
+                    "enum": [
+                      "user",
+                      "orgadmin"
+                    ],
+                    "description": "Account type, independent of marketplace approval. Omit only for legacy two-step customer registration."
+                  },
+                  "organizationName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 160
+                  },
+                  "organizationType": {
+                    "enum": [
+                      "Caregiver Agency",
+                      "Home Care Service Provider",
+                      "Household Staffing Agency",
+                      "Nursing / Home Healthcare Provider",
+                      "Other"
+                    ]
+                  },
+                  "organizationTypeOther": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "businessPhone": {
+                    "type": "string",
+                    "maxLength": 25
+                  },
+                  "businessAddress": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "businessCity": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "description": "Actual city. The literal Other is rejected."
+                  },
+                  "servicesOffered": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 160
+                    }
+                  },
+                  "businessLicense": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "panVat": {
+                    "type": "string",
+                    "maxLength": 100
                   }
                 },
                 "required": [
@@ -1158,12 +1214,57 @@
                     "enum": [
                       "user",
                       "orgadmin"
-                    ]
+                    ],
+                    "description": "Account type, independent of marketplace approval. Omit only for legacy two-step customer registration."
                   },
                   "organizationName": {
                     "type": "string",
                     "minLength": 2,
                     "maxLength": 160
+                  },
+                  "organizationType": {
+                    "enum": [
+                      "Caregiver Agency",
+                      "Home Care Service Provider",
+                      "Household Staffing Agency",
+                      "Nursing / Home Healthcare Provider",
+                      "Other"
+                    ]
+                  },
+                  "organizationTypeOther": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "businessPhone": {
+                    "type": "string",
+                    "maxLength": 25
+                  },
+                  "businessAddress": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "businessCity": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "description": "Actual city. The literal Other is rejected."
+                  },
+                  "servicesOffered": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 160
+                    }
+                  },
+                  "businessLicense": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "panVat": {
+                    "type": "string",
+                    "maxLength": 100
                   }
                 },
                 "required": [
@@ -1289,6 +1390,11 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Total matched public caregivers before cursor pagination, when search is supplied."
+                    },
                     "items": {
                       "type": "array",
                       "items": {
@@ -1415,6 +1521,11 @@
                     {
                       "type": "object",
                       "properties": {
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "Total matched public caregivers before cursor pagination, when search is supplied."
+                        },
                         "items": {
                           "type": "array",
                           "items": {
@@ -1521,6 +1632,63 @@
                 "properties": {
                   "path": {
                     "type": "string"
+                  },
+                  "search": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "maxLength": 160
+                      },
+                      "category": {
+                        "enum": [
+                          "",
+                          "caregiver",
+                          "household",
+                          "vendor",
+                          "both"
+                        ]
+                      },
+                      "serviceId": {
+                        "type": "string",
+                        "maxLength": 160
+                      },
+                      "workType": {
+                        "enum": [
+                          "",
+                          "parttime",
+                          "fulltime"
+                        ]
+                      },
+                      "shift": {
+                        "enum": [
+                          "",
+                          "morning",
+                          "day",
+                          "evening",
+                          "night"
+                        ]
+                      },
+                      "location": {
+                        "type": "string",
+                        "maxLength": 160
+                      },
+                      "minimumExperience": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "minimumRating": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 5
+                      },
+                      "verifiedOnly": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [],
+                    "additionalProperties": false
                   },
                   "filters": {
                     "type": "array",

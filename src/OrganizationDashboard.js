@@ -1,3 +1,7 @@
+import CaregiverEditor from './components/CaregiverEditor';
+import ServiceSelector from './components/ServiceSelector';
+import NepalCitySelect from './components/NepalCitySelect';
+import OrganizationFields from './components/OrganizationFields';
 import { saveService, retireService } from "./servicePublishing";
 import AccessibleDialog from "./components/AccessibleDialog";
 // src/OrganizationDashboard.js
@@ -8,8 +12,7 @@ import {
   getDocs,
   doc,
   getDoc,
-  setDoc,
-  updateDoc,
+  writeBatch,
   query,
   where,
   serverTimestamp,
@@ -43,6 +46,8 @@ export default function OrganizationDashboard() {
   const [caregivers, setCaregivers] = useState([]);
   const bookingHistory = useOrganizationBookings(user?.uid);
   const bookings = bookingHistory.rows;
+  const [editingCaregiver, setEditingCaregiver] = useState(null);
+  const [sharedServices, setSharedServices] = useState([]);
   const [services, setServices] = useState([]);
   const [error, setError] = useState("");
 
@@ -101,6 +106,8 @@ export default function OrganizationDashboard() {
           setOrganizationData(data);
 
           setEditProfileData({
+            organizationType: data.organizationType || "", organizationTypeOther: data.organizationTypeOther || "",
+            servicesOffered: data.servicesOffered || [], businessLicense: data.businessLicense || "", panVat: data.panVat || "",
             organizationName: data.organizationName || "",
             businessPhone: data.businessPhone || "",
             businessAddress: data.businessAddress || "",
@@ -108,6 +115,10 @@ export default function OrganizationDashboard() {
             commissionRate: data.commissionRate ?? 15,
           });
         }
+
+        const catalog = await getDocs(collection(db, "publicServices"));
+        if (!active) return;
+        setSharedServices(catalog.docs.map(item => ({ id:item.id, ...item.data() })).filter(item => !item.organizationId));
 
         // Caregivers
         const caregiversQuery = query(
@@ -344,13 +355,7 @@ export default function OrganizationDashboard() {
     }
   };
 
-  const toggleService = (serviceId) => {
-    if (caregiverServices.includes(serviceId)) {
-      setCaregiverServices(caregiverServices.filter((s) => s !== serviceId));
-    } else {
-      setCaregiverServices([...caregiverServices, serviceId]);
-    }
-  };
+
 
   const getTabStyle = (tabName) => ({
     padding: "8px 16px",
@@ -367,7 +372,7 @@ export default function OrganizationDashboard() {
   });
 
   const getServiceLabel = (id) =>
-    services.find((service) => service.id === id)?.label || id;
+    [...services,...sharedServices].find((service) => service.id === id)?.label || id;
 
   useEffect(() => {
     const tab = getTabFromSearch(location.search);
@@ -401,6 +406,7 @@ export default function OrganizationDashboard() {
           }}
         >
           <h3 style={{ marginTop: 0, marginBottom: 8 }}>Approval Pending</h3>
+          <button className="btn btn-outline" onClick={() => navigate("/organization/profile")}>Complete or edit organization profile</button>
           <p style={{ margin: 0 }}>
             Your organization is pending approval from Sewak team. Check this dashboard for the review result.
           </p>
@@ -474,7 +480,7 @@ export default function OrganizationDashboard() {
   const orgEarnings = bookingHistory.totals.earnings;
 
   const orgServices = services.filter((s) => s.organizationId === user?.uid);
-  const globalServices = services.filter((s) => !s.organizationId);
+  const globalServices = sharedServices;
 
   return (
     <div className="org-dashboard-root">
@@ -909,6 +915,7 @@ export default function OrganizationDashboard() {
                       </span>
                     </div>
 
+                    <button type="button" className="btn btn-outline" onClick={() => setEditingCaregiver(caregiver)}>Edit caregiver</button>
                     <p style={{ color: "var(--theme-text-muted)", flexBasis: "100%", fontSize: 12, lineHeight: 1.45, margin: "4px 0 0" }}>
                       Safety actions and account removal are handled by Sewak operations so access, care records, and audit history stay consistent.
                     </p>
@@ -918,6 +925,7 @@ export default function OrganizationDashboard() {
             })
           )}
 
+          {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={updated => { setCaregivers(items => items.map(item => item.id === updated.id ? updated : item)); setEditingCaregiver(null); setNotice("Caregiver profile saved."); }} />}
           {/* Add Caregiver Modal */}
           {showAddCaregiverModal && (
             <AccessibleDialog onDismiss={() => setShowAddCaregiverModal(false)}
@@ -1073,31 +1081,7 @@ export default function OrganizationDashboard() {
                   </div>
 
                   <div style={{ marginBottom: 12 }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 12,
-                        color: "var(--theme-text-muted)",
-                        marginBottom: 4,
-                      }}
-                    >
-                      Location
-                    </label>
-                    <input
-                      value={caregiverLocation}
-                      onChange={(e) => setCaregiverLocation(e.target.value)}
-                      required
-                      placeholder="e.g., Kathmandu"
-                      style={{
-                        width: "100%",
-                        padding: "8px 10px",
-                        borderRadius: 6,
-                        border: "1px solid var(--theme-text)",
-                        background: "var(--theme-surface)",
-                        color: "var(--theme-text)",
-                        fontSize: 13,
-                      }}
-                    />
+                    <NepalCitySelect value={caregiverLocation} onChange={setCaregiverLocation} />
                   </div>
 
                   <div style={{ marginBottom: 12 }}>
@@ -1270,87 +1254,7 @@ export default function OrganizationDashboard() {
                     </>
                   )}
 
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: 12,
-                      color: "var(--theme-text-muted)",
-                      marginBottom: 4,
-                    }}
-                  >
-                    Services Offered
-                  </label>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      flexWrap: "wrap",
-                      marginBottom: 12,
-                    }}
-                  >
-                    {services.length === 0 && (
-                      <p
-                        style={{
-                          fontSize: 12,
-                          color: "var(--theme-text-muted)",
-                        }}
-                      >
-                        No services available. Add services first in the
-                        Services tab.
-                      </p>
-                    )}
-                    {services
-                      .filter((s) => {
-                        if (caregiverCategory === "both") {
-                          return (
-                            s.organizationId === user.uid || !s.organizationId
-                          );
-                        }
-                        return (
-                          (s.organizationId === user.uid || !s.organizationId) &&
-                          (s.category === caregiverCategory ||
-                            s.category === "both")
-                        );
-                      })
-                      .map((service) => (
-                        <button
-                          key={service.id}
-                          type="button"
-                          onClick={() => toggleService(service.id)}
-                          style={{
-                            padding: "6px 12px",
-                            borderRadius: 6,
-                            border: caregiverServices.includes(service.id)
-                              ? "none"
-                              : "1px solid var(--theme-text)",
-                            background: caregiverServices.includes(service.id)
-                              ? "var(--theme-positive)"
-                              : "var(--theme-surface)",
-                            color: caregiverServices.includes(service.id)
-                              ? "var(--theme-button-text)"
-                              : "var(--theme-text)",
-                            cursor: "pointer",
-                            fontSize: 12,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {service.label}
-                        </button>
-                      ))}
-                  </div>
-                  {caregiverCategory === "both" && services.length > 0 && (
-                    <p
-                      style={{
-                        fontSize: 11,
-                        color: "var(--theme-help)",
-                        marginTop: -8,
-                      }}
-                    >
-                      Showing all available services (both caregiver and
-                      household).
-                    </p>
-                  )}
-
+                  <ServiceSelector value={caregiverServices} onChange={setCaregiverServices} category={caregiverCategory} organizationId={user.uid} />
                   <div style={{ marginBottom: 12 }}>
                     <label
                       style={{
@@ -1998,6 +1902,10 @@ export default function OrganizationDashboard() {
       {/* PROFILE TAB */}
       {activeTab === "profile" && (
         <div>
+          <button type="button" className="btn btn-outline" onClick={() => navigate('/organization/profile')}>Organization settings and password</button>
+          <p>Organization type: {organizationData?.organizationType === 'Other' ? organizationData.organizationTypeOther : organizationData?.organizationType || 'Not specified'}</p>
+          <p>Services provided: {(organizationData?.servicesOffered || []).map(getServiceLabel).join(', ') || 'Services not specified'}</p>
+
           <div className="card" style={{ background: "var(--theme-surface)" }}>
             <div
               style={{
@@ -2166,9 +2074,12 @@ export default function OrganizationDashboard() {
                       const orgId =
                         organizationData.organizationId || user.uid;
 
-                      await setDoc(
+                      const batch = writeBatch(db);
+                      batch.set(
                         doc(db, "organizations", orgId),
                         {
+                          organizationType: editProfileData.organizationType, organizationTypeOther: editProfileData.organizationTypeOther || "",
+                          servicesOffered: editProfileData.servicesOffered || [], businessLicense: editProfileData.businessLicense || "", panVat: editProfileData.panVat || "",
                           organizationName:
                             editProfileData.organizationName || "",
                           businessPhone: editProfileData.businessPhone || "",
@@ -2181,7 +2092,7 @@ export default function OrganizationDashboard() {
                       );
 
                       if (organizationData.adminUid) {
-                        await updateDoc(
+                        batch.update(
                           doc(db, "users", organizationData.adminUid),
                           {
                             businessPhone: editProfileData.businessPhone || "",
@@ -2192,6 +2103,7 @@ export default function OrganizationDashboard() {
                         );
                       }
 
+                      await batch.commit();
                       setOrganizationData((prev) => ({
                         ...prev,
                         ...editProfileData,
@@ -2219,39 +2131,7 @@ export default function OrganizationDashboard() {
                     }
                     required
                   />
-                  <label>Business Phone</label>
-                  <input
-                    type="text"
-                    value={editProfileData.businessPhone}
-                    onChange={(e) =>
-                      setEditProfileData((prev) => ({
-                        ...prev,
-                        businessPhone: e.target.value,
-                      }))
-                    }
-                  />
-                  <label>City</label>
-                  <input
-                    type="text"
-                    value={editProfileData.businessCity}
-                    onChange={(e) =>
-                      setEditProfileData((prev) => ({
-                        ...prev,
-                        businessCity: e.target.value,
-                      }))
-                    }
-                  />
-                  <label>Address</label>
-                  <input
-                    type="text"
-                    value={editProfileData.businessAddress}
-                    onChange={(e) =>
-                      setEditProfileData((prev) => ({
-                        ...prev,
-                        businessAddress: e.target.value,
-                      }))
-                    }
-                  />
+                  <OrganizationFields value={editProfileData} onChange={setEditProfileData} organizationId={user.uid} />
                   <p className="text-muted" style={{ margin: "4px 0 0" }}>
                     Commission rate: {organizationData?.commissionRate ?? 15}%
                     &nbsp;— managed by Sewak operations.

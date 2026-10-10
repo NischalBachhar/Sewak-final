@@ -476,3 +476,7 @@ Private requests verify opaque D1 session digests, audience, transport, expiry, 
 ## Cloudflare authentication tables
 
 Migration 0003 adds cf_credentials (versioned scrypt password hashes), cf_sessions (opaque-token digests and expiry), cf_auth_limits (persistent rate windows), cf_invitations (hashed one-time activation/recovery) and cf_bootstrap (email-bound first-owner setup). Credentials and sessions are server-only and have no generic record API.
+
+## Catalog and organization onboarding (0004)
+
+Migration 0004 adds the missing global catalog without replacing existing services or assigning new skills to caregivers. It backfills caregiver_services only for existing valid IDs, adds organization_services (organization_id and service_id foreign keys, composite primary key and service lookup index), and indexes eligible reviews. Organization type, custom type, PAN/VAT and servicesOffered use the existing extra_json extension storage. The server synchronizes organization_services and caregiver_services atomically with their parent profiles. Professional medical catalog entries are inactive and blocked by Worker policy pending credential infrastructure.

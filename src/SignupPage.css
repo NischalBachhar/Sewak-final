@@ -164,3 +164,7 @@
   .auth-shell--signup *, .auth-shell--signup *::before, .auth-shell--signup *::after { animation: none !important; transition: none !important; }
   .auth-shell--signup .signup-trust li:hover, .auth-shell--signup .form .role-option, .auth-shell--signup .signup-role-icon, .auth-shell--signup .auth-submit:hover:not(:disabled), .auth-shell--signup .auth-submit:active:not(:disabled) { transform: none; }
 }
+
+.auth-shell--signup .form .service-selector-options label { display: flex; align-items: center; gap: 8px; min-height: 44px; margin: 0; }
+.auth-shell--signup .form .service-selector input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; flex: 0 0 18px; margin: 0; padding: 0; }
+.auth-shell--signup .form select { min-height: 44px; width: 100%; min-width: 0; }
