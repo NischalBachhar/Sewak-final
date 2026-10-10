@@ -2,7 +2,8 @@ import { badInput, requireThat, textField, type Data } from './types.ts';
 import { Repository, type Write } from './repository.ts';
 import { validateServices } from './policy.ts';
 
-export const organizationTypes = ['Caregiver Agency', 'Home Care Service Provider', 'Household Staffing Agency', 'Nursing / Home Healthcare Provider', 'Other'];
+import { ORGANIZATION_TYPES } from '../../src/organizationTypes.mjs';
+export const organizationTypes = ORGANIZATION_TYPES;
 export const registrationKeys = ['selectedRole','organizationName','organizationType','organizationTypeOther','businessPhone','businessAddress','businessCity','servicesOffered','businessLicense','panVat'];
 
 export function cityValue(value: unknown, required = true): string {
