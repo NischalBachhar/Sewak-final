@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {seed} from './harness.mjs';
+import {OWNER,inspectOwner,recoveryPlan,applyOwnerRecovery} from '../../scripts/superadmin-recovery-core.mjs';
+import {verifyOwnerLogin} from '../../scripts/superadmin-login-verification.mjs';
 const require=createRequire(new URL('../../worker/package.json',import.meta.url));
 const {Miniflare,convertV4MiniflareOptions}=require('miniflare');
 const {build}=require('esbuild');const sharp=require('sharp');
@@ -14,6 +16,18 @@ test('actual workerd bindings enforce D1 auth and private media, reject retired 
  try{
   const DB=await mf.getD1Database('DB'),MEDIA_DB=await mf.getD1Database('MEDIA_DB');
   for(const [db,file]of [[DB,'migrations/main/0001_sewak.sql'],[DB,'migrations/main/0002_auth_state.sql'],[DB,'migrations/main/0003_cloudflare_auth.sql'],[DB,'migrations/main/0004_catalog_onboarding.sql'],[MEDIA_DB,'migrations/media/0001_profile_images.sql']])for(const sql of readFileSync(file,'utf8').split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
+  // Exercise the operator transaction against real workerd/D1, then verify that
+  // native Durable Object scrypt accepts the password hashed by the Node CLI.
+  const operator={id:OWNER.cloudflareId,email:OWNER.email};
+  const owner=await applyOwnerRecovery(DB,operator,recoveryPlan(await inspectOwner(DB),'bootstrap'),'Workerd-owner-password-2026!');
+  const dispatch=(url,init)=>mf.dispatchFetch(url,init);
+  assert.equal((await verifyOwnerLogin(DB,owner.uid,'Workerd-owner-password-2026!',dispatch,'http://localhost')).loginVerified,true);
+  const resetPlan=recoveryPlan(await inspectOwner(DB),'reset');
+  await applyOwnerRecovery(DB,operator,resetPlan,'Workerd-recovered-password-2026!');
+  assert.equal((await verifyOwnerLogin(DB,owner.uid,'Workerd-recovered-password-2026!',dispatch,'http://localhost')).verificationSessionRevoked,true);
+  await assert.rejects(applyOwnerRecovery(DB,operator,resetPlan,'Stale-password-must-not-apply!'));
+  assert.equal((await DB.prepare('SELECT COUNT(*) n FROM cf_sessions WHERE user_id=?').bind(owner.uid).first()).n,0);
+  assert.equal((await DB.prepare('SELECT COUNT(*) n FROM admin_audit_logs WHERE target_uid=?').bind(owner.uid).first()).n,2);
   await seed({DB,MEDIA_DB});
   const orgResponse=await mf.dispatchFetch('http://localhost/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'workerd-org@example.test',password:'Workerd-test-password-2026!',name:'Workerd Organization',sessionMode:'bearer',selectedRole:'orgadmin',organizationName:'Workerd Care',organizationType:'Caregiver Agency',businessPhone:'9800000000',businessAddress:'Test street 12',businessCity:'Hetauda',servicesOffered:['catalog_elderly_care']})});
   assert.equal(orgResponse.status,200,await orgResponse.clone().text()); const orgAccount=await orgResponse.json(); assert.equal(orgAccount.user.role,'orgadmin');
