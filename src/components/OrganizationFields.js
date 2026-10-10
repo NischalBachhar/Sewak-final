@@ -2,7 +2,8 @@ import React, { useId } from 'react';
 import NepalCitySelect from './NepalCitySelect';
 import ServiceSelector from './ServiceSelector';
 
-export const ORGANIZATION_TYPES = ['Caregiver Agency','Home Care Service Provider','Household Staffing Agency','Nursing / Home Healthcare Provider','Other'];
+import { ORGANIZATION_TYPES } from '../organizationTypes.mjs';
+export { ORGANIZATION_TYPES } from '../organizationTypes.mjs';
 export default function OrganizationFields({ value, onChange, organizationId, section = 'all', errors = {} }) {
   const prefix = useId();
   const set = (key, field) => onChange({ ...value, [key]: field });
