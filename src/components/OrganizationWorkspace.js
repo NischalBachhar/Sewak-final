@@ -61,7 +61,7 @@ export function OrganizationMobileNav({ activeTab, onSelect }) {
 function Metric({ label, value, icon, detail, tone }) {
   return <div className={"org-metric org-metric--" + (tone || "default")}><div className="org-metric-title"><span>{label}</span><span className="org-metric-icon"><OrganizationIcon name={icon} size={19}/></span></div><strong>{value}</strong><small>{detail}</small></div>;
 }
-export function OrganizationOverview({ organizationData, caregivers, services, bookingHistory, onSelect }) {
+export function OrganizationOverview({ caregivers, services, bookingHistory, onSelect }) {
   const totals = bookingHistory.totals;
   const active = caregivers.filter(c => c.isAvailable && c.isApproved).length;
   const approved = caregivers.filter(c => c.isApproved).length;
@@ -111,7 +111,7 @@ export function OrganizationTeamList({ caregivers, orgBlacklist, services }) {
   const filtered = useMemo(() => caregivers.filter(c => {
     const needle = search.trim().toLowerCase();
     const searchable = [c.name, c.location, c.email, c.phone].filter(Boolean).join(" ").toLowerCase();
-    const matchCategory = category === "all" || c.category === category || c.category === "both";
+    const matchCategory = category === "all" || c.category === category || (category === "household" && c.category === "vendor") || c.category === "both";
     const matchAvailability = availability === "all" || (availability === "available" ? Boolean(c.isAvailable && c.isApproved) : !(c.isAvailable && c.isApproved));
     return (!needle || searchable.includes(needle)) && matchCategory && matchAvailability;
   }).sort((a,b) => String(a.name || "").localeCompare(String(b.name || ""))), [caregivers, search, category, availability]);
