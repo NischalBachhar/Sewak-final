@@ -1554,7 +1554,7 @@ export default function CaregiverDashboardPage() {
                     margin: 0,
                   }}
                 >
-                  Total Earned
+                  Completed booking value
                 </p>
                 <p
                   style={{
@@ -1575,7 +1575,7 @@ export default function CaregiverDashboardPage() {
                     margin: 0,
                   }}
                 >
-                  Recorded care earnings
+                  Caregiver share (recorded)
                 </p>
                 <p
                   style={{
@@ -1594,7 +1594,7 @@ export default function CaregiverDashboardPage() {
                     margin: 0,
                   }}
                 >
-                  After each booking’s recorded commission
+                  After recorded commission · not payout confirmation
                 </p>
               </div>
               <div>
