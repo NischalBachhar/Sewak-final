@@ -7,6 +7,61 @@ import {Repository} from '../../worker/src/repository.ts';
 import {authenticateSession} from '../../worker/src/cloudflare-auth.ts';
 const worker=createWorker(),password='Synthetic-password-123!';
 
+test('public projections ignore stale sessions but private reads and writes fail closed',async()=>{
+ const env=environment();await seed(env);
+ const headers={Cookie:'__Host-sewak_session='+opaque()};
+ const original=env.DB.prepare.bind(env.DB);
+ let sessionReads=0;
+ env.DB.prepare=sql=>{if(sql.includes('FROM cf_sessions')){sessionReads++;throw Error('D1_ERROR: unavailable session store');}return original(sql);};
+ for(const name of ['publicCaregivers','publicServices','publicReviews']){
+  const list=await req(env,'/api/query',{headers,json:{path:name}});assert.equal(list.status,200);assert.ok(Array.isArray(list.data.items));
+ }
+ const single=await req(env,'/api/records/publicCaregivers/caregiver',{headers});assert.equal(single.status,200);assert.ok(!JSON.stringify(single.data).includes('private-phone'));
+ assert.equal(sessionReads,0,'public projections must never touch sessions');
+ assert.equal((await req(env,'/api/records/users/customer',{headers})).status,503);
+ assert.equal((await req(env,'/api/query',{headers,json:{path:'users'}})).status,503);
+ assert.equal((await req(env,'/api/commit',{headers,json:{writes:[]}})).status,503);
+ assert.equal(sessionReads,3);
+});
+
+test('missing, malformed, unknown and duplicate cookies are unauthenticated, not service outages',async()=>{
+ const env=environment();assert.equal((await req(env,'/api/auth/me')).data.user,null);
+ for(const cookie of ['__Host-sewak_session=malformed','__Host-sewak_session='+opaque(),'__Host-sewak_session='+opaque()+'; __Host-sewak_session='+opaque()]){
+  const result=await req(env,'/api/auth/me',{headers:{Cookie:cookie}});assert.equal(result.status,401);assert.equal(result.data.error.code,'unauthenticated');assert.match(result.headers.get('set-cookie'),/Max-Age=0/);
+ }
+});
+
+test('unknown profile roles are never mapped to customers or issued a login session',async()=>{
+ const env=environment(),a=await account(env);const repo=new Repository(env);const profile=await repo.data('users/'+a.uid);
+ await put(env,'users/'+a.uid,{...profile,role:null});
+ assert.equal((await req(env,'/auth/me',{headers:a.headers})).status,401);
+ await assert.rejects(new Repository(env).actor({uid:a.uid,email:'one@example.test',authTime:epoch()}),e=>e.code==='unauthenticated');
+ const count=(await env.DB.prepare('SELECT COUNT(*) n FROM cf_sessions').first()).n;
+ const result=await req(env,'/auth/login',{json:{email:'one@example.test',password,sessionMode:'bearer'}});assert.equal(result.status,401);assert.equal(result.data.error.code,'invalid-credentials');
+ assert.equal((await env.DB.prepare('SELECT COUNT(*) n FROM cf_sessions').first()).n,count);
+});
+
+test('existing credentials authenticate every role without changing hashes, IDs or roles',async()=>{
+ for(const role of ['user','caregiver','orgadmin','superadmin']){
+  const env=environment(),a=await account(env);const profile=await new Repository(env).data('users/'+a.uid);await put(env,'users/'+a.uid,{...profile,role});
+  const before=await env.DB.prepare('SELECT * FROM cf_credentials WHERE user_id=?').bind(a.uid).first();
+  const signed=await login(env);const me=await req(env,'/auth/me',{headers:signed.headers});assert.equal(me.data.user.role,role);assert.equal(me.data.user.uid,a.uid);
+  assert.deepEqual(await env.DB.prepare('SELECT * FROM cf_credentials WHERE user_id=?').bind(a.uid).first(),before);
+  const wrong=await req(env,'/auth/login',{json:{email:'one@example.test',password:'Incorrect-password-123!',sessionMode:'bearer'}});
+  const unknown=await req(env,'/auth/login',{json:{email:'missing@example.test',password,sessionMode:'bearer'}});assert.equal(wrong.status,401);assert.deepEqual(wrong.data,unknown.data);
+ }
+});
+
+test('caregiver login rejects a suspended parent organization before issuing a session',async()=>{
+ const env=environment();await seed(env);const a=await account(env);const repo=new Repository(env);
+ await put(env,'users/'+a.uid,{...await repo.data('users/'+a.uid),role:'caregiver',organizationId:'org'});
+ await put(env,'organizations/org',{...await repo.data('organizations/org'),isSuspended:true});
+ const count=(await env.DB.prepare('SELECT COUNT(*) n FROM cf_sessions').first()).n;
+ const result=await req(env,'/auth/login',{json:{email:'one@example.test',password,sessionMode:'bearer'}});assert.equal(result.status,401);
+ assert.equal((await req(env,'/auth/me',{headers:a.headers})).status,401);
+ assert.equal((await env.DB.prepare('SELECT COUNT(*) n FROM cf_sessions').first()).n,count);
+});
+
 test('duplicate registration preserves the existing account and reserved bootstrap email cannot be claimed',async()=>{
  const env=environment(),a=await account(env);const duplicate=await req(env,'/auth/register',{json:{email:'ONE@example.test',password,name:'Replacement',sessionMode:'bearer'}});assert.equal(duplicate.status,409);assert.equal(duplicate.data.error.code,'account-exists');assert.equal((await req(env,'/auth/me',{headers:a.headers})).data.user.displayName,'Synthetic person');
  await env.DB.prepare('INSERT INTO cf_bootstrap(id,email,token_hash,expires_at) VALUES(1,?,?,?)').bind('reserved@example.test',await digest(opaque()),epoch()+300).run();assert.equal((await req(env,'/auth/register',{json:{email:'reserved@example.test',password,name:'Attacker',sessionMode:'bearer'}})).status,409);

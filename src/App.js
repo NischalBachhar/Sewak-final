@@ -42,10 +42,15 @@ function App() {
   const [userShift, setUserShift] = useState("");
   const customerBookings = useCustomerBookings(userRole === "user" ? user?.uid : null);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [signingOut, setSigningOut] = useState(false);
+  const [signedOut, setSignedOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const bookingsSnapshotRef = useRef([]);
   const bookingsInitialLoadRef = useRef(true);
   const seenCompletedIdsRef = useRef([]);
   const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => { if (location.pathname === '/browse') setSignedOut(false); }, [location.pathname]);
 
   const parseSavedIds = (value) => {
     try {
@@ -57,10 +62,18 @@ function App() {
   };
 
   const handleLogout = async () => {
+    setSigningOut(true);
+    setLogoutError("");
     try {
       await signOut();
+      setSignedOut(true);
+      return true;
     } catch (err) {
       console.error("Logout error:", { code: err?.code || "unknown" });
+      setLogoutError("We couldn't sign you out. Please try again.");
+      return false;
+    } finally {
+      setSigningOut(false);
     }
   };
 
@@ -123,7 +136,7 @@ function App() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (!user || !userRole || registrationPending) return;
+    if (!user || !userRole || registrationPending || signingOut) return;
 
     const path = window.location.pathname;
 
@@ -148,7 +161,7 @@ function App() {
         );
       }
     }
-  }, [user, userRole, userDoc?.profileComplete, navigate, registrationPending]);
+  }, [user, userRole, userDoc?.profileComplete, navigate, registrationPending, signingOut]);
 
   useEffect(() => {
     if (!user || userRole !== "user" || !userDoc?.profileComplete) return;
@@ -174,9 +187,12 @@ function App() {
   }, [user, userRole, userDoc?.profileComplete, navigate]);
 
   if (window.location.pathname === "/account/setup") return <AccountSetupPage />;
+  // Router navigation is a transition; keep the logout destination explicit
+  // until it commits so the anonymous protected-route redirect cannot win.
+  if (signedOut && !user && location.pathname !== '/browse') return <Navigate to="/browse" replace />;
   if (registrationPending || userDoc?.registrationIncomplete || (!user && window.location.pathname === "/auth")) return <AuthPage />;
 
-  if (loading) {
+  if (loading || signingOut) {
     return (
       <main
         className="app-shell"
@@ -230,6 +246,7 @@ function App() {
           >
             Sign out
           </button>
+          {logoutError && <p role="alert">{logoutError}</p>}
         </div>
       </main>
     );
@@ -289,6 +306,7 @@ function App() {
           userRole={userRole}
           userDoc={userDoc}
           onLogout={handleLogout}
+          logoutError={logoutError}
           onBrowseCaregivers={handleBrowseCaregivers}
           notificationCount={notificationCount}
         />
@@ -308,6 +326,7 @@ function App() {
           userRole={userRole}
           userDoc={userDoc}
           onLogout={handleLogout}
+          logoutError={logoutError}
           onBrowseCaregivers={handleBrowseCaregivers}
           notificationCount={notificationCount}
         />
@@ -332,6 +351,7 @@ function App() {
         userRole={userRole}
         userDoc={userDoc}
         onLogout={handleLogout}
+        logoutError={logoutError}
         onBrowseCaregivers={handleBrowseCaregivers}
         onMyBookings={handleMyBookings}
         notificationCount={notificationCount}

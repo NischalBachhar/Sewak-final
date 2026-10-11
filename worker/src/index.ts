@@ -5,6 +5,7 @@ import { boundedBytes, deleteProfileImage, serveProfileImage, uploadProfileImage
 import { commitClient } from './policy.ts';
 import { queryRecords } from './queries.ts';
 import { Repository } from './repository.ts';
+import { safeD1Category } from './d1-diagnostics.ts';
 import { ApiError, badInput, requireThat, type Env, type Identity, type Data } from './types.ts';
 
 async function jsonBody(request: Request): Promise<Data> {
@@ -39,7 +40,12 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
         }
         if (url.pathname.startsWith('/api/migration/')) throw new ApiError(404,'not-found','Endpoint not found.');
         const publicAuth = authPath && /\/(login|register|bootstrap|activate)$/.test(url.pathname);
-        const identity = publicAuth ? null : await authenticate(request,env);
+        // Only these existing public projections are anonymous. Parse once and
+        // retain queryRecords' field/visibility validation and private ACLs.
+        const query = request.method === 'POST' && url.pathname === '/api/query' ? await jsonBody(request) : null;
+        const publicNames = ['publicCaregivers','publicServices','publicReviews'];
+        const publicRead = query ? publicNames.includes(query.path) : request.method === 'GET' && /^\/api\/records\/(publicCaregivers|publicServices|publicReviews)\/[^/]+$/.test(url.pathname);
+        const identity = publicAuth || publicRead ? null : await authenticate(request,env);
         enforceCsrf(request,identity);
         if (authPath) return Response.json(await authRoute(request,env,headers,request.method==='POST'?await jsonBody(request):{},identity),{headers});
         const repo = new Repository(env), actor = await repo.actor(identity);
@@ -51,7 +57,7 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
           return new Response(response.body,{status:response.status,headers:mediaHeaders});
         }
         if (request.method === 'GET' && url.pathname.startsWith('/api/records/')) result = await queryRecords(repo,actor,{path:decodeURIComponent(url.pathname.slice(13))},true);
-        else if (request.method === 'POST' && url.pathname === '/api/query') result = await queryRecords(repo,actor,await jsonBody(request));
+        else if (query) result = await queryRecords(repo,actor,query);
         else {
           requireThat(env.APP_WRITES_ENABLED === 'true', 'Sewak is temporarily read-only while maintenance is completed.',503,'maintenance');
           if (request.method === 'POST' && url.pathname === '/api/commit') result = await commitClient(repo,actor,await jsonBody(request));
@@ -64,9 +70,8 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
         return Response.json(result,{headers});
       } catch (error) {
         const known = error instanceof ApiError;
-        const quota = /quota|exceeded|overload|SQLITE_FULL|D1_ERROR/i.test(String(error));
         const status = known ? error.status : 503;
-        if (!known) console.error('Sewak request failed', { category: quota ? 'database-capacity' : 'service-failure' });
+        if (!known) console.error('Sewak request failed', { category: safeD1Category(error) });
         if (status === 503) headers.set('Retry-After','60');
         if (status === 429) headers.set('Retry-After','900');
         if (known && error.code === 'unauthenticated' && request.headers.has('Cookie')) headers.append('Set-Cookie','__Host-sewak_session=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0');

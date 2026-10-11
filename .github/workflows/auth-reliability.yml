@@ -1,0 +1,41 @@
+name: Authentication reliability
+on:
+  pull_request:
+    paths:
+      - 'worker/**'
+      - 'src/**'
+      - 'tests/d1/**'
+      - 'tests/browser/auth-reliability.spec.cjs'
+      - 'scripts/serve-d1-test.mjs'
+      - 'playwright.auth.config.cjs'
+      - '.github/workflows/auth-reliability.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  auth-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci && npm --prefix worker ci
+      - run: npm run typecheck
+      - run: npm run test:d1
+      - run: npm run test:unit -- --silent
+      - run: npm run lint
+      - run: npx playwright install --with-deps chrome firefox
+      - run: npm run test:browser -- --config playwright.auth.config.cjs
+      - name: Registration, approval, booking and security journeys
+        run: npm run test:browser -- signup-ui.spec.cjs combined-organization.spec.cjs journeys.spec.cjs --grep 'signup|combined organization|real D1 customer request|asset security|account switching'
+      - run: npm run build:release
+        env:
+          REACT_APP_CANONICAL_ORIGIN: https://sewak-final.nischalbachhar9.workers.dev
+      - run: npm run deploy:cloudflare -- --worker sewak-final --dry-run
+        env:
+          CLOUDFLARE_ACCOUNT_ID: 860970f755498a4fe10e16c2fa99ce55
+          WRANGLER_SEND_METRICS: 'false'
+      - run: node scripts/scan-release.mjs

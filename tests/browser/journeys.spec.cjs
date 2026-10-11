@@ -8,7 +8,7 @@ async function signIn(page,role){
 async function checkOverflow(page){const result=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,url:location.pathname,outside:[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+2).slice(0,10).map(el=>({tag:el.tagName,class:el.className,right:el.getBoundingClientRect().right}))}));expect(result.scroll,JSON.stringify(result)).toBeLessThanOrEqual(result.width+2);}
 test('asset security headers allow Cloudflare sessions without external auth origins',async({page})=>{
  await page.addInitScript(()=>{window.__cspViolations=[];document.addEventListener('securitypolicyviolation',e=>window.__cspViolations.push({directive:e.effectiveDirective,blocked:e.blockedURI}));});
- const response=await page.goto('/auth');const headers=response.headers();
+ const response=await page.goto('/auth');const headers=await response.allHeaders();
  expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
  expect(headers['content-security-policy']).toContain("connect-src 'self';");
  expect(headers['content-security-policy']).not.toMatch(/firebase|googleapis/);
