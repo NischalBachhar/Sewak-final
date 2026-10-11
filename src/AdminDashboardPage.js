@@ -153,6 +153,7 @@ export default function AdminDashboardPage() {
   const [deleteOrgTarget, setDeleteOrgTarget] = useState(null);
   const [deleteOrgConfirmation, setDeleteOrgConfirmation] = useState("");
   const [deletingOrg, setDeletingOrg] = useState(false);
+  const [deleteOrgError, setDeleteOrgError] = useState("");
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [organizationApplications, setOrganizationApplications] = useState([]);
 
@@ -748,6 +749,7 @@ export default function AdminDashboardPage() {
 
   const handleOpenDeleteOrganization = (org) => {
     setError("");
+    setDeleteOrgError("");
     setDeleteOrgConfirmation("");
     setDeleteOrgTarget(org);
   };
@@ -757,6 +759,7 @@ export default function AdminDashboardPage() {
     if (!deleteOrgTarget || deletingOrg || deleteOrgConfirmation !== deleteOrgTarget.organizationName) return;
     setDeletingOrg(true);
     setError("");
+    setDeleteOrgError("");
     try {
       const deleteOrganization = httpsCallable(null, "deleteOrganizationAccount");
       await deleteOrganization({ organizationId: deleteOrgTarget.id, confirmation: deleteOrgConfirmation });
@@ -765,7 +768,7 @@ export default function AdminDashboardPage() {
       setDeleteOrgConfirmation("");
       await loadAllData();
     } catch (err) {
-      setError("Could not delete organization: " + err.message);
+      setDeleteOrgError("Could not delete organization: " + err.message);
       await loadAllData();
     } finally {
       setDeletingOrg(false);
@@ -1568,6 +1571,7 @@ export default function AdminDashboardPage() {
                   care sessions, reviews and audit logs are retained for accountability.
                 </p>
                 <p className="org-delete-warning">This cannot be undone from the dashboard.</p>
+                {deleteOrgError && <p role="alert" className="org-delete-warning">{deleteOrgError}</p>}
                 <form onSubmit={handleDeleteOrganization}>
                   <label htmlFor="confirm-org-deletion">
                     Type <strong>{deleteOrgTarget.organizationName}</strong> to confirm
