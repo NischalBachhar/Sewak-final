@@ -353,23 +353,6 @@ export default function OrganizationDashboard() {
     }
   };
 
-  const getTabStyle = (tabName) => ({
-    padding: "8px 16px",
-    borderRadius: "6px",
-    border: activeTab === tabName ? "none" : "1px solid var(--theme-text)",
-    background:
-      activeTab === tabName
-        ? "linear-gradient(135deg, var(--theme-help), var(--theme-help-accent))"
-        : "var(--theme-surface)",
-    color: activeTab === tabName ? "var(--theme-button-text)" : "var(--theme-text)",
-    cursor: "pointer",
-    fontWeight: activeTab === tabName ? 600 : 500,
-    fontSize: 13,
-  });
-
-  const getServiceLabel = (id) =>
-    services.find((service) => service.id === id)?.label || id;
-
   useEffect(() => {
     const tab = getTabFromSearch(location.search);
     if (tab !== activeTab) {
@@ -467,10 +450,6 @@ export default function OrganizationDashboard() {
       </div>
     );
   }
-
-  const completedBookings = bookingHistory.totals.completed ?? "—";
-  const totalRevenue = bookingHistory.totals.revenue;
-  const orgEarnings = bookingHistory.totals.earnings;
 
   const orgServices = services.filter((s) => s.organizationId === user?.uid);
   const globalServices = services.filter((s) => !s.organizationId);
