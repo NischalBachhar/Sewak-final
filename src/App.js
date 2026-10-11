@@ -128,9 +128,7 @@ function App() {
     const path = window.location.pathname;
 
     if (userRole === "orgadmin") {
-      if (userDoc?.profileComplete && path === "/organization/profile") {
-        navigate("/organization/dashboard", { replace: true });
-      } else if (!userDoc?.profileComplete && path === "/organization/dashboard") {
+      if (!userDoc?.profileComplete && path === "/organization/dashboard") {
         navigate("/organization/profile", { replace: true });
       } else if (path === "/" || path === "/browse" || path === "/auth") {
         navigate(
