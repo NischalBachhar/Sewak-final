@@ -535,7 +535,7 @@ export default function CaregiverDashboardPage() {
         <div>
           <div className="sewak-jobs-heading">
             <div><p className="sewak-workspace__eyebrow">CARE REQUESTS</p><h2>Manage your jobs</h2></div>
-            <p role="status">{filtered.length} ${filtered.length === 1 ? "request" : "requests"} shown</p>
+            <p role="status">{filtered.length} {filtered.length === 1 ? "request" : "requests"} shown</p>
           </div>
           <nav className="sewak-job-filter" aria-label="Job status filters">
             {[
