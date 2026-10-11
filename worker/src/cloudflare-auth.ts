@@ -2,6 +2,7 @@ import { registrationKeys, registrationWrites } from './onboarding.ts';
 import { ApiError, badInput, onlyKeys, requireThat, textField, type Data, type Env, type Identity } from './types.ts';
 import { Repository, requireActor, type Write } from './repository.ts';
 import { dummyPasswordHash } from './passwords.ts';
+import { traceD1 } from './d1-diagnostics.ts';
 
 const COOKIE='__Host-sewak_session', LIFE=7*86400, IDLE=86400;
 const enc=new TextEncoder();
@@ -24,12 +25,12 @@ function cookieToken(request:Request){const values=(request.headers.get('Cookie'
 function tokenInput(request:Request){const bearer=request.headers.get('Authorization'),cookie=cookieToken(request);requireThat(!(bearer&&cookie),'Use one authentication method.',400,'invalid-argument');if(bearer){requireThat(/^Bearer swk_[A-Za-z0-9_-]{43}$/.test(bearer),'Sign in again.',401,'unauthenticated');return {token:bearer.slice(7),transport:'bearer'};}if(cookie){requireThat(/^swk_[A-Za-z0-9_-]{43}$/.test(cookie),'Sign in again.',401,'unauthenticated');return {token:cookie,transport:'cookie'};}return null;}
 export async function authenticateSession(request:Request,env:Env):Promise<Identity|null>{
   const input=tokenInput(request);if(!input)return null;const now=epoch();
-  const s=await env.DB.prepare('SELECT s.*,c.email,c.disabled,c.credential_version AS current_version FROM cf_sessions s JOIN cf_credentials c ON c.user_id=s.user_id WHERE s.token_hash=? AND s.audience=?').bind(await digest(input.token),audience(env)).first<Data>();
+  const s=await traceD1('auth.session.lookup',()=>env.DB.prepare('SELECT s.*,c.email,c.disabled,c.credential_version AS current_version FROM cf_sessions s JOIN cf_credentials c ON c.user_id=s.user_id WHERE s.token_hash=? AND s.audience=?').bind(await digest(input.token),audience(env)).first<Data>());
   requireThat(s&&!s.disabled&&s.transport===input.transport&&s.credential_version===s.current_version&&s.expires_at>now&&s.last_seen_at>now-IDLE,'Sign in again.',401,'unauthenticated');
-  const repo=new Repository(env),profile=await repo.data('users/'+s.user_id);
+  const repo=new Repository(env),profile=await traceD1('auth.session.profile',()=>repo.data('users/'+s.user_id));
   requireThat(profile&&!profile.isSuspended&&!profile.isBlacklisted,'This account cannot sign in.',401,'unauthenticated');
   if(profile.role==='caregiver'&&profile.organizationId){const org=await repo.data('organizations/'+profile.organizationId);requireThat(org&&!org.isSuspended&&!org.isBlacklisted,'This account cannot sign in.',401,'unauthenticated');}
-  if(now-s.last_seen_at>=300)await env.DB.prepare('UPDATE cf_sessions SET last_seen_at=? WHERE id=? AND expires_at>?').bind(now,s.id,now).run();
+  if(now-s.last_seen_at>=300)await traceD1('auth.session.refresh',()=>env.DB.prepare('UPDATE cf_sessions SET last_seen_at=? WHERE id=? AND expires_at>?').bind(now,s.id,now).run());
   return {uid:s.user_id,email:s.email,authTime:s.created_at,sessionId:s.id,transport:input.transport as 'cookie'|'bearer',csrfToken:await digest('csrf:'+input.token)};
 }
 export function enforceCsrf(request:Request,identity:Identity|null){
@@ -41,8 +42,8 @@ export async function authLimit(request:Request,env:Env,operation:string,email='
   const now=epoch(),window=operation==='register'||operation==='bootstrap'?3600:900;
   const buckets:[[string,number],...[string,number][]]=[['ip:'+ (request.headers.get('CF-Connecting-IP')||'local'),operation==='register'?10:operation==='bootstrap'?5:30]];
   if(email)buckets.push(['email:'+email,10]);
-  for(const [value,max]of buckets){const key=await digest(audience(env)+':'+operation+':'+value);const row=await env.DB.prepare('INSERT INTO cf_auth_limits(bucket,hits,reset_at) VALUES(?,1,?) ON CONFLICT(bucket) DO UPDATE SET hits=CASE WHEN reset_at<=? THEN 1 ELSE hits+1 END,reset_at=CASE WHEN reset_at<=? THEN excluded.reset_at ELSE reset_at END RETURNING hits').bind(key,now+window,now,now).first<Data>();requireThat(row&&row.hits<=max,'Too many attempts. Try again later.',429,'rate-limited');}
-  await env.DB.prepare('DELETE FROM cf_auth_limits WHERE bucket IN (SELECT bucket FROM cf_auth_limits WHERE reset_at<? LIMIT 20)').bind(now-window).run();
+  for(const [value,max]of buckets){const key=await digest(audience(env)+':'+operation+':'+value);const row=await traceD1(value.startsWith('ip:')?'auth.rate.ip-upsert':'auth.rate.email-upsert',()=>env.DB.prepare('INSERT INTO cf_auth_limits(bucket,hits,reset_at) VALUES(?,1,?) ON CONFLICT(bucket) DO UPDATE SET hits=CASE WHEN reset_at<=? THEN 1 ELSE hits+1 END,reset_at=CASE WHEN reset_at<=? THEN excluded.reset_at ELSE reset_at END RETURNING hits').bind(key,now+window,now,now).first<Data>());requireThat(row&&row.hits<=max,'Too many attempts. Try again later.',429,'rate-limited');}
+  await traceD1('auth.rate.cleanup',()=>env.DB.prepare('DELETE FROM cf_auth_limits WHERE bucket IN (SELECT bucket FROM cf_auth_limits WHERE reset_at<? LIMIT 20)').bind(now-window).run());
 }
 function userResult(uid:string,email:string,profile:Data){return {id:uid,uid,email,displayName:profile.name||'',role:profile.role,profile:{...profile,registrationIncomplete:profile.role==='user'&&profile.profileComplete!==true&&profile.registrationComplete!==true}};}
 function setCookie(headers:Headers,token:string,max=LIFE){headers.append('Set-Cookie',`${COOKIE}=${token}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${max}`);}
@@ -69,10 +70,10 @@ export async function authRoute(request:Request,env:Env,headers:Headers,body:Dat
   badInput(request.method==='POST','Unsupported authentication method.');
   if(path==='/auth/login'){
     onlyKeys(body,['email','password','sessionMode']);const transport=mode(request,body),email=normalizedEmail(body.email);badInput(typeof body.password==='string'&&body.password.length<=128,'Invalid credentials.');await authLimit(request,env,'login',email);
-    const c=await env.DB.prepare('SELECT * FROM cf_credentials WHERE email=?').bind(email).first<Data>();const valid=await checkPassword(env,body.password,c?.password_hash||dummyPasswordHash);
-    requireThat(c&&valid&&!c.disabled,'The email or password is incorrect.',401,'invalid-credentials');const profile=await repo.data('users/'+c.user_id);requireThat(profile&&!profile.isSuspended&&!profile.isBlacklisted,'The email or password is incorrect.',401,'invalid-credentials');
+    const c=await traceD1('auth.login.credentials',()=>env.DB.prepare('SELECT * FROM cf_credentials WHERE email=?').bind(email).first<Data>());const valid=await traceD1('auth.login.hasher',()=>checkPassword(env,body.password,c?.password_hash||dummyPasswordHash));
+    requireThat(c&&valid&&!c.disabled,'The email or password is incorrect.',401,'invalid-credentials');const profile=await traceD1('auth.login.profile',()=>repo.data('users/'+c.user_id));requireThat(profile&&!profile.isSuspended&&!profile.isBlacklisted,'The email or password is incorrect.',401,'invalid-credentials');
     const session=await newSession(env,c.user_id,c.credential_version,transport);
-    await repo.commit([], [env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,(SELECT credential_version=? AND disabled=0 FROM cf_credentials WHERE user_id=?))').bind('auth:'+session.id,c.credential_version,c.user_id),session.statement,env.DB.prepare('DELETE FROM commit_guards WHERE id=?').bind('auth:'+session.id),env.DB.prepare('DELETE FROM cf_sessions WHERE user_id=? AND id IN (SELECT id FROM cf_sessions WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT -1 OFFSET 10)').bind(c.user_id,c.user_id)]);
+    await traceD1('auth.login.session-commit',()=>repo.commit([], [env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,(SELECT credential_version=? AND disabled=0 FROM cf_credentials WHERE user_id=?))').bind('auth:'+session.id,c.credential_version,c.user_id),session.statement,env.DB.prepare('DELETE FROM commit_guards WHERE id=?').bind('auth:'+session.id),env.DB.prepare('DELETE FROM cf_sessions WHERE user_id=? AND id IN (SELECT id FROM cf_sessions WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT -1 OFFSET 10)').bind(c.user_id,c.user_id)]));
     return sessionResponse(env,headers,c.user_id,c.email,profile,session,transport);
   }
   if(path==='/auth/register'||path==='/auth/bootstrap'){
@@ -83,10 +84,10 @@ export async function authRoute(request:Request,env:Env,headers:Headers,body:Dat
     let profile=newAccountProfile(uid,email,name,bootstrap?'superadmin':'user');
     const writes:Write[]=!bootstrap && body.selectedRole!==undefined ? await registrationWrites(repo,profile,body) : [{path:'users/'+uid,data:profile}];
     profile=writes[0].data!;
-    const hash=await makePassword(env,body.password),session=await newSession(env,uid,1,transport);
+    const hash=await traceD1('auth.register.hasher',()=>makePassword(env,body.password)),session=await newSession(env,uid,1,transport);
     const statements=[];if(bootstrap){statements.push(env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,EXISTS(SELECT 1 FROM cf_bootstrap WHERE id=1 AND used_at IS NULL AND expires_at>? AND token_hash=?) AND NOT EXISTS(SELECT 1 FROM cf_credentials c JOIN users u ON u.id=c.user_id WHERE u.role=\'superadmin\' AND c.disabled=0))').bind('bootstrap:'+uid,epoch(),setup!.token_hash));statements.push(env.DB.prepare('UPDATE cf_bootstrap SET used_at=? WHERE id=1 AND used_at IS NULL').bind(epoch()));}
     statements.push(env.DB.prepare('INSERT INTO cf_credentials(user_id,email,password_hash,created_at) VALUES(?,?,?,?)').bind(uid,email,hash,epoch()),session.statement);if(bootstrap)statements.push(env.DB.prepare('DELETE FROM commit_guards WHERE id=?').bind('bootstrap:'+uid));
-    try{await repo.commit(writes,statements);}catch(e){if(e instanceof ApiError&&e.code==='already-exists')throw new ApiError(409,'account-exists','Unable to create this account. Try signing in.');throw e;}
+    try{await traceD1('auth.register.commit',()=>repo.commit(writes,statements));}catch(e){if(e instanceof ApiError&&e.code==='already-exists')throw new ApiError(409,'account-exists','Unable to create this account. Try signing in.');throw e;}
     return sessionResponse(env,headers,uid,email,profile,session,transport);
   }
   if(path==='/auth/activate'){
