@@ -32,7 +32,7 @@ assert.equal(git('status','--porcelain'),'','The working tree must be clean.');
 assert.equal(sha,git('rev-parse','origin/main'),'Pull current GitHub main before recovery.');
 assert.equal(spawnSync('git',['merge-base','--is-ancestor','fb610bcf5da3562f78fcf2df55c3a3cba72e3342',sha]).status,0,'Required diagnostic and UI fixes are missing.');
 assert.match(git('remote','get-url','origin'),/^(?:https:\/\/github\.com\/|git@github\.com:)(?:NischalBachhar)\/Sewak-final(?:\.git)?$/i);
-const run=(command,args)=>{const result=spawnSync(command,args,{stdio:'inherit',env:process.env,shell:process.platform==='win32'});if(result.status!==0)throw new Error('Required check failed: '+args.slice(0,3).join(' '));};
+const run=(command,args)=>{const result=spawnSync(command,args,{stdio:'inherit',env:process.env,shell:process.platform==='win32'&&command.toLowerCase().endsWith('.cmd')});if(result.status!==0)throw new Error('Required check failed: '+args.slice(0,3).join(' '));};
 const npm=(...args)=>run(process.platform==='win32'?'npm.cmd':'npm',args);
 async function liveVersion() {
  const deployment=(await cloudflare(root+'/deployments')).deployments[0];
