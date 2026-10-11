@@ -1,0 +1,30 @@
+name: Cloudflare Auth QA safety checks
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/verify-cloudflare-auth.mjs'
+      - '.github/workflows/auth-qa-safety.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify Auth QA script syntax (no live Cloudflare calls)
+        run: node --check scripts/verify-cloudflare-auth.mjs
+      - name: Install exact dependencies
+        run: |
+          npm ci
+          npm --prefix worker ci
+      - name: Test Cloudflare deployment safeguards offline
+        run: node --test tests/d1/operator.test.mjs
