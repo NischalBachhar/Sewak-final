@@ -368,3 +368,89 @@
   .dashboard-shell--admin .btn { transition: none !important; }
   .sewak-workspace__nav-item:hover, .dashboard-shell--admin .dashboard-action-card:hover { transform: none; }
 }
+
+
+/* Caregiver scheduling and job queue: true records, no decorative fake slots. */
+.sewak-week {
+  margin: 16px 0 22px; padding: 23px;
+  border: 1px solid #e0e9e8; border-radius: 19px;
+  background: #fff; box-shadow: 0 8px 24px rgba(24,72,74,.035);
+}
+.sewak-week__head { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 19px; }
+.sewak-week__eyebrow { margin: 0 0 6px; color: #128174; font-size: 10px; letter-spacing: .12em; font-weight: 800; }
+.sewak-week__head h4 { margin: 0; color: #1c3f48; font-size: 18px; letter-spacing: -.02em; }
+.sewak-week__head p:last-child { margin: 5px 0 0; color: #6d848b; font-size: 12px; }
+.sewak-week__controls { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.sewak-week__controls button {
+  width: 34px; height: 34px; border: 1px solid #dce9e6; border-radius: 10px; background: #fff;
+  color: #315b5b; cursor: pointer; font: inherit; font-size: 22px; line-height: 1;
+}
+.sewak-week__controls button:hover { border-color: #aad7ca; background: #ecf8f2; }
+.sewak-week__controls button:focus-visible { outline: 3px solid #158d80; outline-offset: 2px; }
+.sewak-week__controls span { font-size: 12px; color: #435d66; min-width: 155px; text-align: center; font-weight: 700; }
+.sewak-week__controls .sewak-week__today { width: auto; padding: 0 10px; font-size: 11px; font-weight: 700; }
+.sewak-week__days { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 9px; }
+.sewak-week__day {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  min-width: 0; padding: 17px 6px;
+  background: #f8fbfa; border: 1px solid #e5eeeb; border-radius: 13px;
+  color: #45666e; text-align: center;
+}
+.sewak-week__day.is-today { border-color: #b8dfd3; background: #eaf7f0; }
+.sewak-week__day span { font-size: 11px; color: #71868b; }
+.sewak-week__day strong { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; font-size: 17px; font-weight: 800; color: #2a5058; }
+.sewak-week__day.is-today strong { background: #128475; color: white; }
+.sewak-week__day small { color: #627c82; font-size: 10px; font-weight: 650; line-height: 1.35; }
+.sewak-week__foot { margin: 15px 0 0; font-size: 11px; color: #789095; }
+.sewak-jobs-heading { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 15px; }
+.sewak-jobs-heading .sewak-workspace__eyebrow { margin-bottom: 5px; }
+.sewak-jobs-heading h2 { font-size: 23px; color: #243f4a; letter-spacing: -.028em; margin: 0; }
+.sewak-jobs-heading > p { margin: 0; color: #758b90; font-size: 12px; }
+.sewak-job-filter { display: flex; gap: 7px; flex-wrap: wrap; padding: 7px; background: #f0f6f4; border: 1px solid #e0ebe7; border-radius: 15px; margin-bottom: 18px; }
+.sewak-job-filter__tab { display: flex; align-items: center; gap: 7px; min-height: 36px; border: 0; border-radius: 9px; padding: 8px 12px; background: transparent; color: #5a747a; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.sewak-job-filter__tab:hover { background: #e0f0e9; color: #0d766b; }
+.sewak-job-filter__tab.is-active { background: #fff; color: #126d63; box-shadow: 0 2px 8px rgba(24,69,74,.07); }
+.sewak-job-filter__tab span { min-width: 19px; border-radius: 7px; padding: 2px 5px; text-align: center; background: #e6f1ed; color: #48766c; font-size: 10px; }
+.sewak-job-filter__tab:focus-visible { outline: 3px solid #138f83; outline-offset: 2px; }
+.sewak-report-history { margin-top: 22px; border: 1px solid #e0e9e7; border-radius: 15px; background: #fff; overflow: hidden; }
+.sewak-report-history summary { cursor: pointer; padding: 15px 18px; display: flex; justify-content: space-between; color: #395e66; font-size: 13px; font-weight: 750; }
+.sewak-report-history summary span { color: #10786c; background: #e9f5ef; border-radius: 8px; padding: 1px 8px; }
+.sewak-report-history > :not(summary) { margin: 0 17px 15px; padding: 10px; color: #5e777d; font-size: 12px; }
+.sewak-report-history li { line-height: 1.6; margin-bottom: 9px; }
+.sewak-report-history summary:focus-visible { outline: 3px solid #138f83; outline-offset: -3px; }
+
+.sewak-admin-analytics__caption { color: #6c818a; margin: 0 0 17px; font-size: 13px; }
+.dashboard-shell--admin .sewak-admin-analytics__grid > div {
+  border-radius: 17px !important;
+  border: 1px solid #e2ebea;
+  box-shadow: 0 7px 25px rgba(20,64,73,.045) !important;
+  padding: 23px !important;
+  text-align: left !important;
+  background: #fff !important;
+}
+.dashboard-shell--admin .sewak-admin-analytics__grid > div h3 { margin: 0 0 11px; font-size: clamp(21px,2vw,29px); color: #195b56 !important; font-variant-numeric: tabular-nums; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.dashboard-shell--admin .sewak-admin-analytics__grid > div p { color: #6f848b; margin: 0; font-size: 12px; font-weight: 700; }
+
+/* Small quiet motion on the outer customer surface. */
+.dashboard-shell--customer .customer-welcome { box-shadow: 0 12px 34px rgba(25,107,88,.065); }
+.dashboard-shell--customer .customer-panel, .dashboard-shell--customer .customer-booking-stats__card { box-shadow: 0 9px 30px rgba(20,69,72,.045); }
+.dashboard-shell--customer .customer-welcome__visual { opacity: .6; }
+@media(max-width: 850px) {
+  .sewak-week__days { gap: 6px; }
+  .sewak-week__day { padding: 13px 3px; }
+}
+@media(max-width: 620px) {
+  .sewak-week { padding: 16px 12px; }
+  .sewak-week__head { align-items: flex-start; flex-direction: column; gap: 13px; }
+  .sewak-week__controls { width: 100%; justify-content: space-between; }
+  .sewak-week__controls span { flex: 1; min-width: 0; }
+  .sewak-week__days { grid-template-columns: repeat(7,minmax(0,1fr)); gap: 3px; }
+  .sewak-week__day { border-radius: 9px; padding: 10px 1px; gap: 6px; }
+  .sewak-week__day span { font-size: 10px; }
+  .sewak-week__day strong { width: 27px; height: 27px; font-size: 15px; }
+  .sewak-week__day small { font-size: 9px; }
+  .sewak-job-filter { flex-wrap: nowrap; overflow-x: auto; }
+  .sewak-job-filter__tab { flex: 0 0 auto; }
+  .dashboard-shell--admin .sewak-admin-analytics__grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 10px !important; }
+  .dashboard-shell--admin .sewak-admin-analytics__grid > div { padding: 15px !important; }
+}
