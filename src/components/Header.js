@@ -75,7 +75,7 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
   };
 
   return (
-    <header className="header">
+    <header className={"header header--" + (userRole || "guest")}>
       <div className="header-container">
         <button
           type="button"

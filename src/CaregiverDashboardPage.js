@@ -22,8 +22,9 @@ import CaregiverShiftWorkflow from "./CaregiverShiftWorkflow";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
+import WorkspaceShell from "./components/WorkspaceShell";
+import CareWeekPreview from "./components/CareWeekPreview";
 
-const STATUS_OPTIONS = ["pending", "accepted", "in_progress", "completed", "cancelled"];
 const SHIFT_OPTIONS = ["morning", "day", "night"];
 const CAREGIVER_TABS = ["home", "jobs", "schedule", "profile", "earnings"];
 
@@ -320,20 +321,6 @@ export default function CaregiverDashboardPage() {
     }
   };
 
-  const getTabStyle = (tabName) => ({
-    padding: "8px 16px",
-    borderRadius: "6px",
-    border: activeTab === tabName ? "none" : "1px solid var(--theme-text)",
-    background:
-      activeTab === tabName
-        ? "linear-gradient(135deg, var(--theme-help), var(--theme-help-accent))"
-        : "var(--theme-surface)",
-    color: activeTab === tabName ? "var(--theme-button-text)" : "var(--theme-text)",
-    cursor: "pointer",
-    fontWeight: activeTab === tabName ? 600 : 500,
-    fontSize: 13,
-  });
-
   const filtered = bookings.filter((b) =>
     statusFilter && statusFilter !== "All jobs"
       ? b.status === statusFilter
@@ -423,18 +410,22 @@ export default function CaregiverDashboardPage() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2 className="section-title">Good day, {userDoc?.name || profileData?.name || "Caregiver"}</h2>
-      <p
-        style={{
-          fontSize: 13,
-          color: "var(--theme-text)",
-          marginTop: -4,
-          marginBottom: 12,
-        }}
-      >
-        Manage jobs and update your profile.
-      </p>
+    <WorkspaceShell
+      role="caregiver"
+      title={"Good day, " + (userDoc?.name || profileData?.name || "Care professional")}
+      subtitle="Your care schedule, requests and earnings — all in one place."
+      activeTab={activeTab}
+      onSelect={selectTab}
+      items={[
+        { id: "home" },
+        { id: "jobs", count: bookings.filter((booking) => booking.status === "pending").length },
+        { id: "schedule" },
+        { id: "earnings" },
+        { id: "profile" },
+      ]}
+      alertCount={bookings.filter((booking) => booking.status === "pending").length}
+    >
+      <div className="caregiver-dashboard-content">
 
       {userDoc?.organizationName && (
         <div
@@ -461,45 +452,6 @@ export default function CaregiverDashboardPage() {
         <div><span>Completed jobs</span><strong>{earnings.completed}</strong></div>
         <div className="caregiver-day-overview__next"><span>Next job</span><strong>{nextJob ? `${nextJob.userName || "Customer"} · ${nextJob.date || "Schedule pending"}` : "No upcoming job"}</strong></div>
       </section>
-
-      {/* Tabs */}
-      <div className="choice-buttons" style={{ marginBottom: 24 }}>
-        <button
-          type="button"
-          style={getTabStyle("home")}
-          onClick={() => selectTab("home")}
-        >
-          Home
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("jobs")}
-          onClick={() => selectTab("jobs")}
-        >
-          Jobs ({bookings.length})
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("schedule")}
-          onClick={() => selectTab("schedule")}
-        >
-          Schedule
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("profile")}
-          onClick={() => selectTab("profile")}
-        >
-          My Profile
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("earnings")}
-          onClick={() => selectTab("earnings")}
-        >
-          Earnings
-        </button>
-      </div>
 
       {/* HOME TAB */}
       {activeTab === "home" && (
@@ -588,29 +540,31 @@ export default function CaregiverDashboardPage() {
       {/* JOBS TAB */}
       {activeTab === "jobs" && (
         <div>
-          <section className="card" aria-label="Report history">
-            <h3>Report history</h3>
-            {reportsError ? <p role="alert">{reportsError}</p> : myReports.length ? <ul>{myReports.map((report) => <li key={report.id}>{report.reason} — {report.status}. Booking {report.bookingId?.slice(0, 12)}</li>)}</ul> : <p>No reports submitted.</p>}
-          </section>
-          {/* Filter */}
-          <div className="row" style={{ marginBottom: 12 }}>
-            <div className="col">
-              <label htmlFor="caregiver-status-filter">Filter by status</label>
-              <select
-                id="caregiver-status-filter"
-                className="dropdown-select"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option>All jobs</option>
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s[0].toUpperCase() + s.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="sewak-jobs-heading">
+            <div><p className="sewak-workspace__eyebrow">CARE REQUESTS</p><h2>Manage your jobs</h2></div>
+            <p role="status">{filtered.length} ${filtered.length === 1 ? "request" : "requests"} shown</p>
           </div>
+          <nav className="sewak-job-filter" aria-label="Job status filters">
+            {[
+              { value: "All jobs", label: "All" },
+              { value: "pending", label: "Pending" },
+              { value: "accepted", label: "Accepted" },
+              { value: "in_progress", label: "In progress" },
+              { value: "completed", label: "Completed" },
+              { value: "cancelled", label: "Cancelled" },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                className={"sewak-job-filter__tab" + (statusFilter === value ? " is-active" : "")}
+                aria-pressed={statusFilter === value}
+                onClick={() => setStatusFilter(value)}
+              >
+                {label}
+                <span>{value === "All jobs" ? bookings.length : bookings.filter((booking) => booking.status === value).length}</span>
+              </button>
+            ))}
+          </nav>
 
           {/* Bookings list */}
           {filtered.length === 0 ? (
@@ -957,6 +911,14 @@ export default function CaregiverDashboardPage() {
               </div>
             ))
           )}
+          <details className="sewak-report-history">
+            <summary>Report history <span>{myReports.length}</span></summary>
+            {reportsError ? <p role="alert">{reportsError}</p> : myReports.length ? (
+              <ul>{myReports.map((report) => (
+                <li key={report.id}>{report.reason} — {report.status}. Booking {report.bookingId?.slice(0, 12)}</li>
+              ))}</ul>
+            ) : <p>No reports submitted.</p>}
+          </details>
         </div>
       )}
 
@@ -974,6 +936,8 @@ export default function CaregiverDashboardPage() {
               Only accepted or in-progress bookings appear here. New requests stay in Jobs until you accept them.
             </p>
           </section>
+
+          <CareWeekPreview bookings={scheduledJobs} />
 
           {scheduledJobs.length === 0 ? (
             <div className="empty-state">
@@ -1779,6 +1743,7 @@ export default function CaregiverDashboardPage() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </WorkspaceShell>
   );
 }
