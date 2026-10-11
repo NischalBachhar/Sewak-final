@@ -1,7 +1,8 @@
+import { nonMedicalSql } from './catalog.ts';
 import { decodeRecord } from './model.mjs';
 import { canRead, caregiverActive, organizationActive } from './policy.ts';
 import { entities, parseResource, Repository, requireActive, requireActor } from './repository.ts';
-import { active, badInput, canonicalCategory, pick, requireThat, type Actor, type Data } from './types.ts';
+import { active, badInput, canonicalCategory, onlyKeys, pick, requireThat, type Actor, type Data } from './types.ts';
 
 const caregiverPublicKeys = ['name','location','category','workType','shifts','servicesOffered','hourlyRate','experience','bio','jobsCompleted','verified','backgroundChecked','isCertified','isAvailable','organizationId','organizationName','allowZeroRate','identityVerificationStatus','phoneVerificationStatus','trainingVerificationStatus','backgroundVerificationStatus','referencesVerificationStatus'];
 function mediaUrl(id: unknown) { return typeof id === 'string' && id ? `/api/media/${encodeURIComponent(id)}` : ''; }
@@ -9,8 +10,14 @@ export function withImage(data: Data) {
   const url = mediaUrl(data.profile_image_id);
   return { ...data, profilePicture: url, profileImage: url };
 }
+// Raw arithmetic AVG is used for thresholds; one-decimal UI rounding never
+// promotes a 4.96 average into the 5.0 filter. Only completed-booking reviews
+// with matching participants, a verified flag and no moderation hide qualify.
+const eligibleReview = (r: string) => `${r}.is_verified_review=1 AND COALESCE(${r}.is_hidden,0)=0 AND ${r}.rating BETWEEN 1 AND 5 AND EXISTS (SELECT 1 FROM bookings b WHERE b.id=${r}.booking_id AND b.status='completed' AND b.caregiver_id=${r}.caregiver_id AND b.user_id=${r}.customer_id)`;
+const ratingSql = `(SELECT AVG(r.rating) FROM reviews r WHERE r.caregiver_id=t.id AND ${eligibleReview('r')})`;
 function projection(name: string, id: string, data: Data, row: Data): Data {
   if (name === 'publicCaregivers') return { ...pick(data, caregiverPublicKeys), caregiverId: id,
+    servicesOffered: JSON.parse(row.public_services || '[]'), organizationName: row.org_name || '', workType: (data.workType || '').replace('_',''), jobsCompleted: row.completed_jobs || 0,
     category: canonicalCategory(data.category), profileImage: mediaUrl(data.profile_image_id), profile_image_id: data.profile_image_id || null,
     isApproved: true, isSuspended: false, isBlacklisted: false, isOrganizationActive: true,
     isAvailable: data.isAvailable === true, allowZeroRate: data.allowZeroRate === true,
@@ -50,7 +57,7 @@ async function scope(repo: Repository, actor: Actor | null, name: string, parent
 
 export async function queryRecords(repo: Repository, actor: Actor | null, input: Data, single = false) {
   badInput(input && typeof input === 'object' && !Array.isArray(input), 'Invalid query.');
-  badInput(Object.keys(input).every((key) => ['path','filters','order','limit','cursor','aggregate'].includes(key)), 'Unsupported query option.');
+  badInput(Object.keys(input).every((key) => ['path','filters','order','limit','cursor','aggregate','search'].includes(key)), 'Unsupported query option.');
   const { name, spec: requestedSpec, parent, id } = parseResource(input.path);
   requireThat(!requestedSpec.serverOnly);
   badInput(single ? id : !id, 'Invalid query path.');
@@ -63,10 +70,10 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
   if (name === 'publicCaregivers') {
     joins.push('LEFT JOIN organizations o ON o.id=t.organization_id LEFT JOIN users u ON u.id=t.id');
     conditions.push('t.is_approved=1 AND COALESCE(t.is_suspended,0)=0 AND COALESCE(t.is_blacklisted,0)=0 AND COALESCE(u.is_suspended,0)=0 AND COALESCE(u.is_blacklisted,0)=0 AND (t.organization_id IS NULL OR (o.is_approved=1 AND COALESCE(o.is_suspended,0)=0 AND COALESCE(o.is_blacklisted,0)=0))');
-    extraColumns = ',o.commission_rate AS org_commission,(SELECT COUNT(*) FROM reviews r WHERE r.caregiver_id=t.id AND r.is_verified_review=1 AND COALESCE(r.is_hidden,0)=0) AS verified_count,(SELECT AVG(r.rating) FROM reviews r WHERE r.caregiver_id=t.id AND r.is_verified_review=1 AND COALESCE(r.is_hidden,0)=0) AS verified_rating';
+    extraColumns = `,(SELECT json_group_array(cs.service_id) FROM caregiver_services cs JOIN services s ON s.id=cs.service_id WHERE cs.caregiver_id=t.id AND COALESCE(s.is_active,1)=1 AND ${nonMedicalSql('s')} AND (s.organization_id IS NULL OR s.organization_id=t.organization_id)) AS public_services,o.organization_name AS org_name,o.commission_rate AS org_commission,(SELECT COUNT(*) FROM bookings b WHERE b.caregiver_id=t.id AND b.status='completed') AS completed_jobs,(SELECT COUNT(*) FROM reviews r WHERE r.caregiver_id=t.id AND ${eligibleReview('r')}) AS verified_count,${ratingSql} AS verified_rating`;
   } else if (name === 'organizations') extraColumns = ',(SELECT COUNT(*) FROM caregivers c WHERE c.organization_id=t.id) AS current_caregiver_count';
-  else if (name === 'publicServices') conditions.push('COALESCE(t.is_active,1)=1 AND (t.organization_id IS NULL OR EXISTS (SELECT 1 FROM organizations o WHERE o.id=t.organization_id AND o.is_approved=1 AND COALESCE(o.is_suspended,0)=0 AND COALESCE(o.is_blacklisted,0)=0))');
-  else if (name === 'publicReviews') conditions.push('t.is_verified_review=1 AND COALESCE(t.is_hidden,0)=0');
+  else if (name === 'publicServices') conditions.push(nonMedicalSql('t'), 'COALESCE(t.is_active,1)=1 AND (t.organization_id IS NULL OR EXISTS (SELECT 1 FROM organizations o WHERE o.id=t.organization_id AND o.is_approved=1 AND COALESCE(o.is_suspended,0)=0 AND COALESCE(o.is_blacklisted,0)=0))');
+  else if (name === 'publicReviews') conditions.push(eligibleReview('t'));
   if (single && !aliases[name]) await canRead(repo, actor, input.path);
   else await scope(repo, actor, name, parent, conditions, params);
   if (parent) { conditions.push('t.session_id=?'); params.push(parent); }
@@ -85,7 +92,34 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
     conditions.push(`t."${column}" IN (${values.map(() => '?').join(',')})`);
     params.push(...values.map((v: any) => typeof v === 'boolean' ? Number(v) : v));
   }
+  if (input.search !== undefined) {
+    badInput(name === 'publicCaregivers' && !single && input.search && typeof input.search === 'object' && !Array.isArray(input.search), 'Unsupported search.');
+    conditions.push('t.is_available=1');
+    const search = input.search;
+    onlyKeys(search, ['text','category','serviceId','workType','shift','location','minimumExperience','minimumRating','verifiedOnly']);
+    const add = (sql: string, ...values: any[]) => { conditions.push(sql); params.push(...values); };
+    for (const key of ['text','location','serviceId','category','workType','shift']) if (search[key] !== undefined) badInput(typeof search[key] === 'string' && search[key].length <= 160, 'Invalid search text.');
+    // Search only public city/area, never private customer or organization address.
+    for (const key of ['text','location']) if (search[key]?.trim()) {
+      const value = search[key].trim();
+      add(key === 'text' ? `(instr(lower(COALESCE(t.name,'')),lower(?))>0 OR instr(lower(COALESCE(t.location,'')),lower(?))>0)` : `instr(lower(COALESCE(t.location,'')),lower(?))>0`, ... (key === 'text' ? [value,value] : [value]));
+    }
+    if (search.category) {
+      badInput(['caregiver','household','vendor','both'].includes(search.category), 'Invalid category.');
+      if (search.category !== 'both') add(search.category === 'caregiver' ? "t.category IN ('caregiver','both')" : "t.category IN ('vendor','household','both')");
+    }
+    if (search.serviceId) add(`EXISTS(SELECT 1 FROM caregiver_services cs JOIN services s ON s.id=cs.service_id WHERE cs.caregiver_id=t.id AND cs.service_id=? AND COALESCE(s.is_active,1)=1 AND ${nonMedicalSql('s')} AND (s.organization_id IS NULL OR s.organization_id=t.organization_id))`, search.serviceId);
+    if (search.workType) { badInput(['parttime','fulltime'].includes(search.workType)); add("replace(t.work_type,'_','')=?",search.workType); }
+    if (search.shift) { badInput(['morning','day','evening','night'].includes(search.shift)); add("EXISTS(SELECT 1 FROM json_each(COALESCE(t.shifts,'[]')) WHERE value=?)",search.shift); }
+    for (const key of ['minimumExperience','minimumRating']) if (search[key] !== undefined && search[key] !== '') {
+      const value = search[key]; badInput(typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= (key === 'minimumRating' ? 5 : 100), 'Invalid minimum.');
+      if (value > 0) add(key === 'minimumRating' ? ratingSql + '>=?' : 't.experience>=?',value);
+    }
+    if (search.verifiedOnly !== undefined) badInput(typeof search.verifiedOnly === 'boolean');
+    if (search.verifiedOnly) add('t.verified=1');
+  }
   const base = `FROM ${spec.table} t ${joins.join(' ')} WHERE ${conditions.length ? conditions.join(' AND ') : '1=1'}`;
+  const total = input.search !== undefined ? (await repo.env.DB.prepare(`SELECT COUNT(*) AS total ${base}`).bind(...params).first<Data>())?.total || 0 : undefined;
   if (input.aggregate) {
     requireThat(name === 'bookings' && actor, 'Aggregates are only available for authorized bookings.');
     badInput(!input.cursor && !input.order && Object.keys(input.aggregate).length <= 5, 'Invalid aggregate.');
@@ -124,5 +158,5 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
       data: aliases[name] ? projection(name, row.id, record, row) : ['users','vendors'].includes(name) ? withImage(record) : record,
       cursor: { id: row.id, value: row[sort] ?? '' } };
   });
-  return { items, nextCursor: result.results.length > size ? items.at(-1)?.cursor : null };
+  return { items, ...(total !== undefined ? {total} : {}), nextCursor: result.results.length > size ? items.at(-1)?.cursor : null };
 }

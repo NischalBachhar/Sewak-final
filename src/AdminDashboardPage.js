@@ -1355,6 +1355,7 @@ export default function AdminDashboardPage() {
                   >
                     <div>
                       <strong>{application.organizationName}</strong>
+                      {application.organizationType && <p>{application.organizationType === 'Other' ? application.organizationTypeOther : application.organizationType}</p>}
                       <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--theme-text-muted)" }}>
                         {application.applicantName} · {application.applicantEmail}
                       </p>
@@ -1423,9 +1424,8 @@ export default function AdminDashboardPage() {
                   .filter(
                     (org) =>
                       (searchOrg === "" ||
-                        org.organizationName
-                          ?.toLowerCase()
-                          .includes(searchOrg.toLowerCase())) &&
+                        [org.organizationName, org.organizationType === 'Other' ? org.organizationTypeOther : org.organizationType]
+                          .some(value => value?.toLowerCase().includes(searchOrg.toLowerCase()))) &&
                       (orgStatusFilter === "all" ||
                         (orgStatusFilter === "approved"
                           ? org.isApproved
@@ -1448,6 +1448,7 @@ export default function AdminDashboardPage() {
                       }}
                     >
                       <h4>{org.organizationName}</h4>
+                      {org.organizationType && <p>{org.organizationType === 'Other' ? org.organizationTypeOther : org.organizationType}</p>}
                       <p>
                         <strong>Admin:</strong> {org.adminName}
                       </p>

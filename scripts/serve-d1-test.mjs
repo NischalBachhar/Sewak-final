@@ -34,7 +34,12 @@ http.createServer(async(req,res)=>{
     result=rows.results.map(row=>({id:row.id,data:decodeRecord(name,row)}));
    }else if(command.op==='set'||command.op==='update'){
     const old=command.op==='update'?(await new Repository(env).get(command.path)).data:{};
-    const q=insertSQL(name,encodeRecord(name,key,{...old,...command.data}),'upsert');await db.prepare(q.sql).bind(...q.params).run();result={ok:true};
+    const q=insertSQL(name,encodeRecord(name,key,{...old,...command.data}),'upsert');await db.prepare(q.sql).bind(...q.params).run();
+    if(name==='vendors'||name==='services') {
+     await db.prepare("DELETE FROM caregiver_services WHERE caregiver_id NOT IN (SELECT c.id FROM caregivers c,json_each(COALESCE(c.services_offered,'[]')) j WHERE j.value=caregiver_services.service_id)").run();
+     await db.prepare("INSERT OR IGNORE INTO caregiver_services(caregiver_id,service_id) SELECT c.id,j.value FROM caregivers c,json_each(COALESCE(c.services_offered,'[]')) j JOIN services s ON s.id=j.value").run();
+    }
+    result={ok:true};
    }else throw new Error('Unsupported fixture operation');
    res.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify(result));return;
   }
