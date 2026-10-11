@@ -2555,7 +2555,7 @@ export default function AdminDashboardPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
                   gap: "20px",
                 }}
               >
@@ -2577,6 +2577,7 @@ export default function AdminDashboardPage() {
                   .map((vendor) => (
                     <div
                       key={vendor.id}
+                      className="sewak-admin-caregiver-card"
                       style={{
                         backgroundColor: "white",
                         padding: "20px",
@@ -2772,8 +2773,9 @@ export default function AdminDashboardPage() {
           {loadingBookings ? (
             <DashboardLoadingState label="Loading bookings…" />
           ) : (
-            <div>
+            <div className="sewak-admin-bookings">
               <div
+                className="sewak-admin-bookings__filters"
                 style={{
                   marginBottom: "15px",
                   display: "flex",
@@ -2783,6 +2785,7 @@ export default function AdminDashboardPage() {
               >
                 <select
                   className="dropdown-select"
+                  aria-label="Booking status"
                   value={bookingStatusFilter}
                   onChange={(e) => setBookingStatusFilter(e.target.value)}
                   style={{
@@ -2800,6 +2803,7 @@ export default function AdminDashboardPage() {
                 </select>
                 <input
                   type="date"
+                  aria-label="Booking date"
                   value={bookingDateFilter}
                   onChange={(e) => setBookingDateFilter(e.target.value)}
                   style={{
@@ -2811,9 +2815,10 @@ export default function AdminDashboardPage() {
               </div>
 
               <div
+                className="sewak-admin-bookings__grid"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
                   gap: "20px",
                 }}
               >
@@ -2826,8 +2831,9 @@ export default function AdminDashboardPage() {
                         booking.date?.includes(bookingDateFilter)),
                   )
                   .map((booking) => (
-                    <div
+                    <article
                       key={booking.id}
+                      className="sewak-admin-booking"
                       style={{
                         backgroundColor: "white",
                         padding: "20px",
@@ -2846,44 +2852,29 @@ export default function AdminDashboardPage() {
                         }`,
                       }}
                     >
-                      <h5>Booking #{booking.id.substring(0, 8)}</h5>
-                      <p>
-                        <strong>User:</strong> {booking.userName}
-                      </p>
-                      <p>
-                        <strong>Caregiver:</strong> {booking.caregiverName}
-                      </p>
-                      <p>
-                        <strong>Date:</strong> {booking.date || "To be confirmed"}
-                      </p>
-                      <p>
-                        <strong>Time:</strong> {booking.time || "To be confirmed"}
-                        {booking.endTime ? ` - ${booking.endTime}` : booking.durationHours ? ` (${booking.durationHours} hours)` : ""}
-                      </p>
-                      <p>
-                        <strong>Amount:</strong>{" "}
-                        {formatNpr(booking.totalAmount, "Amount unavailable")}
-                      </p>
-                      <p>
-                        <strong>Platform Commission:</strong>{" "}
-                        {formatNpr(booking.platformCommission, "NPR 0")}
-                      </p>
-                      <p>
-                        <strong>Status:</strong>{" "}
-                        <strong
-                          style={{
-                            color:
-                              booking.status === "completed"
-                                ? "var(--theme-positive)"
-                                : booking.status === "cancelled"
-                                  ? "var(--theme-danger)"
-                                  : "var(--theme-warning)",
-                          }}
-                        >
-                          {booking.status.toUpperCase()}
-                        </strong>
-                      </p>
-                    </div>
+                      <header className="sewak-admin-booking__head">
+                        <div>
+                          <p>BOOKING REFERENCE</p>
+                          <h3>#{booking.id.substring(0, 8)}</h3>
+                        </div>
+                        <span className={"sewak-admin-booking__badge sewak-admin-booking__badge--" + booking.status}>
+                          {booking.status.replace(/_/g, " ")}
+                        </span>
+                      </header>
+                      <div className="sewak-admin-booking__people">
+                        <div><span>Customer</span><strong>{booking.userName || "Unknown customer"}</strong></div>
+                        <div><span>Care professional</span><strong>{booking.caregiverName || "Unassigned"}</strong></div>
+                      </div>
+                      <dl className="sewak-admin-booking__schedule">
+                        <div><dt>Care date</dt><dd>{booking.date || "To be confirmed"}</dd></div>
+                        <div><dt>Start & duration</dt><dd>{booking.time || "To be confirmed"}{booking.endTime ? " – " + booking.endTime : booking.durationHours ? " · " + booking.durationHours + " hours" : ""}</dd></div>
+                        <div><dt>Payment</dt><dd>{booking.paymentStatus === "paid" ? "Recorded as paid" : booking.paymentStatus === "awaiting_verification" ? "Awaiting verification" : booking.paymentStatus || "Not confirmed"}</dd></div>
+                      </dl>
+                      <div className="sewak-admin-booking__finance">
+                        <div><span>Booking value</span><strong>{formatNpr(booking.totalAmount, "Amount unavailable")}</strong></div>
+                        <div><span>Platform commission</span><strong>{formatNpr(booking.platformCommission, "NPR 0")}</strong></div>
+                      </div>
+                    </article>
                   ))}
               </div>
               {bookings.length === 0 && <p>No bookings found.</p>}
@@ -3530,7 +3521,7 @@ export default function AdminDashboardPage() {
               <h3 style={{ color: "var(--theme-help)" }}>
                 Rs. {analytics.totalRevenue.toFixed(2)}
               </h3>
-              <p>Total Revenue</p>
+              <p>Completed booking value</p>
             </div>
             <div
               style={{
@@ -3544,7 +3535,7 @@ export default function AdminDashboardPage() {
               <h3 style={{ color: "var(--theme-text-muted)" }}>
                 Rs. {analytics.platformEarnings.toFixed(2)}
               </h3>
-              <p>Platform Earnings</p>
+              <p>Recorded platform commission</p>
             </div>
           </div>
 

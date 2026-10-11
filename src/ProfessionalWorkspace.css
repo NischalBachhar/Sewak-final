@@ -464,3 +464,69 @@
   border: 2px solid #e5f2ec;
   background: #eaf7f2;
 }
+
+
+/* Signed-in screenshot QA refinement: superadmin booking and caregiver records. */
+.dashboard-shell--admin .sewak-admin-bookings__filters {
+  display: flex; align-items: center; justify-content: flex-start;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 18px !important;
+  padding: 16px; border: 1px solid #e3ece9; border-radius: 16px; background: #f7fbf9;
+}
+.dashboard-shell--admin .sewak-admin-bookings__filters select {
+  flex: 0 1 230px; width: 230px; min-width: 170px; border: 1px solid #d5e5e1 !important;
+  border-radius: 10px !important; background: #fff !important; min-height: 44px;
+}
+.dashboard-shell--admin .sewak-admin-bookings__filters input[type="date"] {
+  flex: 0 1 190px; min-width: 160px; min-height: 44px;
+  border: 1px solid #d5e5e1 !important; background: #fff;
+  border-radius: 10px !important;
+}
+.dashboard-shell--admin .sewak-admin-bookings__grid { gap: 15px !important; }
+.dashboard-shell--admin .sewak-admin-booking {
+  min-width: 0; border: 1px solid #e1eae8; border-radius: 19px !important;
+  border-left: 4px solid #138a76; background: #fff;
+  padding: clamp(18px,2vw,26px) !important;
+  box-shadow: 0 8px 27px rgba(24,66,69,.055) !important;
+  display: grid; gap: 18px; align-content: start;
+}
+.sewak-admin-booking__head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.sewak-admin-booking__head p { font-size: 10px; letter-spacing: .12em; font-weight: 800; color: #81969c; margin: 0 0 5px; }
+.sewak-admin-booking__head h3 { margin: 0; font-size: 20px; letter-spacing: -.025em; color: #1f3c49; }
+.sewak-admin-booking__badge { border-radius: 999px; background: #f0f4f6; color: #556c74; text-transform: capitalize; font-size: 11px; font-weight: 750; padding: 7px 11px; white-space: nowrap; }
+.sewak-admin-booking__badge--completed { background: #e4f6ea; color: #18724b; }
+.sewak-admin-booking__badge--pending { background: #fff4de; color: #91631e; }
+.sewak-admin-booking__badge--accepted, .sewak-admin-booking__badge--in_progress { background: #e4f3fa; color: #2a6f96; }
+.sewak-admin-booking__badge--cancelled { background: #fcebe8; color: #a44941; }
+.sewak-admin-booking__people { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; border-radius: 14px; background: #f5faf8; padding: 16px; }
+.sewak-admin-booking__people span, .sewak-admin-booking__finance span { display: block; color: #718790; font-size: 11px; font-weight: 650; margin-bottom: 6px; }
+.sewak-admin-booking__people strong { display: block; color: #24434b; font-size: 15px; overflow-wrap: anywhere; }
+.sewak-admin-booking__schedule { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin: 0; }
+.sewak-admin-booking__schedule dt { color: #7c9094; font-size: 11px; margin-bottom: 5px; }
+.sewak-admin-booking__schedule dd { color: #294550; margin: 0; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+.sewak-admin-booking__finance { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; padding-top: 16px; border-top: 1px solid #e7efec; }
+.sewak-admin-booking__finance strong { font-size: 17px; font-variant-numeric: tabular-nums; color: #176e63; }
+
+.dashboard-shell--admin .sewak-admin-caregiver-card {
+  min-width: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr));
+  column-gap: 25px; row-gap: 10px; align-content: start;
+  padding: clamp(19px,2vw,26px) !important;
+  border-radius: 18px !important; border-color: #c6ded5 !important;
+  box-shadow: 0 8px 26px rgba(19,75,77,.05) !important;
+}
+.dashboard-shell--admin .sewak-admin-caregiver-card > h4 {
+  grid-column: 1 / -1; margin: 0 0 5px; font-size: 19px;
+  color: #204750; letter-spacing: -.03em;
+}
+.dashboard-shell--admin .sewak-admin-caregiver-card > p {
+  margin: 0; font-size: 13px; color: #49646d; line-height: 1.6;
+}
+.dashboard-shell--admin .sewak-admin-caregiver-card > p strong { color: #28424b; }
+.dashboard-shell--admin .sewak-admin-caregiver-card > section { grid-column: 1 / -1; margin-top: 11px !important; }
+.dashboard-shell--admin .sewak-admin-caregiver-card > div:last-child { grid-column: 1 / -1; }
+@media (max-width: 620px) {
+  .dashboard-shell--admin .sewak-admin-bookings__filters select,
+  .dashboard-shell--admin .sewak-admin-bookings__filters input[type="date"] { flex: 1 1 100%; width: 100%; }
+  .sewak-admin-booking__people { grid-template-columns: 1fr; gap: 12px; }
+  .sewak-admin-booking__schedule { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .dashboard-shell--admin .sewak-admin-caregiver-card { grid-template-columns: 1fr; }
+}

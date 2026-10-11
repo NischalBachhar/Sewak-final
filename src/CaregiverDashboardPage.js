@@ -446,13 +446,6 @@ export default function CaregiverDashboardPage() {
 
       {error && <div className="error-message">{error}</div>}
 
-      <section className="caregiver-day-overview" aria-label="Today's work overview">
-        <div><span>Today's jobs</span><strong>{todaysJobs.length}</strong></div>
-        <div><span>Pending requests</span><strong>{bookings.filter((booking) => booking.status === "pending").length}</strong></div>
-        <div><span>Completed jobs</span><strong>{earnings.completed}</strong></div>
-        <div className="caregiver-day-overview__next"><span>Next job</span><strong>{nextJob ? `${nextJob.userName || "Customer"} · ${nextJob.date || "Schedule pending"}` : "No upcoming job"}</strong></div>
-      </section>
-
       {/* HOME TAB */}
       {activeTab === "home" && (
         <div>
@@ -542,7 +535,7 @@ export default function CaregiverDashboardPage() {
         <div>
           <div className="sewak-jobs-heading">
             <div><p className="sewak-workspace__eyebrow">CARE REQUESTS</p><h2>Manage your jobs</h2></div>
-            <p role="status">{filtered.length} ${filtered.length === 1 ? "request" : "requests"} shown</p>
+            <p role="status">{filtered.length} {filtered.length === 1 ? "request" : "requests"} shown</p>
           </div>
           <nav className="sewak-job-filter" aria-label="Job status filters">
             {[
@@ -1561,7 +1554,7 @@ export default function CaregiverDashboardPage() {
                     margin: 0,
                   }}
                 >
-                  Total Earned
+                  Completed booking value
                 </p>
                 <p
                   style={{
@@ -1582,7 +1575,7 @@ export default function CaregiverDashboardPage() {
                     margin: 0,
                   }}
                 >
-                  Recorded care earnings
+                  Caregiver share (recorded)
                 </p>
                 <p
                   style={{
@@ -1601,7 +1594,7 @@ export default function CaregiverDashboardPage() {
                     margin: 0,
                   }}
                 >
-                  After each booking’s recorded commission
+                  After recorded commission · not payout confirmation
                 </p>
               </div>
               <div>

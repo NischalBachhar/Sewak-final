@@ -21,7 +21,7 @@ for(const width of [320,375,430,768,1366,1920])test(`public and four authenticat
  const context=await browser.newContext({viewport:{width,height:900}});const page=await context.newPage();
  await page.goto('/browse');await expect(page.getByRole('heading',{name:/Care that feels/})).toBeVisible();await checkOverflow(page);
  await page.getByRole('button',{name:'Create an account',exact:true}).click();await expect(page.getByLabel('Full name')).toBeVisible();
- for(const [role,route,heading]of[['customer','/user/home','Welcome back'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Organization Dashboard'],['admin','/superadmin/caregivers','Admin Dashboard']]){
+ for(const [role,route,heading]of[['customer','/user/home','Hello, Test'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Organization Dashboard'],['admin','/superadmin/caregivers','Caregivers']]){
   const roleContext=await browser.newContext({viewport:{width,height:900}});const p=await roleContext.newPage();await signIn(p,role);await p.goto(route);
   if(heading)await expect(p.getByRole('heading',{name:new RegExp(heading)}).first()).toBeVisible();else await expect(p.getByRole('heading',{name:/Test caregiver|Caregiver|My jobs|Jobs/i}).first()).toBeVisible();
   await checkOverflow(p);await p.reload();await expect(p.getByRole('button',{name:/Account menu for/})).toBeVisible();await checkOverflow(p);
@@ -41,7 +41,7 @@ test('real D1 customer request -> caregiver acceptance/start/complete -> refresh
  const bookingId=new URL(customer.url()).pathname.split('/').pop();
  expect((await db.collection('bookings').get()).size).toBe(1);
  const caregiverContext=await browser.newContext();const caregiver=await caregiverContext.newPage();await signIn(caregiver,'caregiver');await caregiver.goto('/caregiver/jobs');
- await caregiver.getByRole('combobox').first().selectOption('All jobs');await caregiver.getByRole('button',{name:'Accept',exact:true}).last().click();await caregiver.getByRole('button',{name:/I've arrived/}).last().click();
+ await caregiver.getByRole('navigation',{name:'Job status filters'}).getByRole('button',{name:/^All\b/}).click();await caregiver.getByRole('button',{name:'Accept',exact:true}).last().click();await caregiver.getByRole('button',{name:/I've arrived/}).last().click();
  await caregiver.getByRole('button',{name:/Finish shift/}).last().click();
  await customer.reload();
  await expect(customer.getByRole('heading',{name:'How was your care experience?'})).toBeVisible();await customer.getByLabel('Share a short note').fill('Synthetic verified feedback');await customer.getByRole('button',{name:'Submit verified review'}).click();await expect(customer.getByRole('heading',{name:'Thank you for your feedback'})).toBeVisible();
@@ -65,7 +65,7 @@ test('report submission, duplicate retry, private moderator data and safe histor
  await signIn(page,'caregiver');await page.goto(`/caregiver/reportuser?bookingId=${prior.id}`);
  await page.getByLabel('Reason').selectOption('Safety concerns');await page.getByLabel('What happened?').fill('Synthetic conduct concern for local regression testing.');await page.getByRole('button',{name:'Submit report for review'}).click();await expect(page.getByText(/Report submitted for review/)).toBeVisible();
  await db.doc(`blacklistReports/${prior.id}`).update({moderatorNote:'PRIVATE_MODERATOR_DETAIL'});
- await page.getByRole('button',{name:'Return to jobs'}).click();await expect(page.getByRole('heading',{name:'Report history'})).toBeVisible();await expect(page.getByText('PRIVATE_MODERATOR_DETAIL')).toHaveCount(0);
+ await page.getByRole('button',{name:'Return to jobs'}).click();await expect(page.locator('summary').filter({hasText:'Report history'})).toBeVisible();await expect(page.getByText('PRIVATE_MODERATOR_DETAIL')).toHaveCount(0);
  await page.goto(`/caregiver/reportuser?bookingId=${prior.id}`);await page.getByLabel('Reason').selectOption('Other');await page.getByLabel('What happened?').fill('Duplicate attempt');await page.getByRole('button',{name:'Submit report for review'}).click();await expect(page.getByText(/Report submitted for review/)).toBeVisible();
  expect((await db.doc(`blacklistReports/${prior.id}`).get()).data().reason).toBe('Safety concerns');expect((await db.collection('reportReceipts').get()).size).toBe(1);
 });
