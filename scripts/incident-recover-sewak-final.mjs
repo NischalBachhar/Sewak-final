@@ -11,6 +11,7 @@ import {stdin as input,stdout as output} from 'node:process';
 import {cloudflare,assertFreeAccount} from './cloudflare-operator.mjs';
 import {assertDeploymentConfig,assertLiveBindings,SEWAK_ACCOUNT,targets} from './deployment-policy.mjs';
 import {controlledQaGmail} from './synthetic-qa-email.mjs';
+import {openTarget} from './d1-target.mjs';
 import {assertIncidentRecovery,INCIDENT_VERSION} from './incident-recovery-contract.mjs';
 
 const argv=process.argv.slice(2),action=argv[0];
@@ -45,6 +46,17 @@ async function liveVersion() {
  return id;
 }
 function validation(){return JSON.parse(readFileSync(join(outdir,'cloudflare-data-check.json'),'utf8'));}
+async function ensureExistingPasswordsRemainCompatible(){
+ const db=await openTarget({remote:true,mainId:targets['sewak-final'].DB[1],mediaId:targets['sewak-final'].MEDIA_DB[1]});
+ try{
+  // Only aggregated counts leave D1. No password hashes, emails or identities
+  // are read into JavaScript, written to disk, or included in operator logs.
+  const row=await db.DB.prepare("SELECT COUNT(*) AS accounts,COALESCE(SUM(CASE WHEN password_hash IS NOT NULL AND (password_hash NOT LIKE ? OR length(password_hash) != 150) THEN 1 ELSE 0 END),0) AS incompatible FROM cf_credentials").bind('scrypt-v1$32768$8$3$%').first();
+  assert.ok(row&&Number(row.accounts)>0,'Existing account credentials were not found.');
+  assert.equal(Number(row.incompatible),0,'Existing password hashes are incompatible with current GitHub authentication. Stop: preserve existing login credentials.');
+  return true;
+ } finally {await db.close();}
+}
 async function bookmarks(){
  const values={};
  for(const key of ['DB','MEDIA_DB']){
@@ -76,10 +88,14 @@ if(action==='--prepare'){
  npm('run','test:unit','--','--silent');
  npm('run','lint');
  npm('run','build:release');
+ // Production Auth QA includes a real signed-in Chrome browser journey.
+ const browserProbe=spawnSync(process.execPath,['--input-type=module','-e',"import('@playwright/test').then(async m=>{let b;try{b=await m.chromium.launch({channel:'chrome',headless:true});await b.close();}catch{process.exitCode=1;}})"],{stdio:'inherit'});
+ assert.equal(browserProbe.status,0,'Chrome channel required for post-release browser QA; install Chrome first.');
  npm('run','deploy:cloudflare','--','--worker','sewak-final','--dry-run');
  run(process.execPath,['scripts/scan-release.mjs']);
  run(process.execPath,['scripts/verify-cloudflare-data.mjs']);
  const report=validation();assert.equal(report.pass,true);assert.equal(report.version,INCIDENT_VERSION);
+ await ensureExistingPasswordsRemainCompatible();
  const points=await bookmarks();
  const state={worker:'sewak-final',gitSha:sha,version:INCIDENT_VERSION,preparedAt:new Date().toISOString(),bookmarks:points};
  mkdirSync('.local-tools',{recursive:true});
@@ -92,6 +108,7 @@ assert.ok(qaEmail,'Set your own SEWAK_QA_GMAIL before executing.');
 const prepared=JSON.parse(readFileSync(statePath,'utf8'));
 const failedQa=JSON.parse(readFileSync(argv[2],'utf8'));
 const currentValidation=validation();
+await ensureExistingPasswordsRemainCompatible();
 assertIncidentRecovery({validation:currentValidation,failedQa,prepared,liveVersion:INCIDENT_VERSION,gitSha:sha});
 await assertFreeAccount(SEWAK_ACCOUNT,{attested:true});
 const readline=createInterface({input,output});
