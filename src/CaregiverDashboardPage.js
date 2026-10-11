@@ -23,6 +23,7 @@ import { formatNpr } from "./config/brand";
 import { SkeletonCard } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
 import WorkspaceShell from "./components/WorkspaceShell";
+import CareWeekPreview from "./components/CareWeekPreview";
 
 const STATUS_OPTIONS = ["pending", "accepted", "in_progress", "completed", "cancelled"];
 const SHIFT_OPTIONS = ["morning", "day", "night"];
@@ -926,6 +927,8 @@ export default function CaregiverDashboardPage() {
               Only accepted or in-progress bookings appear here. New requests stay in Jobs until you accept them.
             </p>
           </section>
+
+          <CareWeekPreview bookings={scheduledJobs} />
 
           {scheduledJobs.length === 0 ? (
             <div className="empty-state">
