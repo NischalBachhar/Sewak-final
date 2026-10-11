@@ -1,0 +1,38 @@
+name: Organization workspace UI checks
+
+on:
+  pull_request:
+    paths:
+      - 'src/OrganizationDashboard.js'
+      - 'src/OrganizationWorkspace.css'
+      - 'src/components/OrganizationWorkspace.js'
+      - 'src/components/OrganizationWorkspace.test.js'
+      - 'src/components/Header.js'
+      - '.github/workflows/organization-workspace-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  organization-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact frontend dependencies
+        run: npm ci
+      - name: Run organization workspace tests
+        env:
+          CI: 'true'
+        run: npm run test:unit -- --silent
+      - name: Build frontend
+        env:
+          CI: 'true'
+        run: npm run build

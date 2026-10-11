@@ -243,44 +243,11 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
                   </>
                 )}
 
-                {/* Navigation Items - Organization Admin */}
+                {/* Organization navigation lives in its dedicated sidebar/mobile workspace. */}
                 {userRole === "orgadmin" && (
                   <>
-                    <button
-                      type="button"
-                      className="dropdown-item"
-                      onClick={() => handleNavigate("/organization?tab=caregivers")}
-                    >
-                      👥 Manage Caregivers
-                    </button>
-                    <button
-                      type="button"
-                      className="dropdown-item"
-                      onClick={() => handleNavigate("/organization?tab=bookings")}
-                    >
-                      📅 All Bookings
-                    </button>
-                    <button
-                      type="button"
-                      className="dropdown-item"
-                      onClick={() => handleNavigate("/organization?tab=services")}
-                    >
-                      🛠️ Services
-                    </button>
-                    <button
-                      type="button"
-                      className="dropdown-item"
-                      onClick={() => handleNavigate("/organization?tab=blacklist")}
-                    >
-                      🚫 Blacklist
-                    </button>
-                    <button
-                      type="button"
-                      className="dropdown-item"
-                      onClick={() => handleNavigate("/organization?tab=profile")}
-                    >
-                      🏢 Organization Profile
-                    </button>
+                    <button type="button" className="dropdown-item" onClick={() => handleNavigate("/organization?tab=overview")}>Organization workspace</button>
+                    <button type="button" className="dropdown-item" onClick={() => handleNavigate("/organization?tab=profile")}>Organization settings</button>
                   </>
                 )}
 
