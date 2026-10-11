@@ -20,8 +20,10 @@ import { db } from "./d1Client";
 import useOrganizationBookings from "./useOrganizationBookings";
 import { useAuth } from "./AuthContext";
 import "./OrganizationDashboard.css";
+import { OrganizationSidebar, OrganizationMobileNav, OrganizationOverview, OrganizationSectionHeader, OrganizationTeamList, OrganizationBookingsPanel, OrganizationIcon } from "./components/OrganizationWorkspace";
 
-const validTabs = ["caregivers", "bookings", "services", "blacklist", "profile"];
+const validTabs = ["overview", "caregivers", "bookings", "services", "blacklist", "profile"];
+const normalizeServiceCategory = value => value === "vendor" ? "household" : value;
 
 export default function OrganizationDashboard() {
   const { user } = useAuth();
@@ -31,7 +33,7 @@ export default function OrganizationDashboard() {
   const getTabFromSearch = useCallback((search) => {
     const params = new URLSearchParams(search);
     const tab = params.get("tab");
-    return validTabs.includes(tab) ? tab : "caregivers";
+    return validTabs.includes(tab) ? tab : "overview";
   }, []);
   const selectTab = (tabName) => {
     navigate(`/organization?tab=${tabName}`);
@@ -42,7 +44,6 @@ export default function OrganizationDashboard() {
   const [organizationData, setOrganizationData] = useState(null);
   const [caregivers, setCaregivers] = useState([]);
   const bookingHistory = useOrganizationBookings(user?.uid);
-  const bookings = bookingHistory.rows;
   const [services, setServices] = useState([]);
   const [error, setError] = useState("");
 
@@ -275,7 +276,7 @@ export default function OrganizationDashboard() {
   const startEditService = (service) => {
     setEditingService(service);
     setEditServiceLabel(service.label);
-    setEditServiceCategory(service.category || "caregiver");
+    setEditServiceCategory(normalizeServiceCategory(service.category || "caregiver"));
   };
 
   const handleUpdateService = async () => {
@@ -378,9 +379,7 @@ export default function OrganizationDashboard() {
 
   if (loading) {
     return (
-      <p style={{ color: "var(--theme-text-muted)", textAlign: "center", padding: 20 }}>
-        Loading dashboard...
-      </p>
+      <div className="org-loading-workspace" role="status"><div className="org-loading-title"/><div className="org-loading-metrics">{[1,2,3,4].map(item => <span key={item}/>)}</div><span>Loading your organization workspace…</span></div>
     );
   }
 
@@ -478,9 +477,13 @@ export default function OrganizationDashboard() {
 
   return (
     <div className="org-dashboard-root">
-      <div className="org-dashboard-container">
-        <div className="org-dashboard-header">
-          <h1>{organizationData?.organizationName} Organization Dashboard</h1>
+      <div className="org-workspace">
+        <OrganizationSidebar activeTab={activeTab} onSelect={selectTab} organizationName={organizationData?.organizationName}/>
+        <main className="org-dashboard-container" id="org-main-content">
+          <OrganizationMobileNav activeTab={activeTab} onSelect={selectTab}/>
+          <div className="org-dashboard-header">
+          <span className="org-eyebrow">SEWAK / {organizationData?.organizationName || "ORGANIZATION"}</span>
+          <h1>{activeTab === "overview" ? "Your workspace overview" : activeTab === "caregivers" ? "Your people, in one place" : activeTab === "bookings" ? "Booking management" : activeTab === "services" ? "Your service catalog" : activeTab === "blacklist" ? "Trust & safety" : "Organization settings"}</h1>
           <p
             style={{
               fontSize: 13,
@@ -488,7 +491,7 @@ export default function OrganizationDashboard() {
               marginBottom: 16,
             }}
           >
-            Manage your caregiver team, services, and track performance.
+            {activeTab === "overview" ? "Welcome back. Here is a clear view of your bookings, people and recorded performance." : "Manage your operations with confidence and care."}
           </p>
           {error && <div className="error-message" role="alert">{error}</div>}
           {notice && <div className="success-message" role="status">{notice}</div>}
@@ -504,420 +507,11 @@ export default function OrganizationDashboard() {
           )}
         </div>
 
-        {/* Stats */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
-        <div className="card" style={{ background: "var(--theme-surface)", textAlign: "center" }}>
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--theme-text-muted)",
-              margin: 0,
-            }}
-          >
-            Total Caregivers
-          </p>
-          <p
-            style={{
-              fontSize: 24,
-              color: "var(--theme-help)",
-              fontWeight: "bold",
-              margin: 0,
-            }}
-          >
-            {caregivers.length}
-          </p>
-        </div>
-        <div className="card" style={{ background: "var(--theme-surface)", textAlign: "center" }}>
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--theme-text-muted)",
-              margin: 0,
-            }}
-          >
-            Active Caregivers
-          </p>
-          <p
-            style={{
-              fontSize: 24,
-              color: "var(--theme-positive)",
-              fontWeight: "bold",
-              margin: 0,
-            }}
-          >
-            {caregivers.filter((c) => c.isAvailable && c.isApproved).length}
-          </p>
-        </div>
-        <div className="card" style={{ background: "var(--theme-surface)", textAlign: "center" }}>
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--theme-text-muted)",
-              margin: 0,
-            }}
-          >
-            Total Bookings
-          </p>
-          <p
-            style={{
-              fontSize: 24,
-              color: "var(--theme-positive)",
-              fontWeight: "bold",
-              margin: 0,
-            }}
-          >
-            {bookingHistory.totals.total ?? "—"}
-          </p>
-        </div>
-        <div className="card" style={{ background: "var(--theme-surface)", textAlign: "center" }}>
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--theme-text-muted)",
-              margin: 0,
-            }}
-          >
-            Completed Jobs
-          </p>
-          <p
-            style={{
-              fontSize: 24,
-              color: "var(--theme-help)",
-              fontWeight: "bold",
-              margin: 0,
-            }}
-          >
-            {completedBookings}
-          </p>
-        </div>
-        <div className="card" style={{ background: "var(--theme-surface)", textAlign: "center" }}>
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--theme-text-muted)",
-              margin: 0,
-            }}
-          >
-            Total Revenue
-          </p>
-          <p
-            style={{
-              fontSize: 24,
-              color: "var(--theme-warning)",
-              fontWeight: "bold",
-              margin: 0,
-            }}
-          >
-            {totalRevenue ?? "—"}
-          </p>
-        </div>
-        <div className="card" style={{ background: "var(--theme-surface)", textAlign: "center" }}>
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--theme-text-muted)",
-              margin: 0,
-            }}
-          >
-            Org Earnings
-          </p>
-          <p
-            style={{
-              fontSize: 24,
-              color: "var(--theme-positive)",
-              fontWeight: "bold",
-              margin: 0,
-            }}
-          >
-            {orgEarnings === null ? "—" : Math.round(orgEarnings)}
-          </p>
-          <p
-            style={{
-              fontSize: 10,
-              color: "var(--theme-text-muted)",
-              margin: 0,
-            }}
-          >
-            Recorded booking earnings
-          </p>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div
-        className="choice-buttons"
-        style={{ marginBottom: 24, flexWrap: "wrap" }}
-      >
-        <button
-          type="button"
-          style={getTabStyle("caregivers")}
-          onClick={() => selectTab("caregivers")}
-        >
-          Caregivers ({caregivers.length})
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("bookings")}
-          onClick={() => selectTab("bookings")}
-        >
-          Bookings ({bookingHistory.totals.total ?? "—"})
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("services")}
-          onClick={() => selectTab("services")}
-        >
-          Services ({orgServices.length})
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("blacklist")}
-          onClick={() => selectTab("blacklist")}
-        >
-          Blacklist ({orgBlacklist.length})
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("profile")}
-          onClick={() => selectTab("profile")}
-        >
-          Profile
-        </button>
-      </div>
+        {activeTab === "overview" && <OrganizationOverview organizationData={organizationData} caregivers={caregivers} services={orgServices} bookingHistory={bookingHistory} onSelect={selectTab}/>}
       {activeTab === "caregivers" && (
-        <div>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setShowAddCaregiverModal(true);
-              setError("");
-            }}
-            style={{ marginBottom: 16 }}
-          >
-          Add New Caregiver
-        </button>
-
-          {caregivers.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon" />
-              <p className="empty-state-title">No caregivers yet</p>
-              <p className="empty-state-text">
-                Add caregivers to your organization to start receiving bookings.
-              </p>
-            </div>
-          ) : (
-            caregivers.map((caregiver) => {
-              const isBlacklisted = orgBlacklist.some(
-                (b) => b.caregiverId === caregiver.id,
-              );
-              return (
-                <div
-                  key={caregiver.id}
-                  className="card"
-                  style={{ marginBottom: 12 }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      flexWrap: "wrap",
-                      gap: 12,
-                    }}
-                  >
-                    <div>
-                      <strong
-                        style={{
-                          color: "var(--theme-text)",
-                          fontSize: 16,
-                        }}
-                      >
-                        {caregiver.name || "No name"}
-                      </strong>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: "var(--theme-text-muted)",
-                          marginTop: 4,
-                        }}
-                      >
-                        {caregiver.email || "No email"}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: "var(--theme-text-muted)",
-                        }}
-                      >
-                        {caregiver.location || "No location"}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: "var(--theme-text-muted)",
-                        }}
-                      >
-                        {caregiver.phone || "No phone"}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 6,
-                        flexDirection: "column",
-                        alignItems: "flex-end",
-                      }}
-                    >
-                      <span
-                        style={{
-                          background: caregiver.isApproved
-                            ? "var(--theme-positive-soft)"
-                            : "var(--theme-warning-soft)",
-                          color: caregiver.isApproved ? "var(--theme-positive)" : "var(--theme-warning)",
-                          padding: "4px 8px",
-                          borderRadius: 4,
-                          fontSize: 11,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {caregiver.isApproved
-                          ? "Approved by Admin"
-                          : "Pending Admin Approval"}
-                      </span>
-                      {caregiver.isAvailable ? (
-                        <span
-                          style={{
-                            background: "var(--theme-positive-soft)",
-                            color: "var(--theme-positive)",
-                            padding: "4px 8px",
-                            borderRadius: 4,
-                            fontSize: 11,
-                            fontWeight: 600,
-                          }}
-                        >
-                          Available
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            background: "var(--theme-danger-soft)",
-                            color: "var(--theme-danger)",
-                            padding: "4px 8px",
-                            borderRadius: 4,
-                            fontSize: 11,
-                            fontWeight: 600,
-                          }}
-                        >
-                          Not Available
-                        </span>
-                      )}
-                      {isBlacklisted && (
-                        <span
-                          style={{
-                            background: "var(--theme-danger)",
-                            color: "var(--theme-button-text)",
-                            padding: "4px 8px",
-                            borderRadius: 4,
-                            fontSize: 11,
-                            fontWeight: 600,
-                          }}
-                        >
-                          Blacklisted
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 12,
-                      paddingTop: 12,
-                      borderTop: "1px solid var(--theme-text)",
-                      fontSize: 13,
-                      color: "var(--theme-text)",
-                    }}
-                  >
-                    <p style={{ margin: "0 0 6px 0" }}>
-                      <strong>Category:</strong>{" "}
-                      {caregiver.category === "both"
-                        ? "Both"
-                        : caregiver.category === "caregiver"
-                          ? "Care Giver"
-                          : "Household"}
-                    </p>
-                    <p style={{ margin: "0 0 6px 0" }}>
-                      <strong>Work Type:</strong>{" "}
-                      {caregiver.workType === "fulltime"
-                        ? "Full Time"
-                        : "Part Time"}
-                    </p>
-                    <p style={{ margin: "0 0 6px 0" }}>
-                      <strong>Shifts:</strong>{" "}
-                      {caregiver.shifts?.join(", ") || "NA"}
-                    </p>
-                    <p style={{ margin: "0 0 6px 0" }}>
-                      <strong>Services:</strong>{" "}
-                      {(caregiver.servicesOffered || [])
-                        .map(getServiceLabel)
-                        .join(", ") || "None"}
-                    </p>
-                    <p style={{ margin: "0 0 6px 0" }}>
-                      <strong>Hourly Rate:</strong> {caregiver.hourlyRate}/hour
-                    </p>
-                    <p style={{ margin: "0 0 6px 0" }}>
-                      <strong>Experience:</strong> {caregiver.experience} years
-                    </p>
-                    <p style={{ margin: 0 }}>
-                      <strong>Jobs Completed:</strong>{" "}
-                      {caregiver.jobsCompleted || 0}
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      marginTop: 12,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div
-                      style={{
-                        marginTop: 8,
-                        fontSize: 12,
-                        color: "var(--theme-text-muted)",
-                        flexBasis: "100%",
-                      }}
-                    >
-                      Status:{" "}
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color: caregiver.isApproved ? "var(--theme-positive)" : "var(--theme-warning)",
-                        }}
-                      >
-                        {caregiver.isApproved
-                          ? "Approved by Admin"
-                          : "Pending Admin Approval"}
-                      </span>
-                    </div>
-
-                    <p style={{ color: "var(--theme-text-muted)", flexBasis: "100%", fontSize: 12, lineHeight: 1.45, margin: "4px 0 0" }}>
-                      Safety actions and account removal are handled by Sewak operations so access, care records, and audit history stay consistent.
-                    </p>
-                  </div>
-                </div>
-              );
-            })
-          )}
-
+        <section className="org-section-card" aria-label="Team management">
+          <OrganizationSectionHeader eyebrow="WORKFORCE" title="Team members" description="Manage caregivers and household workers in one organized workspace." action={<button type="button" className="org-primary-action" onClick={() => { setShowAddCaregiverModal(true); setError(""); }}><OrganizationIcon name="plus" size={18}/> Add team member</button>}/>
+          <OrganizationTeamList caregivers={caregivers} orgBlacklist={orgBlacklist} services={services}/>
           {/* Add Caregiver Modal */}
           {showAddCaregiverModal && (
             <AccessibleDialog onDismiss={() => setShowAddCaregiverModal(false)}
@@ -1308,7 +902,7 @@ export default function OrganizationDashboard() {
                         }
                         return (
                           (s.organizationId === user.uid || !s.organizationId) &&
-                          (s.category === caregiverCategory ||
+                          (normalizeServiceCategory(s.category) === caregiverCategory ||
                             s.category === "both")
                         );
                       })
@@ -1428,125 +1022,15 @@ export default function OrganizationDashboard() {
       )}
 
       {/* BOOKINGS TAB */}
-      {activeTab === "bookings" && (
-        <div>
-          <label>Booking status <select value={bookingHistory.filter} onChange={(event) => bookingHistory.setFilter(event.target.value)}><option value="">All statuses</option>{["pending", "accepted", "in_progress", "completed", "cancelled"].map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select></label>
-          <p>{bookingHistory.totals.matching ?? "…"} matching bookings. Showing up to 25 per page.</p>
-          {bookingHistory.stale && <p role="status">Showing cached history. Reconnect for current status.</p>}
-          {bookingHistory.error && <p role="alert">{bookingHistory.error}</p>}
-          <div><button className="btn btn-outline" disabled={!bookingHistory.hasPrevious || bookingHistory.loading} onClick={bookingHistory.previous}>Previous page</button><button className="btn btn-outline" disabled={!bookingHistory.hasNext || bookingHistory.loading} onClick={bookingHistory.next}>Next page</button></div>
-          {bookingHistory.loading ? <p role="status">Loading bookings…</p> : bookingHistory.error ? null : bookings.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon" />
-              <p className="empty-state-title">No bookings yet</p>
-              <p className="empty-state-text">
-                Bookings will appear here when customers book your caregivers.
-              </p>
-            </div>
-          ) : (
-            bookings.map((booking) => (
-              <div
-                key={booking.id}
-                className="card"
-                style={{ marginBottom: 12 }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    flexWrap: "wrap",
-                    gap: 12,
-                  }}
-                >
-                  <div>
-                    <strong
-                      style={{
-                        color: "var(--theme-text)",
-                        fontSize: 16,
-                      }}
-                    >
-                      {booking.caregiverName}
-                    </strong>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "var(--theme-text-muted)",
-                        marginTop: 4,
-                      }}
-                    >
-                      Customer: {booking.userName} ({booking.userPhone})
-                    </div>
-                  </div>
-                  <div>
-                    <span
-                      style={{
-                        background:
-                          booking.status === "completed"
-                            ? "var(--theme-positive-soft)"
-                            : booking.status === "accepted"
-                              ? "var(--theme-help-soft)"
-                              : booking.status === "pending"
-                                ? "var(--theme-warning-soft)"
-                                : "var(--theme-danger-soft)",
-                        color:
-                          booking.status === "completed"
-                            ? "var(--theme-positive)"
-                            : booking.status === "accepted"
-                              ? "var(--theme-help)"
-                              : booking.status === "pending"
-                                ? "var(--theme-warning)"
-                                : "var(--theme-danger)",
-                        padding: "4px 8px",
-                        borderRadius: 4,
-                        fontSize: 11,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {(booking.status || "pending").toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 12,
-                    paddingTop: 12,
-                    borderTop: "1px solid var(--theme-text)",
-                    fontSize: 13,
-                    color: "var(--theme-text)",
-                  }}
-                >
-                  <p style={{ margin: "0 0 6px 0" }}>
-                    <strong>Date:</strong> {booking.date || "NA"}
-                  </p>
-                  <p style={{ margin: "0 0 6px 0" }}>
-                    <strong>Time:</strong> {booking.time || "NA"}
-                  </p>
-                  <p style={{ margin: "0 0 6px 0" }}>
-                    <strong>Amount:</strong> {booking.totalAmount || 0}
-                  </p>
-                  {booking.status === "completed" && (
-                    <p
-                      style={{
-                        margin: 0,
-                        color: "var(--theme-positive)",
-                      }}
-                    >
-                      <strong>Earnings:</strong>{" "}
-                      {Math.round(booking.vendorEarnings || 0)}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+      {activeTab === "bookings" && <section className="org-section-card" aria-label="Booking management">
+        <OrganizationSectionHeader eyebrow="BOOKING HISTORY" title="Bookings" description="Review bookings, statuses and recorded earnings. Search applies to the current page."/>
+        <OrganizationBookingsPanel bookingHistory={bookingHistory}/>
+      </section>}
 
       {/* SERVICES TAB */}
       {activeTab === "services" && (
-        <div>
+        <section className="org-section-card">
+          <OrganizationSectionHeader eyebrow="SERVICE CATALOG" title="Organization services" description="Keep caregiving and household offerings accurate for your team and customers."/>
           <button
             className="btn btn-primary"
             onClick={() => {
@@ -1873,15 +1357,13 @@ export default function OrganizationDashboard() {
               </div>
             </div>
           )}
-        </div>
+        </section>
       )}
 
       {/* BLACKLIST TAB */}
       {activeTab === "blacklist" && (
-        <div>
-          <h3 style={{ color: "var(--theme-text)", marginBottom: 12 }}>
-            Blacklisted Caregivers ({orgBlacklist.length})
-          </h3>
+        <section className="org-section-card">
+          <OrganizationSectionHeader eyebrow="TRUST & SAFETY" title="Safety records" description="Restricted staff records and decisions managed by authorized Sewak operations."/>
           {orgBlacklist.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon" />
@@ -1992,12 +1474,13 @@ export default function OrganizationDashboard() {
               </div>
             ))
           )}
-        </div>
+        </section>
       )}
 
       {/* PROFILE TAB */}
       {activeTab === "profile" && (
-        <div>
+        <section className="org-section-card">
+          <OrganizationSectionHeader eyebrow="ORGANIZATION SETTINGS" title="Organization profile" description="Keep your business details up to date and review account verification."/>
           <div className="card" style={{ background: "var(--theme-surface)" }}>
             <div
               style={{
@@ -2299,10 +1782,11 @@ export default function OrganizationDashboard() {
               </div>
             </AccessibleDialog>
           )}
-        </div>
+        </section>
       )}
 
+        </main>
+      </div>
     </div>
-  </div>
   );
 }
