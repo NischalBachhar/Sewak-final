@@ -85,9 +85,13 @@ for (const width of [320, 390, 768, 1024, 1440]) {
             await expect(filters.getByRole('button', { name: /^Pending/ })).toHaveAttribute('aria-pressed', 'true');
           }
           if (role === 'caregiver' && label === 'jobs') {
+            await expect(page.locator('.sewak-jobs-heading [role="status"]')).toHaveText(/^\d+ requests? shown$/);
             const filters = page.getByRole('navigation', { name: 'Job status filters' });
             await filters.getByRole('button', { name: /^All\b/ }).click();
             await expect(filters.getByRole('button', { name: /^All\b/ })).toHaveAttribute('aria-pressed', 'true');
+          }
+          if (role === 'admin' && label === 'bookings') {
+            await expect(page.locator('.sewak-admin-booking__head').first()).toBeVisible();
           }
           if (role === 'caregiver' && label === 'schedule') {
             const next = page.getByRole('button', { name: 'Next week' });
