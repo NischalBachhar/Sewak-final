@@ -541,29 +541,31 @@ export default function CaregiverDashboardPage() {
       {/* JOBS TAB */}
       {activeTab === "jobs" && (
         <div>
-          <section className="card" aria-label="Report history">
-            <h3>Report history</h3>
-            {reportsError ? <p role="alert">{reportsError}</p> : myReports.length ? <ul>{myReports.map((report) => <li key={report.id}>{report.reason} — {report.status}. Booking {report.bookingId?.slice(0, 12)}</li>)}</ul> : <p>No reports submitted.</p>}
-          </section>
-          {/* Filter */}
-          <div className="row" style={{ marginBottom: 12 }}>
-            <div className="col">
-              <label htmlFor="caregiver-status-filter">Filter by status</label>
-              <select
-                id="caregiver-status-filter"
-                className="dropdown-select"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option>All jobs</option>
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s[0].toUpperCase() + s.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="sewak-jobs-heading">
+            <div><p className="sewak-workspace__eyebrow">CARE REQUESTS</p><h2>Manage your jobs</h2></div>
+            <p role="status">{filtered.length} ${filtered.length === 1 ? "request" : "requests"} shown</p>
           </div>
+          <nav className="sewak-job-filter" aria-label="Job status filters">
+            {[
+              { value: "All jobs", label: "All" },
+              { value: "pending", label: "Pending" },
+              { value: "accepted", label: "Accepted" },
+              { value: "in_progress", label: "In progress" },
+              { value: "completed", label: "Completed" },
+              { value: "cancelled", label: "Cancelled" },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                className={"sewak-job-filter__tab" + (statusFilter === value ? " is-active" : "")}
+                aria-pressed={statusFilter === value}
+                onClick={() => setStatusFilter(value)}
+              >
+                {label}
+                <span>{value === "All jobs" ? bookings.length : bookings.filter((booking) => booking.status === value).length}</span>
+              </button>
+            ))}
+          </nav>
 
           {/* Bookings list */}
           {filtered.length === 0 ? (
@@ -910,6 +912,14 @@ export default function CaregiverDashboardPage() {
               </div>
             ))
           )}
+          <details className="sewak-report-history">
+            <summary>Report history <span>{myReports.length}</span></summary>
+            {reportsError ? <p role="alert">{reportsError}</p> : myReports.length ? (
+              <ul>{myReports.map((report) => (
+                <li key={report.id}>{report.reason} — {report.status}. Booking {report.bookingId?.slice(0, 12)}</li>
+              ))}</ul>
+            ) : <p>No reports submitted.</p>}
+          </details>
         </div>
       )}
 
