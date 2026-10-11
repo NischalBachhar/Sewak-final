@@ -1,5 +1,6 @@
 import { saveService, retireService } from "./servicePublishing";
 import AccessibleDialog from "./components/AccessibleDialog";
+import WorkspaceShell from "./components/WorkspaceShell";
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -1162,36 +1163,23 @@ export default function AdminDashboardPage() {
     },
   ].filter(Boolean);
 
-  const getTabLabel = (tab) => {
-    const count =
-      tab === "organizations"
-        ? pendingOrgCount + pendingOrganizationApplicationCount
-        : tab === "caregivers"
-        ? pendingCaregiverCount
-        : tab === "blacklist"
-        ? pendingBlacklistCount
-        : 0;
-    const label = tab.charAt(0).toUpperCase() + tab.slice(1);
-    return count > 0 ? `${label} (${count})` : label;
-  };
-
   return (
-    <div
-      className="dashboard-admin-content"
-      style={{
-        padding: "20px",
-        backgroundColor: "var(--theme-surface)",
-        minHeight: "100vh",
-      }}
+    <WorkspaceShell
+      role="admin"
+      title={activeTab === "overview" ? "Platform overview" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+      subtitle="Review platform activity, manage care partners and keep operations accountable."
+      activeTab={activeTab}
+      onSelect={(tab) => navigate("/superadmin/" + tab)}
+      items={dashboardTabs.map((id) => ({
+        id,
+        count: id === "organizations" ? pendingOrgCount + pendingOrganizationApplicationCount
+          : id === "caregivers" ? pendingCaregiverCount
+          : id === "blacklist" ? pendingBlacklistCount : undefined,
+      }))}
+      alertCount={attentionQueues.length}
     >
-      {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={savedCaregiver} />}
-      {/* Header */}
-      <div style={{ marginBottom: "30px" }}>
-        <h1>Admin Dashboard</h1>
-        <p>
-          Logged in as: <strong>{currentUser?.email}</strong> ({userRole})
-        </p>
-      </div>
+      <div className="dashboard-admin-content">
+        {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={savedCaregiver} />}
 
       {/* Error Messages */}
       {error && (
@@ -1262,21 +1250,6 @@ export default function AdminDashboardPage() {
           </div>
         </section>
       )}
-
-      {/* Tabs */}
-      <nav className="dashboard-tabs" aria-label="Admin dashboard sections">
-        {dashboardTabs.map((tab) => (
-          <button
-            type="button"
-            key={tab}
-            className={`dashboard-tab${activeTab === tab ? " is-active" : ""}`}
-            aria-current={activeTab === tab ? "page" : undefined}
-            onClick={() => navigate(`/superadmin/${tab}`)}
-          >
-            {getTabLabel(tab)}
-          </button>
-        ))}
-      </nav>
 
       {/* ===== TAB: OPERATIONS OVERVIEW ===== */}
       {activeTab === "overview" && (
@@ -3652,6 +3625,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </WorkspaceShell>
   );
 }
