@@ -34,8 +34,9 @@ export function environment() {
   DB.database.exec(readFileSync(new URL('../../migrations/main/0002_auth_state.sql',import.meta.url),'utf8'));
   DB.database.exec(readFileSync(new URL('../../migrations/main/0003_cloudflare_auth.sql',import.meta.url),'utf8'));
   DB.database.exec(readFileSync(new URL('../../migrations/main/0004_catalog_onboarding.sql',import.meta.url),'utf8'));
+  DB.database.exec(readFileSync(new URL('../../migrations/main/0005_auth_notifications.sql',import.meta.url),'utf8'));
   MEDIA_DB.database.exec(readFileSync(new URL('../../migrations/media/0001_profile_images.sql',import.meta.url),'utf8'));
-  return {DB,MEDIA_DB,AUTH_AUDIENCE:'sewak-test',PASSWORD_HASHER:{idFromName:x=>x,get:()=>({fetch:(url,init)=>new PasswordHasher().fetch(new Request(url,init))})},APP_WRITES_ENABLED:'true'};
+  return {DB,MEDIA_DB,AUTH_AUDIENCE:'sewak-test',EMAIL_PROVIDER:'resend',RESEND_API_KEY:'synthetic-key-never-send',EMAIL_FROM:'test@sewak.test',APP_BASE_URL:'https://sewak.test',OUTBOX_ENCRYPTION_KEY:'A'.repeat(43),PASSWORD_HASHER:{idFromName:x=>x,get:()=>({fetch:(url,init)=>new PasswordHasher().fetch(new Request(url,init))})},APP_WRITES_ENABLED:'true'};
 }
 export async function seed(env) {
   const records = {

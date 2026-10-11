@@ -1,0 +1,2 @@
+import React, { useEffect, useState } from 'react';
+export default function ExternalForms(){const [forms,setForms]=useState({});useEffect(()=>{let active=true;fetch('/api/config').then(r=>r.json()).then(c=>{if(active)setForms(c.forms||{});}).catch(()=>{});return()=>{active=false;};},[]);return <>{Object.entries(forms).filter(([,url])=>url).map(([key,url])=><a key={key} className="dropdown-item" href={url} target="_blank" rel="noopener noreferrer">{key==='feedback'?'General feedback':'Partnership inquiry'} (Google Form)</a>)}</>;}

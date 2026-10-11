@@ -1,3 +1,4 @@
+import './accountLink';
 import React, { Suspense } from 'react';
 import RouteMetadata from './components/RouteMetadata';
 import RouteBoundary from './components/RouteBoundary';

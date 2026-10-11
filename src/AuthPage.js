@@ -1,7 +1,8 @@
+import GoogleSignIn from './components/GoogleSignIn';
 import SignupRegistrationForm from './components/SignupRegistrationForm';
 import React, { useEffect, useRef, useState } from "react";
 import { auth, signIn, register } from "./authClient";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { completeRegistration } from "./registrationService";
 import LoginExperience, { LoginIcon } from "./components/LoginExperience";
@@ -36,7 +37,7 @@ const getAuthErrorMessage = (errorCode, mode) => {
   }
 
   if (errorCode === "auth/weak-password") {
-    return "Password must be at least 12 characters long.";
+    return "Password must be at least 8 characters long.";
   }
 
   if (errorCode === "rate-limited") {
@@ -56,7 +57,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState(auth.currentUser?.email || "");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(sessionStorage.getItem("sewak.registrationRole") || "user");
+  const [selectedRole, setSelectedRole] = useState(auth.currentUser?.profile?.registrationRole || sessionStorage.getItem("sewak.registrationRole") || "user");
   const [organization, setOrganization] = useState({});
   const [organizationName, setOrganizationName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -93,6 +94,7 @@ export default function AuthPage() {
             account = await signIn(email.trim(), password);
           }
         }
+        if (account?.emailVerified === false) { setPassword(""); return; }
         await completeRegistration(account, { fullName, selectedRole, organizationName, ...organization });
         await finishRegistration();
         setSuccess(selectedRole === "orgadmin" ? "Application submitted for review. Organization access requires approval." : "Registration complete.");
@@ -107,7 +109,7 @@ export default function AuthPage() {
     }
   };
 
-  const forgotPassword = () => { setError(''); setSuccess('Contact your Sewak administrator for account recovery. Automated reset email is not configured.'); };
+
 
   return (
     <div className={`auth-shell ${mode === "login" ? "auth-shell--login" : "auth-shell--signup"}`}>
@@ -148,7 +150,8 @@ export default function AuthPage() {
           <button type="submit" className="btn btn-primary auth-submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}<span className={loading ? 'login-spinner' : 'login-submit-arrow'} aria-hidden="true">{!loading && <LoginIcon name="arrow" />}</span></button>
         </form>}
 
-        {mode === "login" && <button type="button" className="link-button login-recovery" disabled={loading} onClick={forgotPassword}>Forgot password?</button>}
+        {mode === "login" && <Link className="link-button login-recovery" to="/account/forgot">Forgot password?</Link>}
+        <GoogleSignIn role={selectedRole} />
         <div className="auth-toggle">
           {mode === "login" ? (
             <p>

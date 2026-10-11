@@ -33,7 +33,7 @@ export class Repository {
     const transactionId = crypto.randomUUID();
     // Recheck session revocation in the same transaction as application writes.
     if (this.sessionIdentity?.sessionId) {
-      statements.push(this.env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,EXISTS(SELECT 1 FROM cf_sessions s JOIN cf_credentials c ON c.user_id=s.user_id WHERE s.id=? AND s.user_id=? AND s.credential_version=c.credential_version AND c.disabled=0 AND s.expires_at>? AND s.last_seen_at>?))').bind(`${transactionId}/session`,this.sessionIdentity.sessionId,this.sessionIdentity.uid,Math.floor(Date.now()/1000),Math.floor(Date.now()/1000)-86400));
+      statements.push(this.env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,EXISTS(SELECT 1 FROM cf_sessions s JOIN cf_credentials c ON c.user_id=s.user_id WHERE s.id=? AND s.user_id=? AND s.credential_version=c.credential_version AND c.disabled=0 AND (c.email_verified_at IS NOT NULL OR EXISTS(SELECT 1 FROM users WHERE id=s.user_id AND role=\'superadmin\')) AND s.expires_at>? AND s.last_seen_at>?))').bind(`${transactionId}/session`,this.sessionIdentity.sessionId,this.sessionIdentity.uid,Math.floor(Date.now()/1000),Math.floor(Date.now()/1000)-86400));
     }
     // Service validation reads a batch of catalog rows in one query. Recheck
     // their versions together, retaining atomic conflict protection without

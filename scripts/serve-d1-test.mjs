@@ -1,3 +1,4 @@
+import {unseal} from '../worker/src/secret-box.ts';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -16,11 +17,19 @@ http.createServer(async(req,res)=>{
    if(req.headers['x-sewak-e2e-token']!==process.env.SEWAK_E2E_TOKEN){res.writeHead(403).end();return;}
    await env.DB.prepare('DELETE FROM cf_auth_limits').run();res.writeHead(200).end();return;
   }
+  if(url.pathname==='/__test__/mail'){
+   if(req.headers['x-sewak-e2e-token']!==process.env.SEWAK_E2E_TOKEN){res.writeHead(403).end();return;}
+   const {email,purpose='verify'}=JSON.parse(body);
+   const row=await env.DB.prepare("SELECT o.* FROM notification_outbox o JOIN cf_email_tokens t ON o.id='auth:'||t.id WHERE t.email=? AND t.purpose=? ORDER BY t.rowid DESC LIMIT 1").bind(email,purpose).first();
+   if(!row){res.writeHead(404).end();return;}
+   const mail=await unseal(env,row.encrypted_payload,row.id);res.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify({text:mail.text}));return;
+  }
   if(url.pathname==='/__test__/auth'){
    if(req.headers['x-sewak-e2e-token']!==process.env.SEWAK_E2E_TOKEN){res.writeHead(403).end();return;}
    const {uid,email,password}=JSON.parse(body);if(!/^e2e-[a-z0-9-]+$/.test(uid)||!email.endsWith('@example.test'))throw new Error('Synthetic test accounts only');
    const existing=await env.DB.prepare('SELECT user_id FROM cf_credentials WHERE user_id=?').bind(uid).first();
    if(!existing){const q=insertSQL('users',encodeRecord('users',uid,{uid,email,name:'Test account',role:'user',isSuspended:false}),'upsert');await env.DB.prepare(q.sql).bind(...q.params).run();await env.DB.prepare('INSERT INTO cf_credentials(user_id,email,password_hash,created_at) VALUES(?,?,?,?)').bind(uid,email,hashPassword(password),Math.floor(Date.now()/1000)).run();}
+   await env.DB.prepare('UPDATE cf_credentials SET email_verified_at=unixepoch() WHERE user_id=?').bind(uid).run();
    res.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify({ok:true}));return;
   }
   if(url.pathname==='/__test__/db'){

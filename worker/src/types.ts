@@ -6,10 +6,28 @@ export interface Env {
   PASSWORD_HASHER?: DurableObjectNamespace;
   ALLOWED_ORIGINS?: string;
   APP_WRITES_ENABLED?: string;
+  EMAIL_PROVIDER?: string;
+  RESEND_API_KEY?: string;
+  RESEND_WEBHOOK_SECRET?: string;
+  EMAIL_FROM?: string;
+  APP_BASE_URL?: string;
+  OUTBOX_ENCRYPTION_KEY?: string;
+  EMAIL_DAILY_CAP?: string;
+  EMAIL_MONTHLY_CAP?: string;
+  ORGANIZATION_EMAIL_DOMAINS?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
+  NOTIFICATION_PROCESSING_ENABLED?: string;
+  PENDING_ESCALATION_HOURS?: string;
+  GOOGLE_FEEDBACK_FORM_URL?: string;
+  GOOGLE_PARTNERSHIP_FORM_URL?: string;
 }
 export type Data = Record<string, any>;
 // uid is the compatibility name of the application ID, never a Firebase UID.
-export interface Identity { uid: string; email: string; authTime: number; sessionId?: string; transport?: 'cookie'|'bearer'; csrfToken?: string }
+export interface Identity { uid: string; email: string; authTime: number; sessionId?: string; transport?: 'cookie'|'bearer'; csrfToken?: string; emailVerified?: boolean }
 export interface Actor extends Identity { role: string; profile: Data | null }
 export class ApiError extends Error {
   status: number;

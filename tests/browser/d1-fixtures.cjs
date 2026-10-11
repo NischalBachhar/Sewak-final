@@ -5,3 +5,5 @@ const doc=path=>({path,async get(){return snap(await call({path,op:'get'}));},se
 const collection=(path,count)=>({async get(){const docs=(await call({path,op:'get',limit:count})).map(snap);return {docs,size:docs.length};},limit:n=>collection(path,n)});
 const db={doc,collection,batch(){const writes=[];return {set(ref,data){writes.push([ref,data]);},async commit(){for(const [ref,data]of writes)await ref.set(data);}};}};
 module.exports={db};
+
+module.exports.mail = async (email,purpose='verify') => {const response=await fetch('http://127.0.0.1:4173/__test__/mail',{method:'POST',headers:{'Content-Type':'application/json','X-Sewak-E2e-Token':process.env.SEWAK_E2E_TOKEN},body:JSON.stringify({email,purpose})});if(!response.ok)throw new Error('No local test mail');return response.json();};

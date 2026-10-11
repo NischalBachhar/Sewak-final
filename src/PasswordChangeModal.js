@@ -8,6 +8,7 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [visible,setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -58,7 +59,7 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
           <label>
             Current Password
             <input
-              type="password" required maxLength={128}
+              type={visible ? "text" : "password"} required maxLength={128}
               autoComplete="current-password" value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter current password"
@@ -68,8 +69,8 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
           <label>
             New Password
             <input
-              type="password"
-              minLength={12} autoComplete="new-password" value={newPassword}
+              type={visible ? "text" : "password"}
+              minLength={8} maxLength={128} required autoComplete="new-password" value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"
             />
@@ -78,13 +79,14 @@ const PasswordChangeModal = ({ isOpen, onClose, onPasswordChange }) => {
           <label>
             Confirm New Password
             <input
-              type="password"
+              type={visible ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Re-enter new password"
             />
           </label>
 
+          <p>Use 8?128 characters. Administrator accounts require at least 12.</p><button type="button" aria-pressed={visible} onClick={()=>setVisible(!visible)}>{visible ? "Hide passwords" : "Show passwords"}</button>
           <div className="password-modal-actions">
             <button type="button" onClick={onClose} className="secondary-btn">
               Cancel

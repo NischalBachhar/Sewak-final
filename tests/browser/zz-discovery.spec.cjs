@@ -1,5 +1,6 @@
 const {test,expect}=require('./test.cjs');
 const {seed,db}=require('./seed.cjs');
+const {mail}=require('./d1-fixtures.cjs');
 
 test.beforeAll(async()=>{
   await seed();
@@ -84,11 +85,14 @@ test('organization owner edits caregiver services and custom city, with save, re
 
 test('pending organization completes onboarding and retains role after logout, login and refresh',async({page})=>{
   await page.goto('/auth?mode=register');
-  const email=`onboard-${Date.now()}@example.test`;
+  const email=`onboard.${Date.now()}@gmail.com`;
   await page.getByLabel('Full name').fill('Onboarding Owner');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill('Local-test-only-123!');
+  await page.getByLabel('Confirm password',{exact:true}).fill('Local-test-only-123!');
   await page.getByRole('radio',{name:/Organization\/Company/}).check();await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByLabel('Organization/Company Name').fill('Onboarding Organization');
   await page.getByRole('combobox',{name:'Organization Type *',exact:true}).selectOption('Other');await page.getByLabel('Specify organization type *').fill('Community Support');await page.getByLabel('Phone Number *').fill('9800000000');await page.getByRole('combobox',{name:'City *',exact:true}).selectOption('Other');
   await page.getByLabel('Enter your city *').fill('Tansen Town');await page.getByLabel('Address *',{exact:true}).fill('Synthetic street 12');await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByLabel('Elderly Care',{exact:true}).check();await page.getByRole('button',{name:'Submit application',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Verify your Gmail'})).toBeVisible();
+  const verification=await mail(email);await page.goto(verification.text.match(/https:\/\/\S+/)[0].replace('https://sewak.test','http://127.0.0.1:4173'));await page.getByRole('button',{name:'Verify email',exact:true}).click();await expect(page.getByText(/Your email is verified/)).toBeVisible();await page.getByRole('link',{name:'Return to sign in'}).click();
   await expect(page).toHaveURL(/\/organization\/profile/);await expect(page.getByText('Pending Verification',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Save Profile',exact:true}).click();await expect(page.getByRole('heading',{name:'Approval Pending'})).toBeVisible();
   await page.getByRole('button',{name:/Account menu for/}).click();await page.getByRole('button',{name:/Logout/}).click();

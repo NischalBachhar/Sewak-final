@@ -1,3 +1,7 @@
+import { emailWebhook } from './email-webhook.ts';
+import { emailConfigured, processOutbox, pushConfigured } from './delivery.ts';
+import { googleConfigured, googleRoute } from './google-auth.ts';
+import { notificationRoute, scheduleNotifications } from './notifications.ts';
 import { authenticateSession, authRoute, enforceCsrf } from './cloudflare-auth.ts';
 export { PasswordHasher } from './passwords.ts';
 import { runAction } from './actions.ts';
@@ -16,11 +20,15 @@ async function jsonBody(request: Request): Promise<Data> {
 }
 export function createWorker(authenticate: (request: Request, env: Env) => Promise<Identity | null> = authenticateSession) {
   return {
+    async scheduled(_controller: ScheduledController, env: Env, context: ExecutionContext) {
+      context.waitUntil((async()=>{await scheduleNotifications(env);await processOutbox(env);})());
+    },
     async fetch(request: Request, env: Env): Promise<Response> {
       const url = new URL(request.url);
-      const authPath = /^\/(?:api\/)?auth\/(me|login|register|logout|bootstrap|activate|sessions|revoke-sessions|change-password|complete-registration)$/.test(url.pathname);
+      const googlePath = /^\/api\/auth\/google\/(start|callback)$/.test(url.pathname);
+      const authPath = /^\/(?:api\/)?auth\/(me|login|register|logout|bootstrap|activate|sessions|revoke-sessions|change-password|complete-registration|verification-status|resend-verification|change-email|forgot-password|reset-password|verify-email)$/.test(url.pathname);
       if (!url.pathname.startsWith('/api/') && !authPath) return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Not found', { status: 404 });
-      const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Vary': 'Origin' });
+      const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Vary': 'Origin', 'Referrer-Policy':'no-referrer' });
       try {
         const origin = request.headers.get('Origin');
         if (origin && origin !== url.origin) {
@@ -38,11 +46,19 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
           return Response.json({ healthy: true, writesEnabled: env.APP_WRITES_ENABLED === 'true', auth: 'cloudflare-d1' },{headers});
         }
         if (url.pathname.startsWith('/api/migration/')) throw new ApiError(404,'not-found','Endpoint not found.');
-        const publicAuth = authPath && /\/(login|register|bootstrap|activate)$/.test(url.pathname);
+        if(url.pathname==='/api/config'&&request.method==='GET') {
+          const form=(value:string|undefined)=>{try{const u=new URL(value||'');return u.protocol==='https:'&&!u.username&&!u.password&&!u.search&&((u.hostname==='docs.google.com'&&u.pathname.startsWith('/forms/'))||(u.hostname==='forms.gle'&&/^\/[\w-]+$/.test(u.pathname)))?u.href:null;}catch{return null;}};
+          return Response.json({email:emailConfigured(env),google:googleConfigured(env),push:pushConfigured(env),forms:{feedback:form(env.GOOGLE_FEEDBACK_FORM_URL),partnership:form(env.GOOGLE_PARTNERSHIP_FORM_URL)}},{headers});
+        }
+        if(url.pathname==='/api/email/webhook')return Response.json(await emailWebhook(request,env),{headers});
+        if(googlePath)return await googleRoute(request,env,headers,request.method==='POST'?await jsonBody(request):{});
+        const publicAuth = authPath && /\/(login|register|bootstrap|activate|forgot-password|reset-password|verify-email)$/.test(url.pathname);
         const identity = publicAuth ? null : await authenticate(request,env);
         enforceCsrf(request,identity);
         if (authPath) return Response.json(await authRoute(request,env,headers,request.method==='POST'?await jsonBody(request):{},identity),{headers});
         const repo = new Repository(env), actor = await repo.actor(identity);
+        if(identity?.emailVerified===false&&actor?.role!=='superadmin')requireThat(false,'Verify your email before using protected Sewak services.',403,'email-verification-required');
+        if(url.pathname.startsWith('/api/notifications'))return Response.json(await notificationRoute(request,env,actor,request.method==='POST'?await jsonBody(request):{}),{headers});
         let result: unknown;
         if (request.method === 'GET' && url.pathname.startsWith('/api/media/')) {
           const response = await serveProfileImage(request,env,repo,actor,decodeURIComponent(url.pathname.slice(11)));

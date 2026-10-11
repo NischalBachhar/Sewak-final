@@ -10,6 +10,7 @@ export default function SignupRegistrationForm({ values, onChange, onSubmit, loa
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState({});
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmation,setConfirmation] = useState('');
   const form = useRef(null), heading = useRef(null), previousStep = useRef(1);
   const org = values.selectedRole === 'orgadmin';
   useLayoutEffect(() => {
@@ -26,8 +27,10 @@ export default function SignupRegistrationForm({ values, onChange, onSubmit, loa
       if (!input.validity.valid) next[input.name] = input.validity.valueMissing ? 'Please complete this field.' : input.validity.typeMismatch ? 'Enter a valid email address.' : input.validationMessage;
     }
     if (step === 1) {
+      if (passwordRequired && confirmation !== values.password) next.confirmation = 'The passwords do not match.';
+      if (passwordRequired && !/^[^\s@]+@gmail\.com$/i.test(values.email)) next.email = 'Use your Gmail address.';
       if (values.fullName.trim().length < 2) next.fullName = 'Enter your full name.';
-      if ((passwordRequired || values.password) && (values.password.length < 12 || values.password.length > 128)) next.password = 'Use a password containing 12–128 characters.';
+      if ((passwordRequired || values.password) && (values.password.length < 8 || values.password.length > 128)) next.password = 'Use a password containing 8 to 128 characters.';
     }
     if (step === 2) {
       const details = values.organization;
@@ -61,7 +64,7 @@ export default function SignupRegistrationForm({ values, onChange, onSubmit, loa
         aria-describedby={[key === 'password' && 'signup-password-help', errors[key] && `signup-${key}-error`].filter(Boolean).join(' ') || undefined} />
       {key === 'password' && <button type="button" className="signup-password-toggle" aria-label={passwordVisible ? 'Hide password' : 'Show password'} aria-controls="signup-password" aria-pressed={passwordVisible} onClick={() => setPasswordVisible(!passwordVisible)}><SignupIcon name={passwordVisible ? 'eye-off' : 'eye'} /></button>}
     </div>
-    {key === 'password' && <p id="signup-password-help" className="signup-field-help">At least 12 characters.</p>}
+    {key === 'password' && <p id="signup-password-help" className="signup-field-help">At least 8 characters.</p>}
     {errors[key] && <span id={`signup-${key}-error`} className="signup-field-error">{errors[key]}</span>}
   </div>;
   return <form ref={form} className="form signup-registration-form" noValidate onSubmit={submit} aria-describedby={error ? 'auth-error' : undefined}
@@ -76,7 +79,8 @@ export default function SignupRegistrationForm({ values, onChange, onSubmit, loa
     <fieldset className="signup-step-fields" hidden={step !== 1} disabled={loading || step !== 1} aria-label="Account information">
       {input('fullName', 'Full name', 'user', { autoComplete: 'name', maxLength: 120, placeholder: 'Your full name' })}
       {input('email', 'Email', 'mail', { type: 'email', autoComplete: 'email', maxLength: 254, placeholder: 'your@email.com' })}
-      {input('password', 'Password', 'lock', { type: passwordVisible ? 'text' : 'password', autoComplete: 'new-password', minLength: 12, maxLength: 128, required: passwordRequired, placeholder: 'At least 12 characters' })}
+      {input('password', 'Password', 'lock', { type: passwordVisible ? 'text' : 'password', autoComplete: 'new-password', minLength: 8, maxLength: 128, required: passwordRequired, placeholder: 'At least 8 characters' })}
+      {passwordRequired && <label>Confirm password<input name="confirmation" type={passwordVisible?'text':'password'} autoComplete="new-password" required maxLength={128} value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={!!errors.confirmation}/>{errors.confirmation&&<span role="alert">{errors.confirmation}</span>}</label>}
       <div className="signup-roles">
         <p id="registration-role-label">I want to register as</p>
         <div className="role-selection" role="group" aria-labelledby="registration-role-label">

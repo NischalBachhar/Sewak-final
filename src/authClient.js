@@ -11,7 +11,7 @@ function publish(result) {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('sewak:data-changed'));
   return auth.currentUser;
 }
-async function request(path, body) {
+export async function authRequest(path, body) {
   const response = await fetch('/api/auth/' + path, {
     method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin', cache: 'no-store',
     headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(auth.csrfToken ? { 'X-CSRF-Token': auth.csrfToken } : {}) },
@@ -24,6 +24,7 @@ async function request(path, body) {
   }
   return result;
 }
+const request = authRequest;
 export async function refreshSession() { const before = generation; const result = await request('me'); return before === generation ? publish(result) : auth.currentUser; }
 export function onSessionChanged(listener) {
   listeners.add(listener);
@@ -34,7 +35,7 @@ export function onSessionChanged(listener) {
 async function startSession(path, body) { const version = ++generation; const result = await request(path, body); return version === generation ? publish(result) : auth.currentUser; }
 export async function signIn(email, password) { return startSession('login', { email, password }); }
 export async function register(input) { return startSession('register', input); }
-export async function signOut() { ++generation; try { await request('logout', {}); } catch (error) { if (error.code !== 'unauthenticated') throw error; } publish(null); initial = null; }
+export async function signOut() { const uid=auth.currentUser?.uid,id=uid&&localStorage.getItem('sewak.pushDevice.'+uid);if(id){try{await fetch('/api/notifications/unsubscribe',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':auth.csrfToken||''},body:JSON.stringify({id})});const r=await navigator.serviceWorker?.getRegistration('/');await (await r?.pushManager.getSubscription())?.unsubscribe();localStorage.removeItem('sewak.pushDevice.'+uid);}catch{ /* Server credential changes also invalidate subscriptions. */ }} ++generation; try { await request('logout', {}); } catch (error) { if (error.code !== 'unauthenticated') throw error; } publish(null); initial = null; }
 export async function changePassword(currentPassword, newPassword) { ++generation; await request('change-password', { currentPassword, newPassword }); publish(null); initial = null; }
 export async function activateAccount(token, password) { return startSession('activate', { token, password }); }
 export async function bootstrapAccount({ email, password, name, bootstrapToken }) { return startSession('bootstrap', { email, password, name, bootstrapToken }); }

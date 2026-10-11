@@ -12,7 +12,7 @@ async function auth(env, path, body, token) {
   const response = await worker.fetch(new Request('http://localhost/api/auth/'+path, { method:body?'POST':'GET', headers:{ ...(body?{'Content-Type':'application/json'}:{}), ...(token?{Authorization:'Bearer '+token}:{}) }, ...(body?{body:JSON.stringify(body)}:{}) }),env);
   return { status:response.status, data:await response.json() };
 }
-const signup = (env, role='user', extra={}) => auth(env,'register',{email:role+'@example.test',password,name:'Synthetic Owner',sessionMode:'bearer',selectedRole:role,...extra});
+const signup = (env, role='user', extra={}) => auth(env,'register',{email:role+'@gmail.com',password,name:'Synthetic Owner',sessionMode:'bearer',selectedRole:role,...extra});
 const commit = (env, uid, path, data) => call(env,'/api/commit',{uid,method:'POST',json:{writes:[{path,kind:'update',data}]}});
 const search = (env, criteria={}, extra={}) => call(env,'/api/query',{method:'POST',json:{path:'publicCaregivers',search:criteria,...extra}});
 
@@ -26,7 +26,7 @@ test('organization registration is atomic, persists pending owner role across se
   assert.equal(env.DB.database.prepare('SELECT COUNT(*) n FROM organization_services WHERE organization_id=?').get(user.uid).n,1);
   assert.equal((await auth(env,'me',null,token)).data.user.role,'orgadmin');
   await auth(env,'logout',{},token);
-  const login=await auth(env,'login',{email:'orgadmin@example.test',password,sessionMode:'bearer'});
+  const login=await auth(env,'login',{email:'orgadmin@gmail.com',password,sessionMode:'bearer'});
   assert.equal(login.data.user.role,'orgadmin');
   assert.equal((await call(env,'/api/records/organizations/org',{uid:user.uid})).status,403);
   assert.equal((await commit(env,user.uid,'organizations/'+user.uid,{isApproved:true})).status,403);
@@ -103,7 +103,7 @@ test('every discovery criterion combines in SQL with accurate count and stable p
 
 test('legacy applications repair only through audited admin approval; tenant and history boundaries remain',async()=>{
   const env=environment(); await seed(env);
-  await put(env,'organizationApplications/other',{applicantId:'other',applicantName:'Legacy Applicant',applicantEmail:'other@example.test',organizationName:'Legacy Org',status:'pending'});
+  await put(env,'organizationApplications/other',{applicantId:'other',applicantName:'Legacy Applicant',applicantEmail:'other@gmail.com',organizationName:'Legacy Org',status:'pending'});
   assert.equal((await call(env,'/api/actions/approveOrganizationApplication',{uid:'customer',method:'POST',json:{applicationId:'other'}})).status,403);
   assert.equal((await call(env,'/api/actions/approveOrganizationApplication',{uid:'admin',method:'POST',json:{applicationId:'other'}})).status,200);
   assert.equal((await new Repository(env).data('users/other')).role,'orgadmin');
