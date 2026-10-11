@@ -23,6 +23,7 @@ import { normalizeBooking } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
+import { getOrganizationStatus, organizationStatusLabels } from "./organizationModeration";
 
 const dashboardTabs = [
   "overview",
@@ -149,6 +150,9 @@ export default function AdminDashboardPage() {
   const [loadingOrganizations, setLoadingOrganizations] = useState(true);
   const [orgStatusFilter, setOrgStatusFilter] = useState("all");
   const [searchOrg, setSearchOrg] = useState("");
+  const [deleteOrgTarget, setDeleteOrgTarget] = useState(null);
+  const [deleteOrgConfirmation, setDeleteOrgConfirmation] = useState("");
+  const [deletingOrg, setDeletingOrg] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [organizationApplications, setOrganizationApplications] = useState([]);
 
@@ -266,8 +270,8 @@ export default function AdminDashboardPage() {
         .reduce((sum, b) => sum + (b.platformCommission || 0), 0);
 
       setAnalytics({
-        totalOrganizations: organizationsData.length,
-        approvedOrganizations: organizationsData.filter((o) => o.isApproved).length,
+        totalOrganizations: organizationsData.filter((o) => getOrganizationStatus(o) !== 'deleted').length,
+        approvedOrganizations: organizationsData.filter((o) => getOrganizationStatus(o) === 'approved').length,
         totalCaregivers: vendorsData.length,
         approvedCaregivers: vendorsData.filter((v) => v.isApproved).length,
         totalBookings: bookingsData.length,
@@ -656,6 +660,7 @@ export default function AdminDashboardPage() {
       const outcome = await runAccountSafetyAction({
         targetType: "organization",
         targetId: orgBlacklistOrg.id,
+        disposition: "blacklisted",
         reason:
           orgBlacklistReason.trim() ||
           "Organization suspended and blacklisted by Sewak operations.",
@@ -683,8 +688,8 @@ export default function AdminDashboardPage() {
 
   const handleApproveOrganization = async (orgId) => {
     const organization = organizations.find((item) => item.id === orgId);
-    if (organization?.isSuspended || organization?.isBlacklisted) {
-      setError("A suspended or blacklisted organization cannot be approved.");
+    if (!organization || getOrganizationStatus(organization) !== "pending") {
+      setError("Only pending organizations can be approved.");
       return;
     }
 
@@ -723,6 +728,7 @@ export default function AdminDashboardPage() {
         targetType: "organization",
         targetId: orgId,
         reason,
+        disposition: "rejected",
       });
       if (!outcome.complete) {
         await loadAllData();
@@ -737,6 +743,32 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error("Error rejecting organization:", { code: err?.code || "unknown" });
       setError("Failed to reject organization: " + err.message);
+    }
+  };
+
+  const handleOpenDeleteOrganization = (org) => {
+    setError("");
+    setDeleteOrgConfirmation("");
+    setDeleteOrgTarget(org);
+  };
+
+  const handleDeleteOrganization = async (event) => {
+    event.preventDefault();
+    if (!deleteOrgTarget || deletingOrg || deleteOrgConfirmation !== deleteOrgTarget.organizationName) return;
+    setDeletingOrg(true);
+    setError("");
+    try {
+      const deleteOrganization = httpsCallable(null, "deleteOrganizationAccount");
+      await deleteOrganization({ organizationId: deleteOrgTarget.id, confirmation: deleteOrgConfirmation });
+      setSuccessMessage("Organization deleted from active management. Its account and staff access remain revoked; historical care and audit records are preserved.");
+      setDeleteOrgTarget(null);
+      setDeleteOrgConfirmation("");
+      await loadAllData();
+    } catch (err) {
+      setError("Could not delete organization: " + err.message);
+      await loadAllData();
+    } finally {
+      setDeletingOrg(false);
     }
   };
 
@@ -1113,11 +1145,16 @@ export default function AdminDashboardPage() {
   }
 
   // ============ UI: MAIN DASHBOARD ============
-  const pendingOrgCount = organizations.filter((org) => !org.isApproved).length;
+  const orgCount = (status) => organizations.filter((org) => getOrganizationStatus(org) === status).length;
+  const pendingOrgCount = orgCount("pending");
+  const rejectedOrgCount = orgCount("rejected");
+  const restrictedOrgCount = orgCount("restricted");
+  const deletedOrgCount = orgCount("deleted");
+  const visibleOrgCount = organizations.length - deletedOrgCount;
   const pendingOrganizationApplicationCount = organizationApplications.filter(
     (application) => application.status === "pending",
   ).length;
-  const approvedOrgCount = organizations.filter((org) => org.isApproved).length;
+  const approvedOrgCount = orgCount("approved");
   const pendingCaregiverCount = vendors.filter((vendor) => vendor.isApproved !== true).length;
   const approvedCaregiverCount = vendors.filter((vendor) => vendor.isApproved === true).length;
   const pendingBlacklistCount = blacklistReports.filter((report) => report.status === "pending").length;
