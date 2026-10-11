@@ -22,6 +22,7 @@ import CaregiverShiftWorkflow from "./CaregiverShiftWorkflow";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
+import WorkspaceShell from "./components/WorkspaceShell";
 
 const STATUS_OPTIONS = ["pending", "accepted", "in_progress", "completed", "cancelled"];
 const SHIFT_OPTIONS = ["morning", "day", "night"];
@@ -320,20 +321,6 @@ export default function CaregiverDashboardPage() {
     }
   };
 
-  const getTabStyle = (tabName) => ({
-    padding: "8px 16px",
-    borderRadius: "6px",
-    border: activeTab === tabName ? "none" : "1px solid var(--theme-text)",
-    background:
-      activeTab === tabName
-        ? "linear-gradient(135deg, var(--theme-help), var(--theme-help-accent))"
-        : "var(--theme-surface)",
-    color: activeTab === tabName ? "var(--theme-button-text)" : "var(--theme-text)",
-    cursor: "pointer",
-    fontWeight: activeTab === tabName ? 600 : 500,
-    fontSize: 13,
-  });
-
   const filtered = bookings.filter((b) =>
     statusFilter && statusFilter !== "All jobs"
       ? b.status === statusFilter
@@ -423,18 +410,22 @@ export default function CaregiverDashboardPage() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2 className="section-title">Good day, {userDoc?.name || profileData?.name || "Caregiver"}</h2>
-      <p
-        style={{
-          fontSize: 13,
-          color: "var(--theme-text)",
-          marginTop: -4,
-          marginBottom: 12,
-        }}
-      >
-        Manage jobs and update your profile.
-      </p>
+    <WorkspaceShell
+      role="caregiver"
+      title={"Good day, " + (userDoc?.name || profileData?.name || "Care professional")}
+      subtitle="Your care schedule, requests and earnings — all in one place."
+      activeTab={activeTab}
+      onSelect={selectTab}
+      items={[
+        { id: "home" },
+        { id: "jobs", count: bookings.filter((booking) => booking.status === "pending").length },
+        { id: "schedule" },
+        { id: "earnings" },
+        { id: "profile" },
+      ]}
+      alertCount={bookings.filter((booking) => booking.status === "pending").length}
+    >
+      <div className="caregiver-dashboard-content">
 
       {userDoc?.organizationName && (
         <div
@@ -461,45 +452,6 @@ export default function CaregiverDashboardPage() {
         <div><span>Completed jobs</span><strong>{earnings.completed}</strong></div>
         <div className="caregiver-day-overview__next"><span>Next job</span><strong>{nextJob ? `${nextJob.userName || "Customer"} · ${nextJob.date || "Schedule pending"}` : "No upcoming job"}</strong></div>
       </section>
-
-      {/* Tabs */}
-      <div className="choice-buttons" style={{ marginBottom: 24 }}>
-        <button
-          type="button"
-          style={getTabStyle("home")}
-          onClick={() => selectTab("home")}
-        >
-          Home
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("jobs")}
-          onClick={() => selectTab("jobs")}
-        >
-          Jobs ({bookings.length})
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("schedule")}
-          onClick={() => selectTab("schedule")}
-        >
-          Schedule
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("profile")}
-          onClick={() => selectTab("profile")}
-        >
-          My Profile
-        </button>
-        <button
-          type="button"
-          style={getTabStyle("earnings")}
-          onClick={() => selectTab("earnings")}
-        >
-          Earnings
-        </button>
-      </div>
 
       {/* HOME TAB */}
       {activeTab === "home" && (
@@ -1779,6 +1731,7 @@ export default function CaregiverDashboardPage() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </WorkspaceShell>
   );
 }
