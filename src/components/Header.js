@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import logoSvg from "../logoSewak.jpeg";
 import "./Header.css";
 
-export default function Header({ user, userRole, userDoc, onLogout, logoutError, onBrowseCaregivers, onMyBookings, notificationCount }) {
+export default function Header({ user, userRole, userDoc, onLogout, logoutPending, logoutError, onBrowseCaregivers, onMyBookings, notificationCount }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [showMenu, setShowMenu] = useState(false);
@@ -69,8 +69,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutError,
   };
 
   const handleLogout = async () => {
-    if (await onLogout() === false) return;
-    setShowMenu(false);
+    await onLogout();
   };
 
   return (
@@ -302,7 +301,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutError,
                 <div className="dropdown-divider"></div>
 
                 {/* Logout */}
-                <button type="button" className="dropdown-item logout" onClick={handleLogout}>
+                <button type="button" className="dropdown-item logout" onClick={handleLogout} disabled={logoutPending}>
                   🚪 Logout
                 </button>
               </div>
