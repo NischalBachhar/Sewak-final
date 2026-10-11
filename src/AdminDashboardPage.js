@@ -1443,9 +1443,12 @@ export default function AdminDashboardPage() {
                     border: "1px solid var(--theme-neutral-light)",
                   }}
                 >
-                  <option value="all">All Status ({organizations.length})</option>
-                  <option value="approved">Approved ({approvedOrgCount})</option>
+                  <option value="all">All Status ({visibleOrgCount})</option>
                   <option value="pending">Pending ({pendingOrgCount})</option>
+                  <option value="approved">Approved ({approvedOrgCount})</option>
+                  <option value="rejected">Rejected ({rejectedOrgCount})</option>
+                  <option value="restricted">Restricted ({restrictedOrgCount})</option>
+                  <option value="deleted">Deleted ({deletedOrgCount})</option>
                 </select>
               </div>
 
@@ -1463,10 +1466,9 @@ export default function AdminDashboardPage() {
                         org.organizationName
                           ?.toLowerCase()
                           .includes(searchOrg.toLowerCase())) &&
-                      (orgStatusFilter === "all" ||
-                        (orgStatusFilter === "approved"
-                          ? org.isApproved
-                          : !org.isApproved)),
+                      (orgStatusFilter === "all"
+                        ? getOrganizationStatus(org) !== "deleted"
+                        : getOrganizationStatus(org) === orgStatusFilter),
                   )
                   .map((org) => (
                     <div
@@ -1496,7 +1498,9 @@ export default function AdminDashboardPage() {
                       </p>
                       <p>
                         <strong>Status:</strong>{" "}
-                        {org.isApproved ? "✅ Approved" : "⏳ Pending"}
+                        <span className={`org-review-badge org-review-badge--${getOrganizationStatus(org)}`}>
+                          {organizationStatusLabels[getOrganizationStatus(org)]}
+                        </span>
                       </p>
 
                       <div
@@ -1507,102 +1511,87 @@ export default function AdminDashboardPage() {
                           flexWrap: "wrap",
                         }}
                       >
-                        {!org.isApproved && (
+                        {getOrganizationStatus(org) === "pending" && (
                           <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApproveOrganization(org.id);
-                              }}
-                              style={{
-                                padding: "6px 12px",
-                                backgroundColor: "var(--theme-positive)",
-                                color: "white",
-                                border: "none",
-                                borderRadius: 4,
-                                cursor: "pointer",
-                                fontSize: 12,
-                              }}
-                            >
+                            <button type="button" className="btn org-review-action org-review-approve"
+                              onClick={(e) => { e.stopPropagation(); handleApproveOrganization(org.id); }}>
                               Approve
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRejectOrganization(org.id);
-                              }}
-                              style={{
-                                padding: "6px 12px",
-                                backgroundColor: "var(--theme-warning)",
-                                color: "black",
-                                border: "none",
-                                borderRadius: 4,
-                                cursor: "pointer",
-                                fontSize: 12,
-                              }}
-                            >
+                            <button type="button" className="btn org-review-action org-review-reject"
+                              onClick={(e) => { e.stopPropagation(); handleRejectOrganization(org.id); }}>
                               Reject
                             </button>
                           </>
                         )}
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartEditOrg(org);
-                          }}
-                          style={{
-                            padding: "6px 12px",
-                            backgroundColor: "var(--theme-help)",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 4,
-                            cursor: "pointer",
-                            fontSize: 12,
-                          }}
-                        >
-                          Edit
-                        </button>
+                        {["pending", "approved"].includes(getOrganizationStatus(org)) && (
+                          <>
+                            <button type="button" className="btn org-review-action org-review-edit"
+                              onClick={(e) => { e.stopPropagation(); handleStartEditOrg(org); }}>
+                              Edit
+                            </button>
+                            <button type="button" className="btn org-review-action org-review-edit"
+                              onClick={(e) => { e.stopPropagation(); handleOpenOrgPasswordModal(org); }}>
+                              Create recovery link
+                            </button>
+                            <button type="button" className="btn org-review-action org-review-restrict"
+                              onClick={(e) => { e.stopPropagation(); handleOpenOrgBlacklistModal(org); }}>
+                              Blacklist Org
+                            </button>
+                          </>
+                        )}
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenOrgPasswordModal(org);
-                          }}
-                          style={{
-                            padding: "6px 12px",
-                            backgroundColor: "var(--theme-help)",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 4,
-                            cursor: "pointer",
-                            fontSize: 12,
-                          }}
-                        >
-                          Create recovery link
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenOrgBlacklistModal(org);
-                          }}
-                          style={{
-                            padding: "6px 12px",
-                            backgroundColor: "var(--theme-danger)",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 4,
-                            cursor: "pointer",
-                            fontSize: 12,
-                          }}
-                        >
-                          Blacklist Org
-                        </button>
+                        {["rejected", "restricted"].includes(getOrganizationStatus(org)) && (
+                          <button type="button" className="btn org-review-action org-review-delete"
+                            onClick={(e) => { e.stopPropagation(); handleOpenDeleteOrganization(org); }}>
+                            Delete organization
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
               </div>
+            </div>
+          )}
+
+          {deleteOrgTarget && (
+            <div className="org-delete-backdrop" onClick={() => { if (!deletingOrg) setDeleteOrgTarget(null); }}>
+              <AccessibleDialog
+                className="org-delete-dialog"
+                onClick={(e) => e.stopPropagation()}
+                onDismiss={() => { if (!deletingOrg) setDeleteOrgTarget(null); }}
+              >
+                <h3>Delete organization?</h3>
+                <p>
+                  This removes <strong>{deleteOrgTarget.organizationName}</strong> from active organization
+                  management and keeps its account and staff access blocked. Existing bookings,
+                  care sessions, reviews and audit logs are retained for accountability.
+                </p>
+                <p className="org-delete-warning">This cannot be undone from the dashboard.</p>
+                <form onSubmit={handleDeleteOrganization}>
+                  <label htmlFor="confirm-org-deletion">
+                    Type <strong>{deleteOrgTarget.organizationName}</strong> to confirm
+                  </label>
+                  <input
+                    id="confirm-org-deletion"
+                    type="text"
+                    value={deleteOrgConfirmation}
+                    onChange={(e) => setDeleteOrgConfirmation(e.target.value)}
+                    autoComplete="off"
+                    disabled={deletingOrg}
+                  />
+                  <div className="org-delete-actions">
+                    <button type="button" className="btn btn-outline" disabled={deletingOrg}
+                      onClick={() => { setDeleteOrgTarget(null); setDeleteOrgConfirmation(""); }}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-danger"
+                      disabled={deletingOrg || deleteOrgConfirmation !== deleteOrgTarget.organizationName}>
+                      {deletingOrg ? "Deleting…" : "Confirm deletion"}
+                    </button>
+                  </div>
+                </form>
+              </AccessibleDialog>
             </div>
           )}
 
