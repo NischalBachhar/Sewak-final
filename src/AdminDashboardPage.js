@@ -3428,9 +3428,9 @@ export default function AdminDashboardPage() {
 
       {/* ===== TAB: ANALYTICS ===== */}
       {activeTab === "analytics" && (
-        <div>
-          <h2>Platform Analytics</h2>
-          <div
+        <div className="sewak-admin-analytics">
+          <p className="sewak-admin-analytics__caption">Operational metrics based on the records available to your authorized administrator account.</p>
+          <div className="sewak-admin-analytics__grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
