@@ -15,6 +15,7 @@ import { ErrorState, SkeletonCard } from "./components/CareExperience";
 import "./App.css";
 import "./DashboardExperience.css";
 import "./CustomerExperience.css";
+import "./ProfessionalWorkspace.css";
 
 const UserProfilePage = lazy(() => import("./UserProfilePage"));
 const OrganizationProfilePage = lazy(() => import("./OrganizationProfilePage"));
@@ -294,7 +295,7 @@ function App() {
           notificationCount={notificationCount}
         />
         <Routes>
-          <Route path="/user/profile" element={<UserProfilePage />} />
+          <Route path="/user/profile" element={<div className="customer-detail-shell"><UserProfilePage /></div>} />
           <Route path="*" element={<Navigate to="/user/profile" replace />} />
         </Routes>
       </>
@@ -356,18 +357,18 @@ function App() {
                 </div>
               }
             />
-            <Route path="/user/profile" element={<UserProfilePage />} />
+            <Route path="/user/profile" element={<div className="customer-detail-shell"><UserProfilePage /></div>} />
             <Route
               path="/user/caregivers/:caregiverId"
-              element={<PublicCaregiverProfilePage signedIn />}
+              element={<div className="customer-detail-shell"><PublicCaregiverProfilePage signedIn /></div>}
             />
             <Route
               path="/user/book/:caregiverId"
-              element={<BookingRequestPage />}
+              element={<div className="customer-detail-shell"><BookingRequestPage /></div>}
             />
             <Route
               path="/user/bookings/:bookingId"
-              element={<BookingDetailPage />}
+              element={<div className="customer-detail-shell"><BookingDetailPage /></div>}
             />
             <Route
               path="/user/mybookings"
