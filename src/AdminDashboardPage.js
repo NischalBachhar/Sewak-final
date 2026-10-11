@@ -134,7 +134,7 @@ function DashboardLoadingState({ label, cards = 3 }) {
 export default function AdminDashboardPage() {
   // ============ AUTH STATE ============
   const [currentUser, setCurrentUser] = useState(null);
-  const [userRole, setUserRole] = useState(null);
+  const [, setUserRole] = useState(null);
   const [permissionsError, setPermissionsError] = useState("");
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loadingAuth, setLoadingAuth] = useState(true);
