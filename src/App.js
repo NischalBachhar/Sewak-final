@@ -14,6 +14,7 @@ import MobileBottomNavigation from "./components/MobileBottomNavigation";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
 import "./App.css";
 import "./DashboardExperience.css";
+import "./CustomerExperience.css";
 
 const UserProfilePage = lazy(() => import("./UserProfilePage"));
 const OrganizationProfilePage = lazy(() => import("./OrganizationProfilePage"));
@@ -143,7 +144,7 @@ function App() {
         navigate("/user/profile", { replace: true });
       } else if (path === "/" || path === "/browse" || path === "/auth") {
         navigate(
-          userDoc?.profileComplete ? "/user" : "/user/profile",
+          userDoc?.profileComplete ? "/user/home" : "/user/profile",
           { replace: true },
         );
       }
@@ -381,7 +382,7 @@ function App() {
             <Route
               path="/user"
               element={
-                <div className="app-shell">
+                <div className="app-shell customer-discovery-shell">
                   <div className="app-card">
                     <CaregiverListPage
                       variant="browse"
@@ -465,7 +466,7 @@ function App() {
               <Navigate to="/caregiver" replace />
             ) : userRole === "user" ? (
               userDoc?.profileComplete ? (
-                <Navigate to="/user" replace />
+                <Navigate to="/user/home" replace />
               ) : (
                 <Navigate to="/user/profile" replace />
               )
