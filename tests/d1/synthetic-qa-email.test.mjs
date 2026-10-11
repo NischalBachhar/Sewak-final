@@ -24,7 +24,7 @@ test('staging QA retains isolated example.invalid identities',()=>{
 test('run IDs change synthetic email addresses and guard malformed values',()=>{
   const base='sewak.qa2026@gmail.com';
   const first=syntheticQaEmail({role:'user',run,gmailBase:base});
-  const second=syntheticQaEmail({role:'user',run:'a1b2c3d4-e5f6-4758-9234-0123456789ac',gmailBase:base});
+  const second=syntheticQaEmail({role:'user',run:'b1b2c3d4-e5f6-4758-9234-0123456789ab',gmailBase:base});
   assert.notEqual(first,second);
   assert.throws(()=>syntheticQaEmail({role:'not-a-role',run,gmailBase:base}));
   assert.throws(()=>syntheticQaEmail({role:'user',run:'not-uuid',gmailBase:base}));
