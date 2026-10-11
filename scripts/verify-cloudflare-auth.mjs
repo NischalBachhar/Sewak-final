@@ -11,11 +11,15 @@ const worker=process.argv[process.argv.indexOf('--worker')+1];
 assert.ok(['sewak','sewak-final'].includes(worker),'Exact Sewak Worker required');
 assert.ok(process.argv.includes('--apply-synthetic-qa'),'Explicit synthetic auth QA flag required');
 const staging=worker==='sewak',config=readFileSync(staging?'wrangler.toml':'wrangler.production.toml','utf8'),ids=[...config.matchAll(/^database_id = "([^"]+)"/gm)].map(m=>m[1]);
+const liveWritesQA=process.argv.includes('--verify-write-enabled-production');
+if(liveWritesQA)assert.equal(worker,'sewak-final','Write-enabled QA is production-only');
+const expectedWrites=liveWritesQA ? true : false;
 assert.equal(process.env.CLOUDFLARE_ACCOUNT_ID,'860970f755498a4fe10e16c2fa99ce55');
-assert.equal(/APP_WRITES_ENABLED = "false"/.test(config),true);
+assert.equal(/APP_WRITES_ENABLED = "(true|false)"/.test(config),true);
+assert.equal(/APP_WRITES_ENABLED = "true"/.test(config),expectedWrites,'The committed Worker configuration must match the selected QA mode');
 assert.equal(ids.includes('36fa1df1-aa5d-43a1-ad0e-a4e310c513c3'),!staging);
 const origin=`https://${worker}.nischalbachhar9.workers.dev`,target=await openTarget({remote:true,mainId:ids[0],mediaId:ids[1]}),{DB,MEDIA_DB}=target;
-const run=randomUUID(),password=randomBytes(32).toString('base64url')+'!Aa9',users=[],checks=[],report={auth:'cloudflare-d1',worker,startedAt:new Date().toISOString(),pass:false,checks};
+const run=randomUUID(),password=randomBytes(32).toString('base64url')+'!Aa9',users=[],checks=[],report={auth:'cloudflare-d1',worker,writesEnabled:expectedWrites,qaMode:liveWritesQA?'production-write-enabled':'maintenance-read-only',startedAt:new Date().toISOString(),pass:false,checks};
 const output=`.local-tools/cloudflare-auth/${worker}-qa-${run}.json`;mkdirSync('.local-tools/cloudflare-auth',{recursive:true});
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 async function appHash(){const rows={};for(const table of [...new Set(Object.values(entities).map(e=>e.table))])rows[table]=(await DB.prepare(`SELECT * FROM ${table} ORDER BY id`).all()).results;rows.media=(await MEDIA_DB.prepare('SELECT id,owner_id,file_size,digest FROM media ORDER BY id').all()).results;return hash(rows);}
@@ -31,11 +35,23 @@ try{
  // Staging can contain real accounts. Preserve them and create/clean only this
  // run's random identities; appHash below proves existing profiles unchanged.
  if(staging)report.preexistingAccounts=(await DB.prepare('SELECT COUNT(*) n FROM cf_credentials').first()).n;
- const health=(await request('/api/health')).data;assert.equal(health.auth,'cloudflare-d1');assert.equal(health.writesEnabled,false);
+ const health=(await request('/api/health')).data;assert.equal(health.auth,'cloudflare-d1');assert.equal(health.writesEnabled,expectedWrites,'Live Worker write mode does not match QA expectations');
  const settings=await cloudflare(`/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${worker}/settings`);const bindings=settings.bindings;
- assertLiveBindings(worker,bindings,false);
+ assertLiveBindings(worker,bindings,expectedWrites);
  for(const [name,id]of [['DB',ids[0]],['MEDIA_DB',ids[1]]])assert.equal(bindings.find(b=>b.name===name)?.id,id,'Exact remote database binding');
- report.version=(await cloudflare(`/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${worker}/deployments`)).deployments[0].versions[0].version_id;
+ const deployment=(await cloudflare(`/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${worker}/deployments`)).deployments[0];
+assert.equal(deployment.versions.length,1,'Mixed deployments cannot be validated');
+assert.equal(deployment.versions[0].percentage,100,'Auth QA requires a fully activated Worker');
+report.version=deployment.versions[0].version_id;
+if(liveWritesQA){
+ const validation=JSON.parse(readFileSync('.local-tools/cloudflare-auth/cloudflare-data-check.json','utf8'));
+ assert.equal(validation.pass,true,'A passing production D1 integrity report is required');
+ assert.equal(validation.backend,'cloudflare-d1');
+ assert.equal(validation.worker,'sewak-final');
+ assert.equal(validation.health?.writesEnabled,true);
+ assert.equal(validation.version,report.version,'The D1 integrity report must match the exact currently deployed Worker version');
+ assert.ok(Date.now()-Date.parse(validation.checkedAt)<3600000,'Refresh the D1 integrity report: it must be less than one hour old');
+}
  for(const role of ['user','caregiver','orgadmin','superadmin']){
   const email=`qa-${role}-${run}@example.invalid`;let path='/auth/register',body={email,password,name:'Synthetic QA '+role,sessionMode:'bearer'};
   if(staging&&role==='superadmin'){
@@ -62,8 +78,10 @@ try{
  await request('/auth/revoke-sessions',{headers:{Cookie:cookieHeaders.Cookie,Origin:origin},body:{sessionId:'nonexistent'},expected:403,label:'missing CSRF'});
  await request('/auth/revoke-sessions',{headers:{...cookieHeaders,Origin:'https://evil.invalid'},body:{sessionId:'nonexistent'},expected:403,label:'foreign Origin'});
  await request('/auth/me',{headers:{...cookieHeaders,...authorization(customer)},expected:400,label:'mixed transports rejected'});
- await request('/api/commit',{headers:cookieHeaders,body:{writes:[]},expected:503,label:'application maintenance gate'});
- await request('/api/actions/provisionSuperAdminAccount',{headers:authorization(admin),body:{},expected:503,label:'admin maintenance gate'});
+ if(!liveWritesQA){
+  await request('/api/commit',{headers:cookieHeaders,body:{writes:[]},expected:503,label:'application maintenance gate'});
+  await request('/api/actions/provisionSuperAdminAccount',{headers:authorization(admin),body:{},expected:503,label:'admin maintenance gate'});
+ }
  for(const [headers,status,label]of [[{},403,'anonymous'],[authorization(caregiver),403,'cross-user'],[authorization(customer),404,'authorized missing']])await request('/api/media/profile_'+customer.uid,{headers,expected:status,label:label+' private media'});
  // Exercise private binary reads while normal image writes stay blocked. The
  // operator fixture belongs only to this run's new identity and is removed.
@@ -87,7 +105,7 @@ try{
  await page.reload();await page.getByRole('button',{name:'Save Profile',exact:true}).waitFor();
  const stored=await page.evaluate(()=>({local:Object.keys(localStorage),visibleCookie:document.cookie}));assert.ok(!stored.visibleCookie.includes('__Host-sewak_session'));assert.ok(!stored.local.some(k=>/firebase|token|session/i.test(k)));assert.deepEqual(external,[]);report.browser={realCookieLogin:true,sessionRestored:true,privateProfile:true,firebaseRequests:0,firebaseNetworkBlocked:true,httpOnly:true};await context.close();
  await request('/auth/revoke-sessions',{headers:authorization(customer),body:{all:true},label:'all-session revocation'});await request('/auth/me',{headers:cookieHeaders,expected:401,label:'cookie revoked with all sessions'});
- assert.equal((await request('/api/health',{label:'writes remain disabled'})).data.writesEnabled,false);
+ assert.equal((await request('/api/health',{label:'production write mode unchanged'})).data.writesEnabled,expectedWrites);
  report.checksPassed=true;
 }catch(error){report.failure={name:error.name,message:error.message};}
 finally{
