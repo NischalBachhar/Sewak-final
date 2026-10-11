@@ -1,3 +1,5 @@
+import { cityValue, organizationFields } from './onboarding.ts';
+import { medicalService } from './catalog.ts';
 import { active, ApiError, badInput, canonicalCategory, nowISO, onlyKeys, pick, requireThat, textField, type Actor, type Data } from './types.ts';
 import { parseResource, Repository, requireActive, requireActor, requireAdmin, type Write } from './repository.ts';
 import { entities, decodeRecord } from './model.mjs';
@@ -43,9 +45,9 @@ export async function canRead(repo: Repository, actor: Actor | null, path: strin
 }
 
 const userEditable = ['name', 'phone', 'address', 'city', 'location', 'businessPhone', 'businessAddress', 'businessCity', 'profileComplete', 'updatedAt'];
-const orgEditable = ['organizationName', 'businessPhone', 'businessAddress', 'businessCity', 'businessLicense', 'profileComplete', 'updatedAt'];
-const vendorEditable = ['name', 'phone', 'location', 'category', 'workType', 'shifts', 'hourlyRate', 'experience', 'bio', 'isAvailable', 'updatedAt'];
-const vendorOrganizationAdmin = [...vendorEditable, 'servicesOffered'];
+const orgEditable = ['organizationName', 'businessPhone', 'businessAddress', 'businessCity', 'businessLicense', 'organizationType', 'organizationTypeOther', 'panVat', 'servicesOffered', 'profileComplete', 'updatedAt'];
+const vendorEditable = ['name', 'phone', 'location', 'category', 'workType', 'shifts', 'hourlyRate', 'experience', 'bio', 'isAvailable', 'servicesOffered', 'updatedAt'];
+const vendorOrganizationAdmin = vendorEditable;
 const vendorAdmin = [...vendorOrganizationAdmin, 'isApproved', 'approvedAt', 'approvedBy', 'allowZeroRate', 'verified', 'backgroundChecked', 'isCertified', 'identityVerificationStatus', 'phoneVerificationStatus', 'trainingVerificationStatus', 'backgroundVerificationStatus', 'referencesVerificationStatus'];
 const serviceEditable = ['label', 'serviceName', 'category', 'description', 'price', 'isActive', 'updatedAt'];
 function same(a: unknown, b: unknown) { return JSON.stringify(a) === JSON.stringify(b); }
@@ -107,6 +109,9 @@ export async function commitClient(repo: Repository, actor: Actor | null, body: 
       data = { ...base, ...resolvePatch(mutation.data!, old || {}, now) };
       // Images can only be linked by the binary media endpoint, including admins.
       requireThat(same(data.profile_image_id, old?.profile_image_id) && same(data.profilePicture, old?.profilePicture) && same(data.profileImage, old?.profileImage), 'Upload profile images through the image endpoint.');
+      for (const field of ['city','businessCity',...(mutation.path.startsWith('vendors/') ? ['location'] : [])]) {
+        if (Object.hasOwn(mutation.data!,field)) data[field] = cityValue(data[field], true);
+      }
       validFields(pick(data, changes(old || {}, data)), spec);
     }
     planned.set(mutation.path, data);
@@ -123,7 +128,15 @@ export async function commitClient(repo: Repository, actor: Actor | null, body: 
   if (user.role === 'superadmin' || writes.some((w) => w.path.startsWith('services/'))) {
     writes.push({ path: `adminAuditLogs/${crypto.randomUUID()}`, data: { actorUid: user.uid, action: 'records_updated', paths: writes.map((w) => w.path), createdAt: now } });
   }
-  await repo.commit(writes);
+  const catalogGuards: D1PreparedStatement[] = [];
+  for (const write of writes.filter(write => write.path.startsWith('services/'))) {
+    const old = repo.reads.get(write.path)?.data, next = write.data;
+    if (old && next && (next.isActive === false || old.category !== next.category)) {
+      const id = parseResource(write.path).id, guard = 'catalog-retirement:' + crypto.randomUUID();
+      catalogGuards.push(repo.env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,NOT EXISTS(SELECT 1 FROM caregiver_services WHERE service_id=?) AND NOT EXISTS(SELECT 1 FROM organization_services WHERE service_id=?))').bind(guard,id,id), repo.env.DB.prepare('DELETE FROM commit_guards WHERE id=?').bind(guard));
+    }
+  }
+  await repo.commit(writes, catalogGuards);
   return { committed: true };
 }
 
@@ -154,14 +167,17 @@ async function authorizeWrite(repo: Repository, user: Actor, write: Write, after
   }
   if (name === 'organizations') {
     requireThat(old && (admin || (id === user.uid && user.role === 'orgadmin' && active(old))));
-    limited(old!, data, admin ? [...orgEditable,'adminName','adminEmail','email','commissionRate','updatedBy'] : orgEditable); return;
+    limited(old!, data, admin ? [...orgEditable,'adminName','adminEmail','email','commissionRate','updatedBy'] : orgEditable);
+    if (!same(old!.servicesOffered, data.servicesOffered) || !same(old!.category, data.category)) await validateServices(repo, data.servicesOffered || [], id, 'both');
+    if (data.organizationType || (data.profileComplete === true && old!.profileComplete !== true)) Object.assign(data, await organizationFields(repo, data, id));
+    return;
   }
   if (name === 'vendors') {
     const organizationAdmin = Boolean(old && user.role === 'orgadmin' && old.organizationId === user.uid && await organizationActive(repo, user.uid));
     requireThat(old && (admin || (id === user.uid && await caregiverActive(repo, id, false)) || organizationAdmin));
     limited(old!, data, admin ? vendorAdmin : organizationAdmin ? vendorOrganizationAdmin : vendorEditable);
     if (data.isApproved && !old!.isApproved) requireThat(active(old), 'Blocked caregivers cannot be approved.');
-    if (!same(old!.servicesOffered, data.servicesOffered)) await validateServices(repo, data.servicesOffered || [], data.organizationId, data.category);
+    if (!same(old!.servicesOffered, data.servicesOffered) || !same(old!.category, data.category)) await validateServices(repo, data.servicesOffered || [], data.organizationId, data.category);
     return;
   }
   if (name === 'services') {
@@ -169,9 +185,10 @@ async function authorizeWrite(repo: Repository, user: Actor, write: Write, after
     if (old) limited(old, data, serviceEditable);
     else { onlyKeys(data, [...serviceEditable,'organizationId','organizationName','createdAt','createdBy']); requireThat(admin || data.createdBy === user.uid); data.createdAt = now; }
     textField(data.label || data.serviceName, 'Service name', 1, 160);
+    requireThat(data.isActive === false || (!medicalService(data) && !medicalService(old || {})), 'Professional nursing is not enabled for booking.');
     if (data.price != null) badInput(typeof data.price === 'number' && data.price >= 0 && data.price <= 1000000, 'Invalid service price.');
-    if (old && old.isActive !== false && data.isActive === false) {
-      const assigned = await repo.env.DB.prepare("SELECT 1 AS assigned FROM caregivers c, json_each(COALESCE(c.services_offered,'[]')) j WHERE j.value=? LIMIT 1").bind(id).first();
+    if (old && (old.isActive !== false && data.isActive === false || old.category !== data.category)) {
+      const assigned = await repo.env.DB.prepare("SELECT 1 AS assigned FROM caregiver_services WHERE service_id=? UNION ALL SELECT 1 FROM organization_services WHERE service_id=? LIMIT 1").bind(id,id).first();
       requireThat(!assigned, 'Unassign this service from every caregiver before retiring it.');
     }
     return;
@@ -254,11 +271,13 @@ async function authorizeWrite(repo: Repository, user: Actor, write: Write, after
 
 export async function validateServices(repo: Repository, ids: string[], org: string, category: string) {
   // Maximum 20 offered services; one batch query keeps provisioning within Free.
+  badInput(Array.isArray(ids) && ids.length <= 20 && new Set(ids).size === ids.length && ids.every(id => typeof id === 'string' && id.length > 0 && id.length <= 160 && !id.includes('/')), 'Select valid service IDs.');
   if (!ids.length) return;
   const columns = ['id','version','fields_present','extra_json', ...Object.values(entities.services.fields).map((field: any) => `"${field.column}"`)];
   const rows = await repo.env.DB.prepare(`SELECT ${columns.join(',')} FROM services WHERE id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(ids)).all<Data>();
   requireThat(rows.results.length === ids.length && rows.results.every((service) => service.is_active !== 0 && (!service.organization_id || service.organization_id === org) && (category === 'both' || service.category === 'both' || canonicalCategory(service.category) === canonicalCategory(category))), 'Selected services are not available for this caregiver.');
   for (const row of rows.results) {
+    requireThat(!medicalService(decodeRecord('services',row)!), 'Professional nursing is not enabled for booking.');
     const path = `services/${row.id}`;
     requireThat(!repo.reads.has(path) || repo.reads.get(path)!.version === row.version, 'A service changed. Refresh and retry.', 409, 'aborted');
     repo.reads.set(path, { path, data: decodeRecord('services',row), version: row.version });
@@ -274,9 +293,10 @@ async function validateNewBooking(repo: Repository, user: Actor, id: string, dat
   requireThat(caregiver && caregiver.isAvailable === true && await caregiverActive(repo, data.caregiverId), 'This caregiver is no longer available.');
   const org = caregiver!.organizationId ? await repo.data(`organizations/${caregiver!.organizationId}`) : null;
   const service = await repo.data(`services/${textField(data.serviceId, 'Service ID', 1, 160)}`);
-  requireThat(service && service.isActive !== false && caregiver!.servicesOffered?.includes(data.serviceId) && (!service.organizationId || service.organizationId === caregiver!.organizationId) && (caregiver!.category === 'both' || service.category === 'both' || canonicalCategory(service.category) === canonicalCategory(caregiver!.category)), 'This service is unavailable.');
+  requireThat(service && !medicalService(service) && service.isActive !== false && caregiver!.servicesOffered?.includes(data.serviceId) && (!service.organizationId || service.organizationId === caregiver!.organizationId) && (caregiver!.category === 'both' || service.category === 'both' || canonicalCategory(service.category) === canonicalCategory(caregiver!.category)), 'This service is unavailable.');
   requireThat(data.vendorId === data.caregiverId && (data.organizationId || '') === (caregiver!.organizationId || '') && data.serviceLabel === (service!.label || service!.serviceName) && data.caregiverName === caregiver!.name && data.caregiverWorkType === caregiver!.workType && data.caregiverCategory === canonicalCategory(caregiver!.category));
   for (const [field, min, max] of [['userName',2,120],['careRecipient',2,120],['address',5,300],['city',2,100]] as const) textField(data[field], field, min, max);
+  data.city = cityValue(data.city);
   badInput(typeof data.userPhone === 'string' && /^\+[1-9]\d{7,14}$/.test(data.userPhone), 'Invalid contact phone.');
   badInput(Number.isInteger(data.durationHours) && data.durationHours >= 1 && data.durationHours <= 24 && ['one_time','recurring'].includes(data.recurrence), 'Invalid duration or recurrence.');
   const ends: Data = { morning: '12:00', day: '17:00', evening: '21:00', night: '23:59' };

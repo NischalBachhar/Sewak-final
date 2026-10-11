@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from "react";
+import SignupRegistrationForm from './components/SignupRegistrationForm';
+import React, { useEffect, useRef, useState } from "react";
 import { auth, signIn, register } from "./authClient";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { completeRegistration } from "./registrationService";
 import LoginExperience, { LoginIcon } from "./components/LoginExperience";
+import SignupExperience, { SignupIcon } from "./components/SignupExperience";
 import "./AuthPage.css";
+import "./SignupPage.css";
 
 const GENERIC_SIGN_IN_ERROR =
   "The email or password is incorrect. Please try again.";
@@ -54,14 +57,18 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [selectedRole, setSelectedRole] = useState(sessionStorage.getItem("sewak.registrationRole") || "user");
+  const [organization, setOrganization] = useState({});
   const [organizationName, setOrganizationName] = useState("");
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   useEffect(() => { if (userDoc?.registrationIncomplete) setMode("register"); }, [userDoc?.registrationIncomplete]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setLoading(true);
     setError("");
 
@@ -78,7 +85,7 @@ export default function AuthPage() {
         beginRegistration(selectedRole);
         let account = auth.currentUser;
         if (!account || account.email?.toLowerCase() !== email.trim().toLowerCase()) {
-          try { account = await register({ email: email.trim(), password, name: fullName.trim() }); }
+          try { account = await register({ email: email.trim(), password, name: fullName.trim(), selectedRole, ...(selectedRole === 'orgadmin' ? { organizationName: organizationName.trim(), ...organization } : {}) }); }
           catch (error) {
             if (error.code !== "account-exists") throw error;
             // Resume only after the server verifies the password; never overwrite
@@ -86,15 +93,16 @@ export default function AuthPage() {
             account = await signIn(email.trim(), password);
           }
         }
-        await completeRegistration(account, { fullName, selectedRole, organizationName });
+        await completeRegistration(account, { fullName, selectedRole, organizationName, ...organization });
         await finishRegistration();
         setSuccess(selectedRole === "orgadmin" ? "Application submitted for review. Organization access requires approval." : "Registration complete.");
         setPassword("");
       }
     } catch (err) {
       console.error("Auth error:", { code: err?.code || "unknown" });
-      setError(err?.code ? getAuthErrorMessage(err.code, mode) : err.message);
+      setError(err?.code === 'invalid-argument' || err?.code === 'permission-denied' ? err.message : err?.code ? getAuthErrorMessage(err.code, mode) : err.message);
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
@@ -102,152 +110,43 @@ export default function AuthPage() {
   const forgotPassword = () => { setError(''); setSuccess('Contact your Sewak administrator for account recovery. Automated reset email is not configured.'); };
 
   return (
-    <div className={`auth-shell${mode === "login" ? " auth-shell--login" : ""}`}>
-      {mode === "login" ? <LoginExperience /> : (
-      <div className="auth-hero">
-        <h1 className="auth-title">Sewak</h1>
-        <p className="auth-tagline">
-          Book trusted caregivers and household help in a few clicks.
-        </p>
-        <ul className="auth-points">
-          <li> Verified caregivers reviewed by admins</li>
-          <li> Clear timings, locations, and booking history</li>
-          <li> Designed for Nepali families and workers</li>
-          <li> Partner organizations manage their teams</li>
-        </ul>
-      </div>
-      )}
+    <div className={`auth-shell ${mode === "login" ? "auth-shell--login" : "auth-shell--signup"}`}>
+      {mode === "login" ? <LoginExperience /> : <SignupExperience />}
 
       <div className="auth-card">
         {mode === "login" && <div className="login-card-mark" aria-hidden="true"><LoginIcon name="heart" /></div>}
+        {mode === "register" && <div className="signup-card-eyebrow"><span aria-hidden="true" />LET’S MAKE CARE EASIER</div>}
         <h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2>
         <p>
           {mode === "login"
             ? "Continue to your Sewak account."
-            : "Join Sewak as a customer or partner organization."}
+            : "Join Sewak and make finding trusted care easier."}
         </p>
+        {mode === "register" && <div className="signup-context"><SignupIcon name="heart" />Your first step to care, closer to home.</div>}
 
-        {error && <div className="error-message" role="alert">{error}</div>}
-        {success && <div className="success-message" role={mode === "login" ? "status" : undefined}>{success}</div>}
+        {error && <div id="auth-error" className="error-message" role="alert">{error}</div>}
+        {success && <div className="success-message" role="status">{success}</div>}
 
-        <form className="form" onSubmit={handleSubmit}>
-          {mode === "register" && (
-            <>
-              <div>
-                <label htmlFor="auth-name">Full name</label>
-                <input
-                  id="auth-name" autoComplete="name" type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  placeholder="Your full name"
-                />
-              </div>
-            </>
-          )}
-
+        {mode === "register" ? <SignupRegistrationForm
+          values={{ fullName, email, password, selectedRole, organizationName, organization }}
+          onChange={(key, value) => ({ fullName: setFullName, email: setEmail, password: setPassword, selectedRole: setSelectedRole, organizationName: setOrganizationName, organization: setOrganization })[key](value)}
+          onSubmit={handleSubmit} loading={loading} passwordRequired={!auth.currentUser} error={error} clearError={() => setError('')}
+        /> : <form className="form" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="auth-email">Email</label>
-            <div className={mode === "login" ? "login-input-wrap" : undefined}>
-            {mode === "login" && <LoginIcon name="mail" />}
-            <input
-              id="auth-email" autoComplete="email" type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="your@email.com"
-            />
+            <div className="login-input-wrap"><LoginIcon name="mail" />
+              <input id="auth-email" autoComplete="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="your@email.com" />
             </div>
           </div>
-
           <div>
             <label htmlFor="auth-password">Password</label>
-            <div className={mode === "login" ? "login-input-wrap login-password-wrap" : undefined}>
-            {mode === "login" && <LoginIcon name="lock" />}
-            <input
-              id="auth-password" autoComplete={mode === "login" ? "current-password" : "new-password"} type={mode === "login" && passwordVisible ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required={mode === "login" || !auth.currentUser}
-              minLength={mode === "login" ? 1 : 12} maxLength={128}
-              placeholder={mode === "login" ? "Your password" : "At least 12 characters"}
-            />
-            {mode === "login" && (
-              <button type="button" className="login-password-toggle"
-                aria-label={passwordVisible ? "Hide password" : "Show password"}
-                aria-controls="auth-password" aria-pressed={passwordVisible}
-                onClick={() => setPasswordVisible(!passwordVisible)}>
-                <LoginIcon name={passwordVisible ? "eye-off" : "eye"} />
-              </button>
-            )}
+            <div className="login-input-wrap login-password-wrap"><LoginIcon name="lock" />
+              <input id="auth-password" autoComplete="current-password" type={passwordVisible ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required minLength={1} maxLength={128} placeholder="Your password" />
+              <button type="button" className="login-password-toggle" aria-label={passwordVisible ? 'Hide password' : 'Show password'} aria-controls="auth-password" aria-pressed={passwordVisible} onClick={() => setPasswordVisible(!passwordVisible)}><LoginIcon name={passwordVisible ? 'eye-off' : 'eye'} /></button>
             </div>
           </div>
-
-          {/* Move role selection (I want to register as) after password */}
-          {mode === "register" && (
-            <>
-              <div>
-                <p id="registration-role-label">I want to register as</p>
-                <div className="role-selection" role="group" aria-labelledby="registration-role-label">
-                  <label className="role-option">
-                    <input
-                      type="radio"
-                      name="role"
-                      value="user"
-                      checked={selectedRole === "user"}
-                      onChange={() => setSelectedRole("user")}
-                    />
-                    <span>👨‍👩‍👧 Customer (Book caregivers)</span>
-                  </label>
-                  
-                  <label className="role-option">
-                    <input
-                      type="radio"
-                      name="role"
-                      value="orgadmin"
-                      checked={selectedRole === "orgadmin"}
-                      onChange={() => setSelectedRole("orgadmin")}
-                    />
-                    <span>🏢 Organization/Company (Provide caregivers)</span>
-                  </label>
-                </div>
-                <p className="text-muted" style={{ fontSize: 11, marginTop: 8 }}>
-                  {selectedRole === "user" && "Browse and book trusted caregivers for your family"}
-                  {selectedRole === "orgadmin" && "Partner with Sewak and manage your caregiver team"}
-                </p>
-              </div>
-
-              {/* Organization Name - Only for orgadmin */}
-              {selectedRole === "orgadmin" && (
-                <div>
-                  <label htmlFor="auth-organization">Organization/Company Name</label>
-                  <input
-                    type="text"
-                    id="auth-organization" autoComplete="organization" value={organizationName}
-                    onChange={(e) => setOrganizationName(e.target.value)}
-                    required
-                    placeholder="e.g., ABC Care Services Pvt. Ltd."
-                  />
-                </div>
-              )}
-            </>
-          )}
-
-          <button
-            type="submit"
-            className="btn btn-primary auth-submit"
-            disabled={loading}
-          >
-            {loading
-              ? mode === "login"
-                ? "Signing in..."
-                : "Creating account..."
-              : mode === "login"
-              ? "Sign in"
-              : "Sign up"}
-            {mode === "login" && <span className={loading ? "login-spinner" : "login-submit-arrow"} aria-hidden="true">{!loading && <LoginIcon name="arrow" />}</span>}
-          </button>
-        </form>
+          <button type="submit" className="btn btn-primary auth-submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}<span className={loading ? 'login-spinner' : 'login-submit-arrow'} aria-hidden="true">{!loading && <LoginIcon name="arrow" />}</span></button>
+        </form>}
 
         {mode === "login" && <button type="button" className="link-button login-recovery" disabled={loading} onClick={forgotPassword}>Forgot password?</button>}
         <div className="auth-toggle">
@@ -259,6 +158,7 @@ export default function AuthPage() {
                 className="link-button"
                 onClick={() => {
                   setMode("register");
+                  setPasswordVisible(false);
                   setError("");
                 }}
               >
@@ -273,6 +173,7 @@ export default function AuthPage() {
                 className="link-button"
                 onClick={() => {
                   setMode("login");
+                  setPasswordVisible(false);
                   setError("");
                 }}
               >
@@ -281,6 +182,7 @@ export default function AuthPage() {
             </p>
           )}
         </div>
+        {mode === "register" && <div className="signup-footer-note"><SignupIcon name="lock" />Care begins with a little trust.</div>}
       </div>
     </div>
   );

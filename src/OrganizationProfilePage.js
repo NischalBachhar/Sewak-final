@@ -1,5 +1,7 @@
+import OrganizationFields from './components/OrganizationFields';
+import PasswordChangeModal from './PasswordChangeModal';
 import React, { useEffect, useState } from "react";
-import { doc, setDoc } from "./d1Client";
+import { doc, getDoc, writeBatch } from "./d1Client";
 import { db } from "./d1Client";
 
 import { useAuth } from "./AuthContext";
@@ -10,6 +12,8 @@ export default function OrganizationProfilePage() {
   const { user, userDoc, refreshUserDoc } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [details, setDetails] = useState({});
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [organizationName, setOrganizationName] = useState("");
   const [businessPhone, setBusinessPhone] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
@@ -27,14 +31,16 @@ export default function OrganizationProfilePage() {
   }, [userDoc?.profileComplete, shouldNavigate, navigate]);
 
   useEffect(() => {
-    if (userDoc) {
-      setOrganizationName(userDoc.organizationName || "");
-      setBusinessPhone(userDoc.businessPhone || "");
-      setBusinessAddress(userDoc.businessAddress || "");
-      setBusinessCity(userDoc.businessCity || "");
-    }
-    setLoading(false);
-  }, [userDoc]);
+    let active = true;
+    getDoc(doc(db, 'organizations', user.uid)).then(snapshot => {
+      if (!active) return;
+      if (!snapshot.exists()) throw new Error('Organization profile is missing. Contact Sewak support.');
+      const data = snapshot.data();
+      setDetails(data); setOrganizationName(data.organizationName || '');
+      setBusinessPhone(data.businessPhone || ''); setBusinessAddress(data.businessAddress || ''); setBusinessCity(data.businessCity || '');
+    }).catch(error => { if (active) setError(error.message); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [user.uid]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -48,8 +54,8 @@ export default function OrganizationProfilePage() {
 
     // Validate phone
     const phoneDigits = businessPhone.replace(/\D/g, "");
-    if (phoneDigits.length !== 10) {
-      setError("Please enter a valid 10-digit phone number");
+    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      setError("Please enter a valid phone number");
       return;
     }
 
@@ -57,7 +63,10 @@ export default function OrganizationProfilePage() {
       setSubmitting(true);
 
       // Merge the organization profile through the authorized Worker API.
-      await setDoc(doc(db, "organizations", user.uid), {
+      const batch = writeBatch(db);
+      batch.set(doc(db, "organizations", user.uid), {
+        organizationType: details.organizationType, organizationTypeOther: details.organizationTypeOther || "",
+        servicesOffered: details.servicesOffered || [], businessLicense: details.businessLicense || "", panVat: details.panVat || "",
         organizationName,
         businessPhone,
         businessAddress,
@@ -67,11 +76,12 @@ export default function OrganizationProfilePage() {
       }, { merge: true });
       
       // Also update users collection for orgadmin
-      await setDoc(doc(db, "users", user.uid), {
+      batch.set(doc(db, "users", user.uid), {
         profileComplete: true,
         updatedAt: new Date().toISOString(),
       }, { merge: true });
 
+      await batch.commit();
       setSuccess("Profile saved successfully!");
 
       // Refresh user context to update profileComplete status
@@ -141,6 +151,9 @@ export default function OrganizationProfilePage() {
           </div>
         )}
 
+        <p role="status">{details.isSuspended ? 'Suspended' : details.isApproved ? 'Approved' : 'Pending Verification'}</p>
+        <button type="button" className="btn btn-outline" onClick={() => setPasswordOpen(true)}>Change password</button>
+        {passwordOpen && <PasswordChangeModal isOpen onClose={() => setPasswordOpen(false)} />}
         {/* Organization Information Form */}
         <form onSubmit={handleSave} className="form">
           <label>Organization Name *</label>
@@ -152,42 +165,9 @@ export default function OrganizationProfilePage() {
             placeholder="Your organization/company name"
           />
 
-          <label>Business Phone *</label>
-          <input
-            type="tel"
-            value={businessPhone}
-            onChange={(e) => setBusinessPhone(e.target.value)}
-            required
-            placeholder="98XXXXXXXX"
-            maxLength={10}
-          />
-
-          <label>Business Address *</label>
-          <input
-            type="text"
-            value={businessAddress}
-            onChange={(e) => setBusinessAddress(e.target.value)}
-            required
-            placeholder="Organization address"
-          />
-
-          <label>City *</label>
-          <select
-            value={businessCity}
-            onChange={(e) => setBusinessCity(e.target.value)}
-            required
-          >
-            <option value="">Select city</option>
-            <option value="Kathmandu">Kathmandu</option>
-            <option value="Lalitpur">Lalitpur</option>
-            <option value="Bhaktapur">Bhaktapur</option>
-            <option value="Pokhara">Pokhara</option>
-            <option value="Biratnagar">Biratnagar</option>
-            <option value="Birgunj">Birgunj</option>
-            <option value="Butwal">Butwal</option>
-            <option value="Dharan">Dharan</option>
-            <option value="Other">Other</option>
-          </select>
+          <OrganizationFields organizationId={user.uid} value={{ ...details, businessPhone, businessCity, businessAddress }} onChange={value => {
+            setDetails(value); setBusinessPhone(value.businessPhone || ''); setBusinessCity(value.businessCity || ''); setBusinessAddress(value.businessAddress || '');
+          }} />
 
           <button
             type="submit"

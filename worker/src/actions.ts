@@ -1,3 +1,4 @@
+import { cityValue } from './onboarding.ts';
 import { epoch, invitationStatement } from './cloudflare-auth.ts';
 import { caregiverActive, organizationActive, validateServices } from './policy.ts';
 import { Repository, requireActive, requireAdmin, type Write } from './repository.ts';
@@ -11,8 +12,9 @@ const accountInput = (input: Data, caregiver: boolean, organization: boolean) =>
   const data: Data = { email, displayName: textField(input.displayName, 'Name', 2, 120) };
   for (const field of keys.filter((k) => !['email','displayName','hourlyRate','experience','servicesOffered','shifts'].includes(k))) data[field] = textField(input[field] ?? '', field, ['organizationName','phone','location'].includes(field) ? 2 : 0, field === 'businessAddress' ? 300 : 160);
   if (caregiver) {
+    data.location = cityValue(data.location);
     data.category = canonicalCategory(data.category);
-    badInput(['caregiver','vendor','both'].includes(data.category) && ['parttime','fulltime'].includes(data.workType), 'Invalid caregiver work category.');
+    badInput(['caregiver','vendor','household','both'].includes(data.category) && ['parttime','fulltime'].includes(data.workType), 'Invalid caregiver work category.');
     badInput(Number.isInteger(input.experience) && input.experience >= 0 && input.experience <= 80 && typeof input.hourlyRate === 'number' && input.hourlyRate >= 0 && input.hourlyRate <= 1000000, 'Invalid rate or experience.');
     for (const key of ['shifts','servicesOffered']) {
       const values = input[key] || [];
@@ -22,6 +24,7 @@ const accountInput = (input: Data, caregiver: boolean, organization: boolean) =>
     badInput(data.shifts.every((s: string) => ['morning','day','night'].includes(s)) && (data.workType !== 'fulltime' || data.shifts.length === 0), 'Invalid shifts.');
     data.hourlyRate = input.hourlyRate; data.experience = input.experience;
   }
+  if (organization && data.businessCity) data.businessCity = cityValue(data.businessCity);
   return data;
 };
 const audit = (actor: Actor, action: string, target: string, extra: Data = {}): Write => ({ path: `adminAuditLogs/${crypto.randomUUID()}`, data: { actorUid: actor.uid, action, targetUid: target, createdAt: nowISO(), ...extra } });

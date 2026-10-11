@@ -35,7 +35,13 @@ export class Repository {
     if (this.sessionIdentity?.sessionId) {
       statements.push(this.env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,EXISTS(SELECT 1 FROM cf_sessions s JOIN cf_credentials c ON c.user_id=s.user_id WHERE s.id=? AND s.user_id=? AND s.credential_version=c.credential_version AND c.disabled=0 AND s.expires_at>? AND s.last_seen_at>?))').bind(`${transactionId}/session`,this.sessionIdentity.sessionId,this.sessionIdentity.uid,Math.floor(Date.now()/1000),Math.floor(Date.now()/1000)-86400));
     }
+    // Service validation reads a batch of catalog rows in one query. Recheck
+    // their versions together, retaining atomic conflict protection without
+    // spending one D1 subrequest per selected service.
+    const serviceVersions = Object.fromEntries([...this.reads].filter(([path]) => path.startsWith('services/')).map(([path,saved]) => [parseResource(path).key,saved.version]));
+    if (Object.keys(serviceVersions).length) statements.push(this.env.DB.prepare("INSERT INTO commit_guards(id,valid) VALUES(?,(SELECT COUNT(*) FROM json_each(?) j LEFT JOIN services s ON s.id=j.key WHERE COALESCE(s.version,0)=j.value)=?)").bind(transactionId+'/catalog',JSON.stringify(serviceVersions),Object.keys(serviceVersions).length));
     for (const [path, saved] of this.reads) {
+      if (path.startsWith('services/')) continue;
       const { spec, key } = parseResource(path);
       statements.push(this.env.DB.prepare(`INSERT INTO commit_guards(id,valid) VALUES(?, COALESCE((SELECT version FROM ${spec.table} WHERE id=?),0)=?)`).bind(`${transactionId}/${statements.length}`, key, saved.version));
     }
@@ -46,6 +52,11 @@ export class Repository {
         const record = encodeRecord(name, key!, { ...write.data, ...(parent ? { sessionId: parent } : {}) }, (this.reads.get(write.path)?.version || 0) + 1);
         const query = insertSQL(name, record, 'upsert');
         statements.push(this.env.DB.prepare(query.sql).bind(...query.params));
+        if (name === 'organizations') {
+          statements.push(this.env.DB.prepare('DELETE FROM organization_services WHERE organization_id=?').bind(key));
+          const ids = write.data.servicesOffered || [];
+          if (ids.length) statements.push(this.env.DB.prepare('INSERT INTO organization_services(organization_id,service_id) SELECT ?,value FROM json_each(?)').bind(key, JSON.stringify(ids)));
+        }
         if (name === 'vendors') {
           statements.push(this.env.DB.prepare('DELETE FROM caregiver_services WHERE caregiver_id=?').bind(key));
           const ids = write.data.servicesOffered || [];

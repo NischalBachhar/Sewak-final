@@ -33,6 +33,7 @@ export function environment() {
   DB.database.exec(readFileSync(new URL('../../migrations/main/0001_sewak.sql',import.meta.url),'utf8'));
   DB.database.exec(readFileSync(new URL('../../migrations/main/0002_auth_state.sql',import.meta.url),'utf8'));
   DB.database.exec(readFileSync(new URL('../../migrations/main/0003_cloudflare_auth.sql',import.meta.url),'utf8'));
+  DB.database.exec(readFileSync(new URL('../../migrations/main/0004_catalog_onboarding.sql',import.meta.url),'utf8'));
   MEDIA_DB.database.exec(readFileSync(new URL('../../migrations/media/0001_profile_images.sql',import.meta.url),'utf8'));
   return {DB,MEDIA_DB,AUTH_AUDIENCE:'sewak-test',PASSWORD_HASHER:{idFromName:x=>x,get:()=>({fetch:(url,init)=>new PasswordHasher().fetch(new Request(url,init))})},APP_WRITES_ENABLED:'true'};
 }
@@ -50,7 +51,9 @@ export async function seed(env) {
   for(const [path,data] of Object.entries(records))await put(env,path,data);
   return records;
 }
-export async function put(env,path,data) { const [name,id]=path.split('/'); const q=insertSQL(name,encodeRecord(name,id,data),'upsert'); await env.DB.prepare(q.sql).bind(...q.params).run(); }
+export async function put(env,path,data) { const [name,id]=path.split('/'); const q=insertSQL(name,encodeRecord(name,id,data),'upsert'); await env.DB.prepare(q.sql).bind(...q.params).run();
+  if(name==='vendors') { await env.DB.prepare('DELETE FROM caregiver_services WHERE caregiver_id=?').bind(id).run(); for(const service of data.servicesOffered || []) await env.DB.prepare('INSERT OR IGNORE INTO caregiver_services(caregiver_id,service_id) SELECT ?,id FROM services WHERE id=?').bind(id,service).run(); }
+}
 export const worker=createWorker(async request=>{
   const uid=request.headers.get('x-test-uid');
   return uid?{uid,email:`${uid}@example.test`,authTime:Date.now()/1000,claims:{}}:null;

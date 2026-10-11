@@ -1,3 +1,4 @@
+import NepalCitySelect from './components/NepalCitySelect';
 import React, { useEffect, useRef, useState } from "react";
 import { collection, documentId, getDocs, query, where } from "./d1Client";
 import { calculateQuote, kathmanduDate, validateBooking } from "./bookingValidation";
@@ -216,7 +217,7 @@ export default function BookingFormPage({ caregiver, onBooked }) {
           <label>Contact name *<input id="booking-name" autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} maxLength={120} /></label>
           <label>Phone *<input id="booking-phone" autoComplete="tel" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={40} /></label>
           <label className="booking-form-grid__wide">Address *<input id="booking-address" autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} maxLength={300} /></label>
-          <label>City *<input id="booking-city" autoComplete="address-level2" value={city} onChange={(event) => setCity(event.target.value)} maxLength={100} /></label>
+          <NepalCitySelect id="booking-city" value={city} onChange={setCity} />
           <label className="booking-form-grid__wide">Additional instructions<textarea id="booking-notes" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1500} placeholder="Anything the caregiver should know before accepting." /></label>
         </div>
       </section>

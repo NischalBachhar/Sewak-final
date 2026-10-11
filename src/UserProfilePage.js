@@ -1,3 +1,4 @@
+import NepalCitySelect from './components/NepalCitySelect';
 import React, { useEffect, useState } from "react";
 import { doc, getDoc, setDoc } from "./d1Client";
 import { changePassword } from "./authClient";
@@ -392,24 +393,7 @@ export default function UserProfilePage() {
             placeholder="House/Apt, Street, Area"
           />
 
-          <label>City *</label>
-          <select
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            required
-          >
-            <option value="">Select city</option>
-            {city && !["Kathmandu", "Lalitpur", "Bhaktapur", "Pokhara", "Biratnagar", "Birgunj", "Butwal", "Dharan", "Other"].includes(city) && <option value={city}>{city}</option>}
-            <option value="Kathmandu">Kathmandu</option>
-            <option value="Lalitpur">Lalitpur</option>
-            <option value="Bhaktapur">Bhaktapur</option>
-            <option value="Pokhara">Pokhara</option>
-            <option value="Biratnagar">Biratnagar</option>
-            <option value="Birgunj">Birgunj</option>
-            <option value="Butwal">Butwal</option>
-            <option value="Dharan">Dharan</option>
-            <option value="Other">Other</option>
-          </select>
+          <NepalCitySelect value={city} onChange={setCity} />
 
           <button
             type="submit"

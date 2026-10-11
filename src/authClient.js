@@ -33,7 +33,7 @@ export function onSessionChanged(listener) {
 }
 async function startSession(path, body) { const version = ++generation; const result = await request(path, body); return version === generation ? publish(result) : auth.currentUser; }
 export async function signIn(email, password) { return startSession('login', { email, password }); }
-export async function register({ email, password, name }) { return startSession('register', { email, password, name }); }
+export async function register(input) { return startSession('register', input); }
 export async function signOut() { ++generation; try { await request('logout', {}); } catch (error) { if (error.code !== 'unauthenticated') throw error; } publish(null); initial = null; }
 export async function changePassword(currentPassword, newPassword) { ++generation; await request('change-password', { currentPassword, newPassword }); publish(null); initial = null; }
 export async function activateAccount(token, password) { return startSession('activate', { token, password }); }

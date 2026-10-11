@@ -255,7 +255,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
                 {serviceLabels.map((service) => <span key={service}>{service}</span>)}
               </div>
             ) : (
-              <p className="caregiver-profile-muted">Services will be confirmed before the booking is accepted.</p>
+              <p className="caregiver-profile-muted">Services not specified. Booking is available after this caregiver adds services.</p>
             )}
           </section>
 
