@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {controlledQaGmail,syntheticQaEmail} from '../../scripts/synthetic-qa-email.mjs';
@@ -28,4 +29,12 @@ test('run IDs change synthetic email addresses and guard malformed values',()=>{
   assert.notEqual(first,second);
   assert.throws(()=>syntheticQaEmail({role:'not-a-role',run,gmailBase:base}));
   assert.throws(()=>syntheticQaEmail({role:'user',run:'not-uuid',gmailBase:base}));
+});
+
+test('Auth QA cleanup matches exact shortened alias, not full UUID substring',()=>{
+  const alias=syntheticQaEmail({role:'user',run,gmailBase:'sewak.qa2026@gmail.com'});
+  assert.ok(!alias.includes(run),'the shortened alias deliberately excludes the full UUID');
+  const source=readFileSync(new URL('../../scripts/verify-cloudflare-auth.mjs',import.meta.url),'utf8');
+  assert.ok(source.includes("assert.equal(u.email,syntheticEmail(u.role)"));
+  assert.ok(!source.includes('u.email.includes(run)'));
 });
