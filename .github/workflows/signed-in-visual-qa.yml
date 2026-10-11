@@ -1,0 +1,50 @@
+name: Sewak signed-in visual QA (isolated)
+
+on:
+  push:
+    branches:
+      - qa/signed-in-visual-final-20261011
+  pull_request:
+    paths:
+      - 'tests/browser/**'
+      - 'src/**'
+      - 'scripts/test-browser.cjs'
+      - '.github/workflows/signed-in-visual-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: 'true'
+      SEWAK_BROWSER_GREP: 'Visual QA|real D1 customer request|superadmin profile editor'
+    steps:
+      - name: Checkout reviewed code
+        uses: actions/checkout@v4
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Worker dependencies
+        run: npm ci --prefix worker --no-audit --no-fund
+      - name: Install Chrome test browser
+        run: npx playwright install --with-deps chrome
+      - name: Run isolated signed-in QA
+        run: npm run test:browser
+      - name: Preserve screenshots, trace and test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sewak-signed-in-visual-qa
+          path: |
+            test-results/
+            .local-tools/browser-results.json
+          if-no-files-found: warn
+          retention-days: 14
