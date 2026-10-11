@@ -86,3 +86,25 @@ test('legacy organization restrictions can be safely deleted without inferring a
   });
   assert.equal(deleted.status, 200, JSON.stringify(deleted.data));
 });
+
+test('legacy organization ID distinct from admin UID revokes the real administrator', async () => {
+  const env = environment();
+  await seed(env);
+  await put(env, 'users/legacy_owner', { uid: 'legacy_owner', role: 'orgadmin', name: 'Legacy owner', email: 'legacy@example.test', isSuspended: false });
+  await put(env, 'organizations/legacy_org', {
+    organizationId: 'legacy_org', adminUid: 'legacy_owner', organizationName: 'Legacy Care',
+    isApproved: false, isSuspended: false, isBlacklisted: false,
+  });
+  const rejected = await action(env, 'admin', 'applyAccountSafetyAction', {
+    targetType: 'organization', targetId: 'legacy_org', reason: 'Legacy verification failed', disposition: 'rejected',
+  });
+  assert.equal(rejected.status, 200, JSON.stringify(rejected.data));
+  assert.equal((await new Repository(env).data('users/legacy_owner')).isSuspended, true);
+
+  const deleted = await action(env, 'admin', 'deleteOrganizationAccount', {
+    organizationId: 'legacy_org', confirmation: 'Legacy Care',
+  });
+  assert.equal(deleted.status, 200, JSON.stringify(deleted.data));
+  assert.ok((await new Repository(env).data('organizations/legacy_org')).deletedAt);
+  assert.ok((await new Repository(env).data('users/legacy_owner')).deletedAt);
+});
