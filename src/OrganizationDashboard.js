@@ -457,6 +457,9 @@ export default function OrganizationDashboard() {
     );
   }
 
+  const getServiceLabel = (id) =>
+    [...services, ...sharedServices].find((service) => service.id === id)?.label || id;
+
   const orgServices = services.filter((s) => s.organizationId === user?.uid);
 
   return (
