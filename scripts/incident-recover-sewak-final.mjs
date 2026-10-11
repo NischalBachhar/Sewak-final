@@ -121,7 +121,15 @@ try{
  const runner=spawnSync(process.execPath,['worker/node_modules/wrangler/bin/wrangler.js','deploy','--config','wrangler.production.toml'],{
    stdio:'inherit',env:{...process.env,WRANGLER_SEND_METRICS:'false',SEWAK_REVIEWED_TARGET:'sewak-final'}
  });
- if(runner.status!==0)throw new Error('Worker upload failed. Confirm live deployment state before retrying.');
+ if(runner.status!==0){
+   // Wrangler can exit nonzero even after accepting an upload. Check the active
+   // deployment before deciding whether Worker-code rollback is required.
+   try{
+     const latest=(await cloudflare(root+'/deployments')).deployments[0];
+     uploaded=latest.versions.some(v=>v.version_id!==INCIDENT_VERSION&&v.percentage>0);
+   }catch{console.error('Could not confirm whether the failed upload took effect. Verify the live Worker version manually.');}
+   throw new Error('Worker upload failed. Inspect actual live state; never retry blindly.');
+ }
  uploaded=true;
  const dep=(await cloudflare(root+'/deployments')).deployments[0];
  assert.ok(dep.versions.length===1&&dep.versions[0].percentage===100&&dep.versions[0].version_id!==INCIDENT_VERSION,'Expected newly deployed 100% Worker version.');
