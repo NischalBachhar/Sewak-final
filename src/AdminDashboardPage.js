@@ -23,6 +23,7 @@ import { normalizeBooking } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
+import { getOrganizationStatus, organizationStatusLabels } from "./organizationModeration";
 
 const dashboardTabs = [
   "overview",
@@ -149,6 +150,10 @@ export default function AdminDashboardPage() {
   const [loadingOrganizations, setLoadingOrganizations] = useState(true);
   const [orgStatusFilter, setOrgStatusFilter] = useState("all");
   const [searchOrg, setSearchOrg] = useState("");
+  const [deleteOrgTarget, setDeleteOrgTarget] = useState(null);
+  const [deleteOrgConfirmation, setDeleteOrgConfirmation] = useState("");
+  const [deletingOrg, setDeletingOrg] = useState(false);
+  const [deleteOrgError, setDeleteOrgError] = useState("");
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [organizationApplications, setOrganizationApplications] = useState([]);
 
@@ -266,8 +271,8 @@ export default function AdminDashboardPage() {
         .reduce((sum, b) => sum + (b.platformCommission || 0), 0);
 
       setAnalytics({
-        totalOrganizations: organizationsData.length,
-        approvedOrganizations: organizationsData.filter((o) => o.isApproved).length,
+        totalOrganizations: organizationsData.filter((o) => getOrganizationStatus(o) !== 'deleted').length,
+        approvedOrganizations: organizationsData.filter((o) => getOrganizationStatus(o) === 'approved').length,
         totalCaregivers: vendorsData.length,
         approvedCaregivers: vendorsData.filter((v) => v.isApproved).length,
         totalBookings: bookingsData.length,
@@ -656,6 +661,7 @@ export default function AdminDashboardPage() {
       const outcome = await runAccountSafetyAction({
         targetType: "organization",
         targetId: orgBlacklistOrg.id,
+        disposition: "blacklisted",
         reason:
           orgBlacklistReason.trim() ||
           "Organization suspended and blacklisted by Sewak operations.",
@@ -683,8 +689,8 @@ export default function AdminDashboardPage() {
 
   const handleApproveOrganization = async (orgId) => {
     const organization = organizations.find((item) => item.id === orgId);
-    if (organization?.isSuspended || organization?.isBlacklisted) {
-      setError("A suspended or blacklisted organization cannot be approved.");
+    if (!organization || getOrganizationStatus(organization) !== "pending") {
+      setError("Only pending organizations can be approved.");
       return;
     }
 
@@ -723,6 +729,7 @@ export default function AdminDashboardPage() {
         targetType: "organization",
         targetId: orgId,
         reason,
+        disposition: "rejected",
       });
       if (!outcome.complete) {
         await loadAllData();
@@ -737,6 +744,34 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error("Error rejecting organization:", { code: err?.code || "unknown" });
       setError("Failed to reject organization: " + err.message);
+    }
+  };
+
+  const handleOpenDeleteOrganization = (org) => {
+    setError("");
+    setDeleteOrgError("");
+    setDeleteOrgConfirmation("");
+    setDeleteOrgTarget(org);
+  };
+
+  const handleDeleteOrganization = async (event) => {
+    event.preventDefault();
+    if (!deleteOrgTarget || deletingOrg || deleteOrgConfirmation !== deleteOrgTarget.organizationName) return;
+    setDeletingOrg(true);
+    setError("");
+    setDeleteOrgError("");
+    try {
+      const deleteOrganization = httpsCallable(null, "deleteOrganizationAccount");
+      await deleteOrganization({ organizationId: deleteOrgTarget.id, confirmation: deleteOrgConfirmation });
+      setSuccessMessage("Organization deleted from active management. Its account and staff access remain revoked; historical care and audit records are preserved.");
+      setDeleteOrgTarget(null);
+      setDeleteOrgConfirmation("");
+      await loadAllData();
+    } catch (err) {
+      setDeleteOrgError("Could not delete organization: " + err.message);
+      await loadAllData();
+    } finally {
+      setDeletingOrg(false);
     }
   };
 
@@ -1113,11 +1148,16 @@ export default function AdminDashboardPage() {
   }
 
   // ============ UI: MAIN DASHBOARD ============
-  const pendingOrgCount = organizations.filter((org) => !org.isApproved).length;
+  const orgCount = (status) => organizations.filter((org) => getOrganizationStatus(org) === status).length;
+  const pendingOrgCount = orgCount("pending");
+  const rejectedOrgCount = orgCount("rejected");
+  const restrictedOrgCount = orgCount("restricted");
+  const deletedOrgCount = orgCount("deleted");
+  const visibleOrgCount = organizations.length - deletedOrgCount;
   const pendingOrganizationApplicationCount = organizationApplications.filter(
     (application) => application.status === "pending",
   ).length;
-  const approvedOrgCount = organizations.filter((org) => org.isApproved).length;
+  const approvedOrgCount = orgCount("approved");
   const pendingCaregiverCount = vendors.filter((vendor) => vendor.isApproved !== true).length;
   const approvedCaregiverCount = vendors.filter((vendor) => vendor.isApproved === true).length;
   const pendingBlacklistCount = blacklistReports.filter((report) => report.status === "pending").length;
@@ -1406,9 +1446,12 @@ export default function AdminDashboardPage() {
                     border: "1px solid var(--theme-neutral-light)",
                   }}
                 >
-                  <option value="all">All Status ({organizations.length})</option>
-                  <option value="approved">Approved ({approvedOrgCount})</option>
+                  <option value="all">All Status ({visibleOrgCount})</option>
                   <option value="pending">Pending ({pendingOrgCount})</option>
+                  <option value="approved">Approved ({approvedOrgCount})</option>
+                  <option value="rejected">Rejected ({rejectedOrgCount})</option>
+                  <option value="restricted">Restricted ({restrictedOrgCount})</option>
+                  <option value="deleted">Deleted ({deletedOrgCount})</option>
                 </select>
               </div>
 
@@ -1426,10 +1469,9 @@ export default function AdminDashboardPage() {
                         org.organizationName
                           ?.toLowerCase()
                           .includes(searchOrg.toLowerCase())) &&
-                      (orgStatusFilter === "all" ||
-                        (orgStatusFilter === "approved"
-                          ? org.isApproved
-                          : !org.isApproved)),
+                      (orgStatusFilter === "all"
+                        ? getOrganizationStatus(org) !== "deleted"
+                        : getOrganizationStatus(org) === orgStatusFilter),
                   )
                   .map((org) => (
                     <div
@@ -1459,7 +1501,9 @@ export default function AdminDashboardPage() {
                       </p>
                       <p>
                         <strong>Status:</strong>{" "}
-                        {org.isApproved ? "✅ Approved" : "⏳ Pending"}
+                        <span className={`org-review-badge org-review-badge--${getOrganizationStatus(org)}`}>
+                          {organizationStatusLabels[getOrganizationStatus(org)]}
+                        </span>
                       </p>
 
                       <div
@@ -1470,102 +1514,88 @@ export default function AdminDashboardPage() {
                           flexWrap: "wrap",
                         }}
                       >
-                        {!org.isApproved && (
+                        {getOrganizationStatus(org) === "pending" && (
                           <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApproveOrganization(org.id);
-                              }}
-                              style={{
-                                padding: "6px 12px",
-                                backgroundColor: "var(--theme-positive)",
-                                color: "white",
-                                border: "none",
-                                borderRadius: 4,
-                                cursor: "pointer",
-                                fontSize: 12,
-                              }}
-                            >
+                            <button type="button" className="btn org-review-action org-review-approve"
+                              onClick={(e) => { e.stopPropagation(); handleApproveOrganization(org.id); }}>
                               Approve
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRejectOrganization(org.id);
-                              }}
-                              style={{
-                                padding: "6px 12px",
-                                backgroundColor: "var(--theme-warning)",
-                                color: "black",
-                                border: "none",
-                                borderRadius: 4,
-                                cursor: "pointer",
-                                fontSize: 12,
-                              }}
-                            >
+                            <button type="button" className="btn org-review-action org-review-reject"
+                              onClick={(e) => { e.stopPropagation(); handleRejectOrganization(org.id); }}>
                               Reject
                             </button>
                           </>
                         )}
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartEditOrg(org);
-                          }}
-                          style={{
-                            padding: "6px 12px",
-                            backgroundColor: "var(--theme-help)",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 4,
-                            cursor: "pointer",
-                            fontSize: 12,
-                          }}
-                        >
-                          Edit
-                        </button>
+                        {["pending", "approved"].includes(getOrganizationStatus(org)) && (
+                          <>
+                            <button type="button" className="btn org-review-action org-review-edit"
+                              onClick={(e) => { e.stopPropagation(); handleStartEditOrg(org); }}>
+                              Edit
+                            </button>
+                            <button type="button" className="btn org-review-action org-review-edit"
+                              onClick={(e) => { e.stopPropagation(); handleOpenOrgPasswordModal(org); }}>
+                              Create recovery link
+                            </button>
+                            <button type="button" className="btn org-review-action org-review-restrict"
+                              onClick={(e) => { e.stopPropagation(); handleOpenOrgBlacklistModal(org); }}>
+                              Blacklist Org
+                            </button>
+                          </>
+                        )}
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenOrgPasswordModal(org);
-                          }}
-                          style={{
-                            padding: "6px 12px",
-                            backgroundColor: "var(--theme-help)",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 4,
-                            cursor: "pointer",
-                            fontSize: 12,
-                          }}
-                        >
-                          Create recovery link
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenOrgBlacklistModal(org);
-                          }}
-                          style={{
-                            padding: "6px 12px",
-                            backgroundColor: "var(--theme-danger)",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 4,
-                            cursor: "pointer",
-                            fontSize: 12,
-                          }}
-                        >
-                          Blacklist Org
-                        </button>
+                        {["rejected", "restricted"].includes(getOrganizationStatus(org)) && (
+                          <button type="button" className="btn org-review-action org-review-delete"
+                            onClick={(e) => { e.stopPropagation(); handleOpenDeleteOrganization(org); }}>
+                            Delete organization
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
               </div>
+            </div>
+          )}
+
+          {deleteOrgTarget && (
+            <div className="org-delete-backdrop" onClick={() => { if (!deletingOrg) setDeleteOrgTarget(null); }}>
+              <AccessibleDialog
+                className="org-delete-dialog"
+                onClick={(e) => e.stopPropagation()}
+                onDismiss={() => { if (!deletingOrg) setDeleteOrgTarget(null); }}
+              >
+                <h3>Delete organization?</h3>
+                <p>
+                  This removes <strong>{deleteOrgTarget.organizationName}</strong> from active organization
+                  management and keeps its account and staff access blocked. Existing bookings,
+                  care sessions, reviews and audit logs are retained for accountability.
+                </p>
+                <p className="org-delete-warning">This cannot be undone from the dashboard.</p>
+                {deleteOrgError && <p role="alert" className="org-delete-warning">{deleteOrgError}</p>}
+                <form onSubmit={handleDeleteOrganization}>
+                  <label htmlFor="confirm-org-deletion">
+                    Type <strong>{deleteOrgTarget.organizationName}</strong> to confirm
+                  </label>
+                  <input
+                    id="confirm-org-deletion"
+                    type="text"
+                    value={deleteOrgConfirmation}
+                    onChange={(e) => setDeleteOrgConfirmation(e.target.value)}
+                    autoComplete="off"
+                    disabled={deletingOrg}
+                  />
+                  <div className="org-delete-actions">
+                    <button type="button" className="btn btn-outline" disabled={deletingOrg}
+                      onClick={() => { setDeleteOrgTarget(null); setDeleteOrgConfirmation(""); }}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-danger"
+                      disabled={deletingOrg || deleteOrgConfirmation !== deleteOrgTarget.organizationName}>
+                      {deletingOrg ? "Deleting…" : "Confirm deletion"}
+                    </button>
+                  </div>
+                </form>
+              </AccessibleDialog>
             </div>
           )}
 

@@ -478,3 +478,67 @@
   margin-top: 16px;
   flex-wrap: wrap;
 }
+
+/* Superadmin organization review controls */
+.org-review-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.org-review-badge--pending { background: #fff6e6; color: #9a5b00; border-color: #ffe2aa; }
+.org-review-badge--approved { background: #e9f8f0; color: #126a49; border-color: #c6ead9; }
+.org-review-badge--rejected,
+.org-review-badge--restricted { background: #fff0f0; color: #9f3434; border-color: #f6c9c9; }
+.org-review-badge--deleted { background: #f1f3f5; color: #51606b; border-color: #d9dfe4; }
+.org-review-action { border-radius: 8px; font-weight: 650; min-height: 34px; }
+.org-review-approve { background: #147855; color: #fff; }
+.org-review-reject { background: #fff5e7; color: #8d4b03; border: 1px solid #efc99e; }
+.org-review-edit { background: #edf6f8; color: #145f6b; border: 1px solid #cce2e6; }
+.org-review-restrict { background: #fff0f0; color: #a72e36; border: 1px solid #f2c4c7; }
+.org-review-delete { background: #ac2934; color: #fff; }
+.org-review-action:focus-visible { outline: 3px solid var(--theme-help); outline-offset: 2px; }
+.org-delete-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(16, 31, 45, .55);
+}
+.org-delete-dialog {
+  width: min(100%, 510px);
+  max-height: min(90vh, 660px);
+  overflow-y: auto;
+  background: #fff;
+  color: var(--theme-text);
+  border: 1px solid #dbe3e8;
+  border-radius: 18px;
+  padding: clamp(20px, 4vw, 32px);
+  box-shadow: 0 28px 70px rgba(11, 35, 49, .2);
+}
+.org-delete-dialog h3 { margin: 0 0 12px; font-size: 23px; }
+.org-delete-dialog p { line-height: 1.55; margin: 0 0 14px; }
+.org-delete-warning { font-weight: 650; color: #a72e36; }
+.org-delete-dialog label { display: block; font-size: 14px; margin: 20px 0 9px; }
+.org-delete-dialog input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #a7b7c4;
+  border-radius: 9px;
+  background: #fff;
+  color: #173044;
+  padding: 12px;
+  font: inherit;
+}
+.org-delete-dialog input:focus-visible { outline: 3px solid #b8dce3; outline-offset: 2px; }
+.org-delete-actions { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+@media (max-width: 480px) {
+  .org-delete-actions { flex-direction: column-reverse; }
+  .org-delete-actions .btn { width: 100%; }
+}
