@@ -1,0 +1,370 @@
+/*
+ * Sewak professional interface refresh.
+ * These selectors deliberately exclude organization, public and auth routes.
+ * The existing authenticated actions and data flows remain authoritative.
+ */
+.dashboard-shell--caregiver,
+.dashboard-shell--admin {
+  --theme-background: #f7f9fb;
+  --theme-background-accent: #f1f6f5;
+  --theme-surface: #fff;
+  --theme-surface-alt: #f7faf9;
+  --theme-surface-soft: #eaf6f1;
+  --theme-border: #e2e9eb;
+  --theme-border-muted: #e7edef;
+  --theme-text: #172e3c;
+  --theme-text-secondary: #4d6570;
+  --theme-text-muted: #677d87;
+  --theme-accent: #106b61;
+  --theme-accent-soft: #168b79;
+  --theme-accent-light: #e3f3ef;
+  --theme-button: #11695f;
+  --theme-help: #167a70;
+  --theme-help-accent: #0d625b;
+  --theme-help-soft: #e2f5ef;
+  --theme-positive: #167754;
+  --theme-positive-soft: #e1f5eb;
+  --theme-warning: #a36b26;
+  --theme-warning-soft: #fff3df;
+  --theme-danger: #b94b4b;
+  --theme-danger-soft: #fdf0ee;
+  --theme-primary-gradient: linear-gradient(135deg,#0e746c,#115e60);
+  --theme-gradient-primary: linear-gradient(135deg,#0e746c,#115e60);
+  --page-bg: #f6f8f8;
+  background: #f6f8f8;
+  padding: 20px clamp(12px, 2.3vw, 32px) 88px;
+  justify-content: flex-start;
+  align-items: stretch;
+  min-height: calc(100vh - 72px);
+}
+.dashboard-shell--caregiver > .app-card,
+.dashboard-shell--admin > .app-card,
+.dashboard-shell--caregiver .app-card,
+.dashboard-shell--admin .app-card {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.sewak-workspace {
+  display: grid;
+  grid-template-columns: 232px minmax(0,1fr);
+  min-height: calc(100vh - 145px);
+  border: 1px solid #e5eaec;
+  border-radius: 24px;
+  background: #fff;
+  overflow: clip;
+  box-shadow: 0 16px 48px rgba(25,54,65,.055);
+}
+.sewak-workspace__sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #fbfcfc;
+  border-right: 1px solid #e6edef;
+  padding: 26px 15px 20px;
+}
+.sewak-workspace__identity {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 2px 7px 27px;
+}
+.sewak-workspace__identity-icon {
+  display: grid; place-items: center;
+  width: 42px; height: 42px; flex-shrink: 0;
+  border-radius: 13px;
+  background: #126e63;
+  color: #fff;
+  font-size: 21px;
+  font-weight: 850;
+  box-shadow: 0 7px 15px rgba(18,110,99,.13);
+}
+.sewak-workspace__identity strong { display: block; font-size: 15px; color: #223847; line-height: 1.3; }
+.sewak-workspace__identity strong span { color: #148170; }
+.sewak-workspace__identity small { font-size: 11px; color: #82949c; }
+.sewak-workspace__nav-heading {
+  margin: 2px 13px 12px; font-size: 10px; font-weight: 800;
+  letter-spacing: .12em; color: #91a3ab;
+}
+.sewak-workspace__nav { display: grid; gap: 5px; }
+.sewak-workspace__nav-item {
+  display: flex; gap: 13px; align-items: center;
+  width: 100%; min-height: 45px; padding: 10px 13px;
+  border: 1px solid transparent; border-radius: 12px;
+  text-align: left; background: none; color: #58717b;
+  font: inherit; font-size: 13px; font-weight: 650; cursor: pointer;
+  transition: background .18s ease,color .18s ease,transform .18s ease;
+}
+.sewak-workspace__nav-item > svg { flex: 0 0 auto; opacity: .95; }
+.sewak-workspace__nav-item > span { flex: 1; }
+.sewak-workspace__nav-item em {
+  padding: 3px 7px; background: #ebf2f3;
+  border-radius: 6px; font-size: 10px; color: #426168;
+  font-weight: 800; font-style: normal; font-variant-numeric: tabular-nums;
+}
+.sewak-workspace__nav-item:hover { color: #0b685f; background: #ecf7f2; transform: translateX(2px); }
+.sewak-workspace__nav-item.is-active { color: #106d61; background: #e7f5ee; border-color: #d8eee3; }
+.sewak-workspace__nav-item.is-active em { background: white; color: #117063; }
+.sewak-workspace__nav-item:focus-visible,
+.dashboard-shell--caregiver :is(button,a,input,select,textarea):focus-visible,
+.dashboard-shell--admin :is(button,a,input,select,textarea):focus-visible {
+  outline: 3px solid #19a492; outline-offset: 2px;
+}
+.sewak-workspace__sidebar-foot {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-top: auto; padding: 17px 12px;
+  border: 1px solid #dceee5; border-radius: 15px;
+  background: linear-gradient(135deg,#f0faf4,#e9f5f2);
+}
+.sewak-workspace__sidebar-foot-icon { color: #108274; font-size: 18px; }
+.sewak-workspace__sidebar-foot p { margin: 0; }
+.sewak-workspace__sidebar-foot strong { display: block; color: #245e55; font-size: 11px; }
+.sewak-workspace__sidebar-foot small { display: block; color: #678a81; line-height: 1.6; font-size: 11px; margin-top: 3px; }
+.sewak-workspace__content { min-width: 0; padding: clamp(22px,3vw,38px); background: #fcfdfd; }
+.sewak-workspace__intro { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 27px; }
+.sewak-workspace__eyebrow { margin: 0 0 9px; font-size: 10px; font-weight: 800; letter-spacing: .14em; color: #178678; }
+.sewak-workspace__intro h1 { margin: 0 0 7px; font-size: clamp(27px,3vw,36px); letter-spacing: -.045em; color: #1b3341; line-height: 1.17; font-weight: 750; }
+.sewak-workspace__intro p:last-child { margin: 0; color: #6b818b; line-height: 1.5; font-size: 13px; }
+.sewak-workspace__intro-status { display: flex; align-items: center; gap: 8px; color: #5a7874; font-size: 11px; font-weight: 700; white-space: nowrap; background: #eff7f3; border: 1px solid #e0eee7; border-radius: 999px; padding: 9px 12px; }
+.sewak-workspace__status-dot { width: 7px; height: 7px; border-radius: 50%; background: #34a787; }
+.sewak-workspace__body { min-width: 0; }
+.dashboard-shell--caregiver .caregiver-dashboard-content { padding: 0; color: #1d3646; }
+.dashboard-shell--caregiver .caregiver-day-overview {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 13px;
+  padding: 0;
+  margin-bottom: 19px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.dashboard-shell--caregiver .caregiver-day-overview > div {
+  min-width: 0;
+  background: #fff;
+  padding: 18px;
+  border: 1px solid #e3ebea;
+  border-radius: 17px;
+  box-shadow: 0 6px 22px rgba(19,64,71,.035);
+}
+.dashboard-shell--caregiver .caregiver-day-overview > div span {
+  display: block;
+  font-size: 11px;
+  color: #71858e;
+  font-weight: 650;
+  margin-bottom: 10px;
+}
+.dashboard-shell--caregiver .caregiver-day-overview > div strong {
+  display: block;
+  font-size: clamp(19px,2vw,28px);
+  color: #193a44;
+  letter-spacing: -.035em;
+  overflow-wrap: anywhere;
+  font-weight: 750;
+}
+.dashboard-shell--caregiver .caregiver-day-overview__next strong { font-size: 14px !important; line-height: 1.4; letter-spacing: 0 !important; }
+.dashboard-shell--caregiver .card,
+.dashboard-shell--caregiver .profile-section,
+.dashboard-shell--admin .card,
+.dashboard-shell--admin .profile-section {
+  background: #fff;
+  border: 1px solid #e1e9eb;
+  border-radius: 18px;
+  box-shadow: 0 7px 24px rgba(27,66,79,.044);
+}
+.dashboard-shell--caregiver .card,
+.dashboard-shell--caregiver .profile-section { padding: clamp(17px,2.5vw,26px); }
+.dashboard-shell--caregiver .card h3,
+.dashboard-shell--caregiver .profile-section h3,
+.dashboard-shell--admin .card h3 { color: #1c3c46 !important; letter-spacing: -.018em; }
+.dashboard-shell--caregiver .card p,
+.dashboard-shell--admin .card p { line-height: 1.55; }
+.dashboard-shell--caregiver .form :is(input,select,textarea),
+.dashboard-shell--admin .form :is(input,select,textarea) {
+  background: #fff; border: 1px solid #d9e6e5; border-radius: 11px;
+  min-height: 43px; color: #1d3c45;
+}
+.dashboard-shell--caregiver .form label,
+.dashboard-shell--admin .form label { color: #415c67; font-weight: 700; font-size: 12px; }
+.dashboard-shell--caregiver .btn,
+.dashboard-shell--admin .btn {
+  border-radius: 11px;
+  min-height: 41px;
+  font-weight: 700;
+  transition: transform .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.dashboard-shell--caregiver .btn-primary,
+.dashboard-shell--admin .btn-primary { background: #147a70; color: #fff; }
+.dashboard-shell--caregiver .btn-primary:hover,
+.dashboard-shell--admin .btn-primary:hover { background: #0e635b; transform: translateY(-1px); }
+.dashboard-shell--caregiver .btn-outline,
+.dashboard-shell--admin .btn-outline { border: 1px solid #d0e2df; color: #176f66; background: white; }
+.dashboard-shell--caregiver :is(.dropdown-select,select),
+.dashboard-shell--admin :is(.dropdown-select,select) { border-radius: 10px; border-color: #dce7e5; background-color: white; min-height: 41px; }
+.dashboard-shell--caregiver .empty-state,
+.dashboard-shell--admin .empty-state { border-radius: 16px; padding: 27px; background: #f8fbfa; border: 1px dashed #d0e5df; }
+.dashboard-shell--admin .dashboard-admin-content {
+  padding: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.dashboard-shell--admin .dashboard-admin-content > section { min-width: 0; }
+.dashboard-shell--admin .dashboard-action-card {
+  padding: 21px !important; border: 1px solid #e0e9e9 !important;
+  background: #fff !important; border-radius: 17px !important;
+  box-shadow: 0 8px 25px rgba(19,58,71,.045);
+  transition: transform .2s ease,box-shadow .2s ease;
+}
+.dashboard-shell--admin .dashboard-action-card:nth-child(1) { border-top: 3px solid #168c78 !important; }
+.dashboard-shell--admin .dashboard-action-card:nth-child(2) { border-top: 3px solid #73a9cf !important; }
+.dashboard-shell--admin .dashboard-action-card:nth-child(3) { border-top: 3px solid #c7b1d4 !important; }
+.dashboard-shell--admin .dashboard-action-card:nth-child(4) { border-top: 3px solid #d4aa74 !important; }
+.dashboard-shell--admin .dashboard-action-card:nth-child(5) { border-top: 3px solid #dca39c !important; }
+.dashboard-shell--admin .dashboard-action-card:nth-child(6) { border-top: 3px solid #85bcb2 !important; }
+.dashboard-shell--admin .dashboard-action-card:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(19,58,71,.09); }
+.dashboard-shell--admin .dashboard-action-card strong { color: #1c3a49; font-size: 29px !important; font-variant-numeric: tabular-nums; }
+.dashboard-shell--admin .dashboard-admin-content > section > div:last-child { border-radius: 17px; }
+.dashboard-shell--admin .dashboard-notice { border-radius: 12px !important; }
+.dashboard-shell--admin .dashboard-notice--success { background: #eaf8f1 !important; border-color: #d1e9dc !important; }
+.dashboard-shell--admin .dashboard-notice--error { background: #fff2ef !important; border-color: #f3d8d3 !important; }
+.dashboard-shell--admin table { border-collapse: separate; border-spacing: 0; width: 100%; }
+.dashboard-shell--admin th { color: #59727c; font-size: 12px; font-weight: 750; background: #f5faf8; }
+.dashboard-shell--admin td { border-bottom: 1px solid #ebf0ef; }
+.dashboard-shell--admin :is(th,td) { padding: 12px 13px; text-align: left; }
+.dashboard-shell--admin :is(button,textarea,input,select) { font-family: inherit; }
+.dashboard-shell--admin :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]) { border-radius: 10px; }
+.dashboard-shell--admin .card, .dashboard-shell--admin .profile-section { padding: clamp(16px,2vw,24px); }
+
+/* Existing customer screens beyond dashboard: coherent backgrounds, fields, actions. */
+.customer-detail-shell {
+  --theme-background: #f7faf9;
+  --theme-background-accent: #eff5f5;
+  --theme-surface: #fff;
+  --theme-surface-alt: #f6faf8;
+  --theme-surface-soft: #e8f6ef;
+  --theme-border: #dce9e7;
+  --theme-border-muted: #dce9e7;
+  --theme-text: #203c48;
+  --theme-text-muted: #617b84;
+  --theme-help: #0d7d72;
+  --theme-help-accent: #0b635e;
+  --theme-positive: #147659;
+  --theme-help-soft: #e4f6f0;
+  --page-bg: linear-gradient(145deg,#f8f8f4,#f0f7f5);
+  min-height: calc(100vh - 72px);
+  background: var(--page-bg);
+}
+.customer-detail-shell .app-shell { background: transparent; }
+.customer-detail-shell .app-card { max-width: 1050px; background: #fff; border-radius: 22px; border: 1px solid #dfebe7; box-shadow: 0 12px 36px rgba(35,85,83,.06); }
+.customer-detail-shell .card,
+.customer-detail-shell :is(.booking-detail-hero,.booking-detail-next,.booking-detail-summary,.booking-detail-review,.booking-detail-session-pending) {
+  background: #fff; border: 1px solid #dfebe8; border-radius: 18px; box-shadow: 0 10px 30px rgba(23,69,72,.05);
+}
+.customer-detail-shell .booking-detail-hero { background: linear-gradient(130deg,#eff9f5,#f9fcfd); border-radius: 22px; }
+.customer-detail-shell .booking-detail-next { background: #f0f9f5; }
+.customer-detail-shell .booking-detail-instructions { background: #f3f8f5; }
+.customer-detail-shell :is(.booking-detail-hero h1,.booking-detail-summary h2,.booking-detail-review h2,.section-title) { color: #24424a; }
+.customer-detail-shell :is(button,.btn) { border-radius: 11px; }
+.customer-detail-shell .btn-primary { background: #117a6e; color: white; }
+.customer-detail-shell .btn-outline { border-color: #cde3de; color: #0e7469; background: #fff; }
+.customer-detail-shell :is(input,select,textarea) { border-radius: 10px; }
+.customer-detail-shell .form label { color: #41616c; font-weight: 650; }
+.customer-detail-shell :is(.booking-detail-page,.caregiver-profile-page) { padding-top: 30px; }
+
+/* Calm unified typography, color balance and white-space across customer browsing. */
+.customer-discovery-shell {
+  --theme-text: #203b46;
+  --theme-text-muted: #657d83;
+  --theme-help: #08786e;
+}
+.customer-discovery-shell .app-card { max-width: 1250px; background: rgba(255,255,255,.97); }
+.customer-discovery-shell .browse-list { border: 0; box-shadow: none; padding: clamp(20px,2.7vw,32px); }
+.customer-discovery-shell .browse-list__heading h2 { color: #1c3745; font-size: clamp(26px,3vw,38px); letter-spacing: -.05em; }
+.customer-discovery-shell .browse-filter-panel { border-radius: 18px; }
+.customer-discovery-shell .browse-caregiver-card { border: 1px solid #e2eae7; border-radius: 19px; padding: 22px; }
+.customer-discovery-shell .browse-caregiver-card__name-row h3 { color: #203943; font-size: 17px; }
+.customer-discovery-shell .browse-caregiver-card__avatar { border-radius: 15px; width: 56px; height: 56px; }
+.customer-discovery-shell .browse-caregiver-card__stats { background: #f7faf9; border-radius: 11px; }
+.customer-discovery-shell .browse-card-action { border-radius: 11px; min-height: 42px; }
+
+/* Customer's booking overview has actual booking statuses, not visual guesses. */
+.dashboard-shell--customer .customer-booking-card { padding: 24px !important; }
+.customer-bookings__status-tabs { display: flex; gap: 7px; flex-wrap: wrap; padding: 6px; border: 1px solid #dfebe7; border-radius: 14px; background: #f4f8f6; }
+.customer-bookings__status-tab { display: flex; align-items: center; gap: 7px; border: 0; border-radius: 10px; padding: 10px 14px; background: none; font: inherit; font-size: 12px; font-weight: 700; color: #647e83; cursor: pointer; transition: background .2s ease,color .2s ease; }
+.customer-bookings__status-tab:hover { background: #e7f2ed; color: #0d6f65; }
+.customer-bookings__status-tab.is-active { background: #fff; color: #0c736a; box-shadow: 0 3px 10px rgba(28,74,72,.07); }
+.customer-bookings__status-tab span { display: inline-grid; place-items: center; min-width: 21px; height: 21px; padding: 2px 5px; border-radius: 7px; background: #e7f2ee; color: #347c71; font-size: 10px; font-variant-numeric: tabular-nums; }
+.customer-bookings__status-tab.is-active span { background: #dff3e9; }
+.customer-bookings__status-tab:focus-visible { outline: 3px solid #109281; outline-offset: 2px; }
+.customer-bookings__filters-heading { display: flex; align-items: center; justify-content: space-between; margin-top: 1px; }
+.customer-bookings__filters-heading h3 { font-size: 15px; color: #29484f; margin: 0; }
+.customer-bookings__filters-heading p { margin: 0; color: #738990; font-size: 12px; }
+.customer-bookings__status-tab--active { color: #0f7c72; }
+
+.header--user,
+.header--caregiver,
+.header--superadmin { background: rgba(255,255,255,.98); border-bottom-color: #e5eeed; box-shadow: 0 3px 19px rgba(29,68,75,.035); }
+.header--user .header-logo-text,
+.header--caregiver .header-logo-text,
+.header--superadmin .header-logo-text { color: #1d544f; }
+.header--user .header-user-button,
+.header--caregiver .header-user-button,
+.header--superadmin .header-user-button { border-radius: 999px; padding: 8px 13px; border-color: #e0ebe7; background: #fff; }
+.header--user .header-user-role,
+.header--caregiver .header-user-role,
+.header--superadmin .header-user-role { border-radius: 999px; background: #e6f4ed; color: #0e7469; }
+.header--user .header-dropdown,
+.header--caregiver .header-dropdown,
+.header--superadmin .header-dropdown { border-radius: 16px; box-shadow: 0 18px 44px rgba(22,65,72,.10); border-color: #e0ebe8; overflow: hidden; }
+.header--user .dropdown-item:hover,
+.header--caregiver .dropdown-item:hover,
+.header--superadmin .dropdown-item:hover { background: #eff8f4; color: #08786d; }
+@media (max-width: 1100px) {
+  .sewak-workspace { grid-template-columns: 205px minmax(0,1fr); }
+  .sewak-workspace__content { padding: 25px; }
+  .sewak-workspace__sidebar { padding: 20px 9px; }
+  .dashboard-shell--caregiver .caregiver-day-overview { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 800px) {
+  .dashboard-shell--caregiver,.dashboard-shell--admin { padding: 12px 10px 96px; }
+  .sewak-workspace { display: block; border-radius: 19px; overflow: hidden; }
+  .sewak-workspace__sidebar { display: block; border-right: none; border-bottom: 1px solid #e4ebe9; padding: 12px 12px 8px; }
+  .sewak-workspace__identity { display: none; }
+  .sewak-workspace__nav-heading, .sewak-workspace__sidebar-foot { display: none; }
+  .sewak-workspace__nav { display: flex; gap: 5px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+  .sewak-workspace__nav-item { flex: 0 0 auto; width: auto; min-height: 40px; padding: 8px 12px; white-space: nowrap; font-size: 12px; gap: 7px; }
+  .sewak-workspace__nav-item:hover { transform: none; }
+  .sewak-workspace__nav-item svg { width: 17px; height: 17px; }
+  .sewak-workspace__content { padding: 20px; }
+  .sewak-workspace__intro { align-items: flex-start; gap: 10px; }
+  .sewak-workspace__intro-status { display: none; }
+}
+@media (max-width: 520px) {
+  .sewak-workspace__content { padding: 15px; }
+  .sewak-workspace__intro { margin-bottom: 20px; }
+  .sewak-workspace__intro h1 { font-size: 26px; }
+  .sewak-workspace__intro p:last-child { font-size: 12px; }
+  .dashboard-shell--caregiver .caregiver-day-overview { gap: 9px; }
+  .dashboard-shell--caregiver .caregiver-day-overview > div { padding: 13px; border-radius: 13px; }
+  .dashboard-shell--caregiver .caregiver-day-overview > div strong { font-size: 21px; }
+  .dashboard-shell--admin .dashboard-action-card { padding: 16px !important; }
+  .customer-bookings__status-tabs { flex-wrap: nowrap; overflow-x: auto; padding: 5px; }
+  .customer-bookings__status-tab { flex: 0 0 auto; padding: 9px 12px; }
+  .dashboard-shell--customer .customer-booking-card { padding: 16px !important; }
+  .customer-detail-shell .app-card { padding: 18px; border-radius: 16px; }
+  .customer-detail-shell :is(.booking-detail-page,.caregiver-profile-page) { padding: 18px 12px 110px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sewak-workspace__nav-item, .dashboard-shell--admin .dashboard-action-card,
+  .customer-bookings__status-tab, .dashboard-shell--caregiver .btn,
+  .dashboard-shell--admin .btn { transition: none !important; }
+  .sewak-workspace__nav-item:hover, .dashboard-shell--admin .dashboard-action-card:hover { transform: none; }
+}
