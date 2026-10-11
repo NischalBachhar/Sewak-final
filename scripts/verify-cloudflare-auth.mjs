@@ -7,6 +7,7 @@ import {openTarget} from './d1-target.mjs';
 import {cloudflare} from './cloudflare-operator.mjs';
 import {assertLiveBindings} from './deployment-policy.mjs';
 import {entities} from '../worker/src/model.mjs';
+import { qaFailureDetail } from './qa-failure-detail.mjs';
 const worker=process.argv[process.argv.indexOf('--worker')+1];
 assert.ok(['sewak','sewak-final'].includes(worker),'Exact Sewak Worker required');
 assert.ok(process.argv.includes('--apply-synthetic-qa'),'Explicit synthetic auth QA flag required');
@@ -28,7 +29,9 @@ async function request(path,{body,headers={},method=body?'POST':'GET',expected=2
  report.activeRequest={label,method,path,startedAt:new Date().toISOString()};
  const r=await fetch(origin+path,{method,headers:{...(body?{'Content-Type':'application/json'}:{}),...headers},...(body?{body:JSON.stringify(body)}:{}),redirect:'error',signal:AbortSignal.timeout(45000)});
  const data=r.headers.get('Content-Type')?.startsWith('application/json')?await r.json():Buffer.from(await r.arrayBuffer());
- checks.push({label,status:r.status});delete report.activeRequest;assert.equal(r.status,expected,`${label}: HTTP ${r.status} ${data?.error?.code||''}`);return {r,data};
+ checks.push({label,status:r.status});delete report.activeRequest;
+ assert.equal(r.status,expected,qaFailureDetail({label,status:r.status,error:data?.error,password}));
+ return {r,data};
 }
 const authorization=u=>({Authorization:'Bearer '+u.token});
 try{
