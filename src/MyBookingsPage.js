@@ -116,23 +116,32 @@ export default function MyBookingsPage() {
         </section>
       )}
 
-      {/* Filters */}
-      <div className="row customer-booking-filters" style={{ marginBottom: 12 }}>
-        <div className="col">
-          <label>Booking Status</label>
-          <select
-            className="dropdown-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+      <nav className="customer-bookings__status-tabs" aria-label="Booking status filters">
+        {[
+          { value: "", label: "All bookings" },
+          { value: "pending", label: "Pending" },
+          { value: "accepted", label: "Accepted" },
+          { value: "in_progress", label: "In progress" },
+          { value: "completed", label: "Completed" },
+          { value: "cancelled", label: "Cancelled" },
+        ].map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            className={"customer-bookings__status-tab" + (statusFilter === value ? " is-active" : "")}
+            aria-pressed={statusFilter === value}
+            onClick={() => setStatusFilter(value)}
           >
-            <option value="">All bookings</option>
-            <option value="pending">Pending</option>
-            <option value="accepted">Accepted</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-
+            {label}
+            <span>{value ? bookings.filter((booking) => booking.status === value).length : bookings.length}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="customer-bookings__filters-heading">
+        <h3>Care requests</h3>
+        <p role="status">{filtered.length} {filtered.length === 1 ? "booking" : "bookings"} shown</p>
+      </div>
+      <div className="row customer-booking-filters" style={{ marginBottom: 12 }}>
         <div className="col">
           <label>Payment Status</label>
           <select
