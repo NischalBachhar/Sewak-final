@@ -1,0 +1,39 @@
+name: Customer web UI checks
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/customer-web-ui.yml"
+  push:
+    branches:
+      - "feature/customer-experience-refresh-20261011"
+    paths:
+      - "src/**"
+      - ".github/workflows/customer-web-ui.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  web-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.1"
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Unit tests
+        run: npm run test:unit -- --passWithNoTests
+      - name: Production React build
+        run: npm run build
+        env:
+          CI: "true"

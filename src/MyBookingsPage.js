@@ -79,8 +79,17 @@ export default function MyBookingsPage() {
   const completedCount = bookings.filter((b) => b.status === "completed").length;
 
   return (
-    <div>
-      <h2 className="section-title section-title--compact">My Bookings</h2>
+    <div className="customer-bookings">
+      <div className="customer-bookings__heading">
+        <div>
+          <p className="customer-bookings__eyebrow">Your care, organized</p>
+          <h2 className="section-title section-title--compact">My Bookings</h2>
+          <p className="customer-bookings__subtitle">Follow every care request, visit and payment in one place.</p>
+        </div>
+        <button type="button" className="customer-action customer-action--primary customer-bookings__find-btn" onClick={() => navigate("/user")}>
+          Find care <span aria-hidden="true">→</span>
+        </button>
+      </div>
       {stale && <p role="status">Showing cached bookings. Reconnect for current status.</p>}
       {completionNotification && (
         <div
@@ -96,44 +105,19 @@ export default function MyBookingsPage() {
           {completionNotification}
         </div>
       )}
-      <p style={{ fontSize: 13, color: "var(--theme-text-muted)", marginTop: -4, marginBottom: 12 }}>
-        Track your service bookings and payments
-      </p>
 
-      {/* Summary Cards */}
+      {/* Financial totals reflect recorded payment status, not care completion. */}
       {bookings.length > 0 && (
-        <div className="card" style={{ marginBottom: 16, background: "var(--theme-surface)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Total Bookings</p>
-              <p style={{ fontSize: 20, color: "var(--theme-help)", fontWeight: "bold", margin: 0 }}>
-                {bookings.length}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Completed</p>
-              <p style={{ fontSize: 20, color: "var(--theme-positive)", fontWeight: "bold", margin: 0 }}>
-                {completedCount}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Total Spent</p>
-              <p style={{ fontSize: 20, color: "var(--theme-positive)", fontWeight: "bold", margin: 0 }}>
-                {formatNpr(totalSpent, "NPR 0")}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Pending</p>
-              <p style={{ fontSize: 20, color: "var(--theme-warning)", fontWeight: "bold", margin: 0 }}>
-                {bookings.filter((b) => b.status === "pending").length}
-              </p>
-            </div>
-          </div>
-        </div>
+        <section className="customer-booking-stats" aria-label="Booking overview">
+          <div className="customer-booking-stats__card"><small>Total bookings</small><strong>{bookings.length}</strong></div>
+          <div className="customer-booking-stats__card"><small>Care completed</small><strong>{completedCount}</strong></div>
+          <div className="customer-booking-stats__card"><small>Confirmed paid</small><strong>{formatNpr(totalSpent, "NPR 0")}</strong></div>
+          <div className="customer-booking-stats__card"><small>Awaiting acceptance</small><strong>{bookings.filter((b) => b.status === "pending").length}</strong></div>
+        </section>
       )}
 
       {/* Filters */}
-      <div className="row" style={{ marginBottom: 12 }}>
+      <div className="row customer-booking-filters" style={{ marginBottom: 12 }}>
         <div className="col">
           <label>Booking Status</label>
           <select
@@ -178,7 +162,7 @@ export default function MyBookingsPage() {
         </div>
       ) : (
         filtered.map((b) => (
-          <div key={b.id} className="card" style={{ marginBottom: 12 }}>
+          <div key={b.id} className="card customer-booking-card" style={{ marginBottom: 12 }}>
             {/* Header */}
             <div
               style={{
@@ -190,7 +174,7 @@ export default function MyBookingsPage() {
               }}
             >
               <div>
-                <strong style={{ fontSize: 16, color: "var(--theme-text)" }}>
+                <strong className="customer-booking-card__name" style={{ fontSize: 16, color: "var(--theme-text)" }}>
                   {b.caregiverName || "Caregiver"}
                 </strong>
                 <div style={{ fontSize: 12, color: "var(--theme-text-muted)", marginTop: 4 }}>
@@ -231,7 +215,7 @@ export default function MyBookingsPage() {
             </div>
 
             {/* Details */}
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--theme-text)" }}>
+            <div className="customer-booking-card__details" style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--theme-text)" }}>
               <p style={{ fontSize: 13, color: "var(--theme-text)", marginBottom: 6 }}>
                 <strong>📅 Date:</strong> {b.date || "Not specified"}
               </p>
@@ -249,12 +233,13 @@ export default function MyBookingsPage() {
             {/* Work Type */}
             <div style={{ marginTop: 10 }}>
               <p style={{ fontSize: 13, color: "var(--theme-text-muted)", marginBottom: 4 }}>
-                <strong>Work Type:</strong> {b.caregiverWorkType === "fulltime" ? "💼 Full Time" : "⏰ Part Time"}
+                <strong>Caregiver availability:</strong> {b.caregiverWorkType === "fulltime" ? "Full time" : b.caregiverWorkType === "parttime" ? "Part time" : "Not specified"}
               </p>
             </div>
 
             {/* Payment Card */}
             <div
+              className="customer-booking-card__payment"
               style={{
                 marginTop: 12,
                 paddingTop: 12,
@@ -291,6 +276,7 @@ export default function MyBookingsPage() {
             {/* Notes */}
             {b.notes && (
               <p
+                className="customer-booking-card__notes"
                 style={{
                   fontSize: 13,
                   color: "var(--theme-text-muted)",
@@ -315,14 +301,14 @@ export default function MyBookingsPage() {
             </p>
 
             {/* Actions */}
-            <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+            <div className="customer-booking-card__actions" style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
               <button
                 type="button"
                 className="btn btn-outline"
                 onClick={() => navigate(`/user/bookings/${b.id}`)}
                 style={{ flex: 1 }}
               >
-                View details
+                {b.status === "completed" ? "Details & review" : "View details"}
               </button>
               {b.status === "pending" && (
                 <>
@@ -373,81 +359,25 @@ export default function MyBookingsPage() {
         ))
       )}
 
-      {/* Summary Card */}
       {bookings.length > 0 && (
-        <div
-          className="card"
-          style={{
-            marginTop: 20,
-            background: "var(--theme-surface)",
-            paddingTop: 14,
-            paddingBottom: 14,
-          }}
-        >
-          <p style={{ fontSize: 14, color: "var(--theme-text)", marginBottom: 10 }}>
-            <strong>📊 Your Booking Summary</strong>
-          </p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-              gap: 12,
-            }}
-          >
-            <div>
-              <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Total bookings</p>
-              <p style={{ fontSize: 18, color: "var(--theme-help)", fontWeight: "600", margin: 0 }}>
-                {bookings.length}
-              </p>
+        <section className="customer-panel customer-bookings__payment-overview" aria-label="Payment overview">
+          <div className="customer-panel__heading">
+            <div><p className="customer-eyebrow">Payment transparency</p><h2>Payment overview</h2></div>
+          </div>
+          <div className="customer-booking-stats">
+            <div className="customer-booking-stats__card">
+              <small>Paid via Fonepay</small>
+              <strong>{formatNpr(bookings.filter((b) => b.paymentMethod === "fonepay" && b.paymentStatus === "paid").reduce((sum, b) => sum + (b.amountPaid || b.totalAmount || 0), 0), "NPR 0")}</strong>
             </div>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Completed</p>
-              <p style={{ fontSize: 18, color: "var(--theme-positive)", fontWeight: "600", margin: 0 }}>
-                {bookings.filter((b) => b.status === "completed").length}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Pending</p>
-              <p style={{ fontSize: 18, color: "var(--theme-warning)", fontWeight: "600", margin: 0 }}>
-                {bookings.filter((b) => b.status === "pending").length}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Total spent</p>
-              <p style={{ fontSize: 18, color: "var(--theme-help)", fontWeight: "600", margin: 0 }}>
-                {formatNpr(
-                  bookings
-                    .filter((b) => b.paymentStatus === "paid" || b.status === "completed")
-                    .reduce((sum, b) => sum + (b.totalAmount || b.amountPaid || 0), 0),
-                  "NPR 0",
-                )}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Paid via Fonepay</p>
-              <p style={{ fontSize: 18, color: "var(--theme-positive)", fontWeight: "600", margin: 0 }}>
-                {formatNpr(
-                  bookings
-                    .filter((b) => b.paymentMethod === "fonepay" && b.paymentStatus === "paid")
-                    .reduce((sum, b) => sum + (b.amountPaid || 0), 0),
-                  "NPR 0",
-                )}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--theme-text-muted)", margin: 0 }}>Cash pending</p>
-              <p style={{ fontSize: 18, color: "var(--theme-warning)", fontWeight: "600", margin: 0 }}>
-                {formatNpr(
-                  bookings
-                    .filter((b) => b.paymentMethod === "cash" && b.paymentStatus === "pending")
-                    .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
-                  "NPR 0",
-                )}
-              </p>
+            <div className="customer-booking-stats__card">
+              <small>Cash awaiting confirmation</small>
+              <strong>{formatNpr(bookings.filter((b) => b.paymentMethod === "cash" && b.paymentStatus === "pending").reduce((sum, b) => sum + (b.totalAmount || 0), 0), "NPR 0")}</strong>
             </div>
           </div>
-        </div>
+          <p className="customer-bookings__subtitle">Completed care and confirmed payment are tracked separately.</p>
+        </section>
       )}
+
     </div>
   );
 }

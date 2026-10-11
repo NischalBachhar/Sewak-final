@@ -858,6 +858,10 @@ export default function CaregiverListPage({
               />
             </div>
 
+          </div>
+          <details className="browse-advanced-filters">
+            <summary>More filters <span aria-hidden="true">⌄</span></summary>
+            <div className="browse-advanced-filters__grid">
             <div className="browse-filter-field">
               <label htmlFor="browse-experience-filter">Experience</label>
               <select id="browse-experience-filter" value={minimumExperience} onChange={(event) => setMinimumExperience(event.target.value)}>
@@ -903,7 +907,9 @@ export default function CaregiverListPage({
                 </select>
               </div>
             )}
-          </div>
+            </div>
+          </details>
+
 
           {activeFilters.length > 0 && (
             <div className="browse-active-filters">
@@ -930,7 +936,7 @@ export default function CaregiverListPage({
                 </div>
               </div>
             )}
-            <div className="browse-caregiver-grid">
+            <div className={"browse-caregiver-grid" + (filtered.length === 1 ? " browse-caregiver-grid--single" : "")}>
               {[...featured, ...regular].map((caregiver) => (
                 <BrowseCaregiverCard
                   key={caregiver.id}
