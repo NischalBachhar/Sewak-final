@@ -3521,7 +3521,7 @@ export default function AdminDashboardPage() {
               <h3 style={{ color: "var(--theme-help)" }}>
                 Rs. {analytics.totalRevenue.toFixed(2)}
               </h3>
-              <p>Total Revenue</p>
+              <p>Completed booking value</p>
             </div>
             <div
               style={{
@@ -3535,7 +3535,7 @@ export default function AdminDashboardPage() {
               <h3 style={{ color: "var(--theme-text-muted)" }}>
                 Rs. {analytics.platformEarnings.toFixed(2)}
               </h3>
-              <p>Platform Earnings</p>
+              <p>Recorded platform commission</p>
             </div>
           </div>
 
