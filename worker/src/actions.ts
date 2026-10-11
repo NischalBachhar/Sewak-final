@@ -86,7 +86,7 @@ async function blockAccount(repo: Repository, actor: Actor | null, input: Data) 
     requireThat(target.isApproved !== true && !target.isSuspended && !target.isBlacklisted, 'Only pending organizations can be rejected.', 409, 'failed-precondition');
   }
   requireThat(input.targetType !== 'customer' || !profile?.role || profile.role === 'user', 'This target is not a customer.');
-  const now = nowISO(), block = { isSuspended: true, isBlacklisted: true, blacklistReason: reason, blacklistedAt: now, blacklistedBy: user.uid, updatedAt: now };
+  const now = nowISO(), block: Data = { isSuspended: true, isBlacklisted: true, blacklistReason: reason, blacklistedAt: now, blacklistedBy: user.uid, updatedAt: now };
   if (input.targetType === 'organization') block['reviewStatus'] = input.disposition === 'rejected' ? 'rejected' : 'blacklisted';
   const byPath = new Map<string, Write>();
   byPath.set(path, { path, data: { ...target!, ...block, ...(input.targetType !== 'customer' ? { isApproved: false } : {}) } });
