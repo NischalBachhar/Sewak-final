@@ -20,6 +20,8 @@ jobs:
           const origin = 'https://sewak-final.nischalbachhar9.workers.dev';
           const cases = [
             {name:'health',path:'/api/health'},
+            {name:'auth-me-anonymous',path:'/api/auth/me'},
+            {name:'auth-me-invalid-cookie',path:'/api/auth/me',headers:{Cookie:'__Host-sewak_session=swk_'+'0'.repeat(43)}},
             {name:'caregiver-directory',path:'/api/query',body:{
               path:'publicCaregivers',
               search:{text:'',category:'',serviceId:'',workType:'',shift:'',location:'',minimumExperience:0,minimumRating:0,verifiedOnly:false},
@@ -32,7 +34,7 @@ jobs:
             try {
               const response=await fetch(origin+item.path,{
                 method:item.body?'POST':'GET',
-                headers:item.body?{'Content-Type':'application/json'}:{},
+                headers:{...(item.body?{'Content-Type':'application/json'}:{}),...(item.headers||{})},
                 ...(item.body?{body:JSON.stringify(item.body)}:{}),
                 redirect:'error',
                 signal:AbortSignal.timeout(15000),
@@ -44,10 +46,15 @@ jobs:
                 healthy:item.name==='health'?result?.healthy===true:undefined,
                 writesEnabled:item.name==='health'?result?.writesEnabled:undefined,
                 auth:item.name==='health'?result?.auth:undefined,
-                count:item.name==='health'?undefined:Array.isArray(result?.items)?result.items.length:null,
+                accountVisible:item.name.startsWith('auth-me')?result?.user!==null:undefined,
+                count:item.name==='health'||item.name.startsWith('auth-me')?undefined:Array.isArray(result?.items)?result.items.length:null,
               };
               console.log(JSON.stringify(entry));
-              if (!response.ok || (item.name==='health'&&result?.healthy!==true) || (item.name!=='health'&&!Array.isArray(result?.items))) failures++;
+              const expectedStatus=item.name==='auth-me-invalid-cookie'?401:200;
+              if (response.status!==expectedStatus ||
+                  (item.name==='health'&&result?.healthy!==true) ||
+                  (item.name==='auth-me-anonymous'&&result?.user!==null) ||
+                  (!['health','auth-me-anonymous','auth-me-invalid-cookie'].includes(item.name)&&!Array.isArray(result?.items))) failures++;
             } catch (error) {
               failures++;
               console.log(JSON.stringify({check:item.name,status:'network-error',reason:error.name||'Error'}));
