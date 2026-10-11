@@ -1,8 +1,8 @@
-import React, { lazy, useEffect, useRef, useState } from "react";
+import AccountEmailPage from './AccountEmailPage';
+import React, { lazy, useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { signOut } from "./authClient";
 import AccountSetupPage from "./AccountSetupPage";
-import useCustomerBookings from "./useCustomerBookings";
 import NotFound from "./components/NotFound";
 import { useAuth } from "./AuthContext";
 import AuthPage from "./AuthPage";
@@ -38,21 +38,7 @@ function App() {
   const [userCategory, setUserCategory] = useState("");
   const [userWorkType, setUserWorkType] = useState("");
   const [userShift, setUserShift] = useState("");
-  const customerBookings = useCustomerBookings(userRole === "user" ? user?.uid : null);
-  const [notificationCount, setNotificationCount] = useState(0);
-  const bookingsSnapshotRef = useRef([]);
-  const bookingsInitialLoadRef = useRef(true);
-  const seenCompletedIdsRef = useRef([]);
   const navigate = useNavigate();
-
-  const parseSavedIds = (value) => {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -66,62 +52,10 @@ function App() {
     navigate("/user");
   };
 
-  const handleMyBookings = () => {
-    const currentCompletedIds = bookingsSnapshotRef.current
-      .filter((booking) => booking.status === "completed")
-      .map((booking) => booking.id);
-
-    if (user?.uid) {
-      const storageKey = `seenCompletedBookings_${user.uid}`;
-      const stored = localStorage.getItem(storageKey);
-      const storedIds = parseSavedIds(stored);
-      const mergedIds = Array.from(
-        new Set([...(storedIds || []), ...currentCompletedIds])
-      );
-      localStorage.setItem(storageKey, JSON.stringify(mergedIds));
-      seenCompletedIdsRef.current = mergedIds;
-    }
-
-    setNotificationCount(0);
-    navigate("/user/mybookings");
-  };
+  const handleMyBookings = () => navigate("/user/mybookings");
 
   useEffect(() => {
-    if (!user || userRole !== "user") return undefined;
-
-    const storageKey = `seenCompletedBookings_${user.uid}`;
-    const stored = localStorage.getItem(storageKey);
-    seenCompletedIdsRef.current = parseSavedIds(stored);
-
-    if (customerBookings.loading || customerBookings.error) return undefined;
-    const bookings = customerBookings.bookings;
-      const currentCompletedIds = bookings
-        .filter((booking) => booking.status === "completed")
-        .map((booking) => booking.id);
-      const unseenCompleted = currentCompletedIds.filter(
-        (id) => !seenCompletedIdsRef.current.includes(id)
-      );
-
-      if (!bookingsInitialLoadRef.current) {
-        setNotificationCount(unseenCompleted.length);
-      } else if (stored) {
-        setNotificationCount(unseenCompleted.length);
-      } else {
-        setNotificationCount(0);
-        seenCompletedIdsRef.current = currentCompletedIds;
-        localStorage.setItem(storageKey, JSON.stringify(currentCompletedIds));
-      }
-
-      bookingsSnapshotRef.current = bookings;
-      bookingsInitialLoadRef.current = false;
-  }, [user, userRole, customerBookings]);
-
-  useEffect(() => {
-    setNotificationCount(0); bookingsSnapshotRef.current = []; bookingsInitialLoadRef.current = true; seenCompletedIdsRef.current = [];
-  }, [user?.uid]);
-
-  useEffect(() => {
-    if (!user || !userRole || registrationPending) return;
+    if (!user || !userRole || registrationPending || user.emailVerified === false) return;
 
     const path = window.location.pathname;
 
@@ -149,7 +83,7 @@ function App() {
   }, [user, userRole, userDoc?.profileComplete, navigate, registrationPending]);
 
   useEffect(() => {
-    if (!user || userRole !== "user" || !userDoc?.profileComplete) return;
+    if (!user || userRole !== "user" || !userDoc?.profileComplete || user.emailVerified === false) return;
 
     try {
       const caregiverId = localStorage.getItem("pendingBookingCaregiverId");
@@ -171,6 +105,8 @@ function App() {
     }
   }, [user, userRole, userDoc?.profileComplete, navigate]);
 
+  if (["/account/forgot","/account/reset","/account/verify"].includes(window.location.pathname)) return <AccountEmailPage />;
+  if (user?.emailVerified === false && userRole !== "superadmin") return <AccountEmailPage pending />;
   if (window.location.pathname === "/account/setup") return <AccountSetupPage />;
   if (registrationPending || userDoc?.registrationIncomplete || (!user && window.location.pathname === "/auth")) return <AuthPage />;
 
@@ -288,7 +224,6 @@ function App() {
           userDoc={userDoc}
           onLogout={handleLogout}
           onBrowseCaregivers={handleBrowseCaregivers}
-          notificationCount={notificationCount}
         />
         <Routes>
           <Route path="/user/profile" element={<UserProfilePage />} />
@@ -307,7 +242,6 @@ function App() {
           userDoc={userDoc}
           onLogout={handleLogout}
           onBrowseCaregivers={handleBrowseCaregivers}
-          notificationCount={notificationCount}
         />
         <Routes>
           <Route
@@ -332,7 +266,6 @@ function App() {
         onLogout={handleLogout}
         onBrowseCaregivers={handleBrowseCaregivers}
         onMyBookings={handleMyBookings}
-        notificationCount={notificationCount}
       />
       <Routes>
         <Route path="/payment-callback" element={<PaymentCallbackPage />} />

@@ -218,3 +218,8 @@
     max-width: 60px;
   }
 }
+@media (max-width: 360px) {
+  .header-logo { gap: 6px; }
+  .header-user-button { gap: 6px; padding-inline: 7px; }
+  .header-user-name { max-width: 48px; }
+}

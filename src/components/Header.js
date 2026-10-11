@@ -1,9 +1,11 @@
+import NotificationCenter from './NotificationCenter';
+import ExternalForms from './ExternalForms';
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logoSvg from "../logoSewak.jpeg";
 import "./Header.css";
 
-export default function Header({ user, userRole, userDoc, onLogout, onBrowseCaregivers, onMyBookings, notificationCount }) {
+export default function Header({ user, userRole, userDoc, onLogout, onBrowseCaregivers, onMyBookings }) {
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
@@ -86,6 +88,7 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
           <span className="header-logo-text">Sewak</span>
         </button>
 
+        <NotificationCenter key={user.uid} uid={user.uid} />
         {/* User Menu */}
         <div className="header-menu" ref={menuRef}>
           <button
@@ -99,21 +102,6 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
             <span className="header-user-avatar">{getRoleIcon(userRole)}</span>
             <span className="header-user-name">{userDoc?.name || user.email}</span>
             <span className="header-user-role">{getRoleLabel(userRole)}</span>
-            {notificationCount > 0 && (
-              <span
-                style={{
-                  marginLeft: 8,
-                  backgroundColor: "var(--theme-danger)",
-                  color: "white",
-                  borderRadius: 999,
-                  padding: "2px 8px",
-                  fontSize: 12,
-                  fontWeight: "bold",
-                }}
-              >
-                {notificationCount}
-              </span>
-            )}
             <span style={{ fontSize: 16, marginLeft: 4 }}>{showMenu ? "▲" : "▼"}</span>
           </button>
 
@@ -177,7 +165,7 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
                         }
                       }}
                     >
-                      📅 My Bookings{notificationCount > 0 ? ` (${notificationCount})` : ""}
+                      📅 My Bookings
                     </button>
                     <button
                       type="button"
@@ -307,6 +295,7 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
 
                 <div className="dropdown-divider"></div>
 
+                <ExternalForms />
                 {/* Logout */}
                 <button type="button" className="dropdown-item logout" onClick={handleLogout}>
                   🚪 Logout

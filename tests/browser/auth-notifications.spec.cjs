@@ -1,0 +1,16 @@
+const {test,expect}=require('./test.cjs');
+const {mail}=require('./d1-fixtures.cjs');
+test('Gmail verification, password reset, token cleanup and pending-account restrictions work in the browser',async({page})=>{
+ const email=`auth.flow.${Date.now()}@gmail.com`;
+ await page.goto('/auth?mode=register');await page.getByLabel('Full name',{exact:true}).fill('Synthetic Recovery');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill('River8!x');await page.getByLabel('Confirm password',{exact:true}).fill('River8!x');await page.getByRole('button',{name:'Sign up',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Verify your Gmail'})).toBeVisible();expect(await page.evaluate(async()=>(await fetch('/api/notifications')).status)).toBe(403);
+ const verification=await mail(email);const link=verification.text.match(/https:\/\/\S+/)[0];await page.goto(link.replace('https://sewak.test','http://127.0.0.1:4173'));await expect(page).toHaveURL(/\/account\/verify$/);await page.getByRole('button',{name:'Verify email',exact:true}).click();await expect(page.getByText(/Your email is verified/)).toBeVisible();
+ await page.getByRole('link',{name:'Return to sign in'}).click();await expect(page.getByRole('button',{name:/Notifications, \d+ unread/})).toBeVisible();
+ await page.getByRole('button',{name:/Notifications,/}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'Notification settings',exact:true}).click();await expect(page.getByText(/To receive Sewak notifications on your iPhone/)).toBeVisible();await expect(page.getByText(/Web Push is not configured/)).toBeVisible();await page.keyboard.press('Escape');
+ await page.goto('/account/forgot');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByRole('button',{name:'Send recovery instructions'}).click();await expect(page.getByRole('status')).toContainText('If this account is eligible');
+ const recovery=await mail(email,'reset');await page.goto(recovery.text.match(/https:\/\/\S+/)[0].replace('https://sewak.test','http://127.0.0.1:4173'));await expect(page).toHaveURL(/\/account\/reset$/);await page.getByLabel('New password',{exact:true}).fill('Fresh123!');await page.getByLabel('Confirm password',{exact:true}).fill('Fresh123!');await page.getByRole('button',{name:'Change password',exact:true}).click();await expect(page.getByRole('status')).toContainText('Password changed');
+ expect(await page.evaluate(async()=>(await (await fetch('/api/auth/me')).json()).user)).toBeNull();await page.reload();await expect(page.getByText(/This link is missing or expired/)).toBeVisible();
+});
+for(const width of [320,390,768])test(`verification and recovery stay accessible at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:850});await page.goto('/account/forgot');await expect(page.getByLabel('Email',{exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.getByLabel('Email',{exact:true}).focus();await page.keyboard.press('Tab');await expect(page.getByRole('button',{name:'Send recovery instructions'})).toBeFocused();
+});

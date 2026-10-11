@@ -11,7 +11,7 @@ const combined = 'Caregiver & Household Staffing Agency';
 const selected = ['catalog_elderly_care', 'catalog_personal_care_assistance', 'catalog_housekeeping', 'catalog_cooking_meal_preparation'];
 const details = { selectedRole: 'orgadmin', organizationName: 'Combined Support', organizationType: combined, businessPhone: '9800000000', businessAddress: 'Test street 12', businessCity: 'Hetauda', servicesOffered: selected };
 async function register(env, extra = {}) {
-  const response = await createWorker().fetch(new Request('http://localhost/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'combined@example.test', password: 'Synthetic-password-2026!', name: 'Combined Owner', sessionMode: 'bearer', ...details, ...extra }) }), env);
+  const response = await createWorker().fetch(new Request('http://localhost/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'combined@gmail.com', password: 'Synthetic-password-2026!', name: 'Combined Owner', sessionMode: 'bearer', ...details, ...extra }) }), env);
   return { status: response.status, data: await response.json() };
 }
 const update = (env, uid, path, data) => call(env, '/api/commit', { uid, method: 'POST', json: { writes: [{ path, kind: 'update', data }] } });
@@ -79,7 +79,7 @@ test('combined type does not auto-assign services and rejects unknown, duplicate
     const env = environment(); await seed(env);
     await put(env, 'services/inactive', { label: 'Inactive Support', category: 'household', isActive: false });
     const result = await register(env, invalid); assert.notEqual(result.status, 200, JSON.stringify(invalid));
-    assert.equal(env.DB.database.prepare("SELECT COUNT(*) n FROM users WHERE email='combined@example.test'").get().n, 0);
+    assert.equal(env.DB.database.prepare("SELECT COUNT(*) n FROM users WHERE email='combined@gmail.com'").get().n, 0);
     assert.equal(env.DB.database.prepare('SELECT COUNT(*) n FROM organization_applications').get().n, 0);
     assert.equal(env.DB.database.prepare('SELECT COUNT(*) n FROM organization_services').get().n, 0);
   }

@@ -1,10 +1,10 @@
 const { test, expect } = require('./test.cjs');
 const { db } = require('./seed.cjs');
 
-async function account(page, email = 'step-layout@example.test') {
+async function account(page, email = 'step.layout@gmail.com') {
   await page.getByLabel('Full name').fill('Synthetic Signup');
   await page.getByLabel('Email', {exact:true}).fill(email);
-  await page.getByLabel('Password', {exact:true}).fill('Local-test-only-123!');
+  await page.getByLabel('Password', {exact:true}).fill('Local-test-only-123!');await page.getByLabel('Confirm password',{exact:true}).fill('Local-test-only-123!');
 }
 async function organization(page) {
   await page.getByLabel('Organization/Company Name').fill('Synthetic Care Organization');
@@ -95,7 +95,7 @@ test('signup keyboard navigation, password visibility and native validation', as
   await page.keyboard.type('Synthetic Customer');
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Email', { exact: true })).toBeFocused();
-  await page.keyboard.type('signup-keyboard@example.test');
+  await page.keyboard.type('signup-keyboard@gmail.com');
   await page.keyboard.press('Tab');
   const password = page.getByLabel('Password', { exact: true });
   await expect(password).toBeFocused();
@@ -108,8 +108,10 @@ test('signup keyboard navigation, password visibility and native validation', as
   await page.keyboard.press('Space');
   await expect(password).toHaveAttribute('type', 'password');
   await expect(password).toHaveAttribute('autocomplete', 'new-password');
-  await expect(password).toHaveAttribute('minlength', '12');
+  await expect(password).toHaveAttribute('minlength', '8');
   await page.keyboard.press('Tab');
+  await expect(page.getByLabel('Confirm password',{exact:true})).toBeFocused();
+  await page.keyboard.type('short');await page.keyboard.press('Tab');
   await expect(page.getByRole('radio', { name: /Customer/ })).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await expect(page.getByRole('radio', { name: /Organization\/Company/ })).toBeChecked();
@@ -120,7 +122,7 @@ test('signup keyboard navigation, password visibility and native validation', as
   await expect(password).toBeFocused();
   expect(await password.evaluate(el => el.validity.tooShort)).toBe(true);
   await expect(password).toHaveAttribute('aria-invalid','true');
-  await expect(page.getByText('Use a password containing 12–128 characters.')).toBeVisible();
+  await expect(page.getByText('Use a password containing 8 to 128 characters.')).toBeVisible();
   await expect(page).toHaveURL(/\/auth/);
 });
 
@@ -138,10 +140,10 @@ for (const [role, name] of [['user', /Customer/], ['orgadmin', /Organization\/Co
       await route.continue();
     });
     await page.goto('/auth?mode=register');
-    const email = `signup-${role}-${Date.now()}@example.test`;
+    const email = `signup.${role}.${Date.now()}@gmail.com`;
     await page.getByLabel('Full name').fill('Synthetic Signup');
     await page.getByLabel('Email', { exact: true }).fill(email);
-    await page.getByLabel('Password', { exact: true }).fill('Local-test-only-123!');
+    await page.getByLabel('Password', { exact: true }).fill('Local-test-only-123!');await page.getByLabel('Confirm password',{exact:true}).fill('Local-test-only-123!');
     await page.getByRole('radio', { name }).check();
     if (role === 'orgadmin') {
       await page.getByRole('button',{name:'Continue',exact:true}).click();
@@ -155,7 +157,7 @@ for (const [role, name] of [['user', /Customer/], ['orgadmin', /Organization\/Co
       await page.getByRole('button',{name:'Continue',exact:true}).click();
       await page.getByLabel('Elderly Care',{exact:true}).check();
     }
-    const completed = page.waitForResponse(response => response.url().endsWith('/api/auth/complete-registration'));
+    const completed = page.waitForResponse(response => response.url().endsWith('/api/auth/register'));
     await page.getByRole('button', { name: role === 'orgadmin' ? 'Submit application' : 'Sign up', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Creating account...' })).toBeDisabled();
     // A repeated activation of the disabled control must not start another registration.
@@ -164,7 +166,9 @@ for (const [role, name] of [['user', /Customer/], ['orgadmin', /Organization\/Co
     releaseRegistration();
     const response = await completed;
     expect(response.status()).toBe(200);
-    expect(response.request().postDataJSON()).toMatchObject({ name: 'Synthetic Signup', selectedRole: role, organizationName: role === 'orgadmin' ? 'Synthetic Care Organization' : '' });
+    await expect(page.getByRole('heading',{name:'Verify your Gmail'})).toBeVisible();
+    const emailBody=await require('./d1-fixtures.cjs').mail(email);const token=new URLSearchParams(emailBody.text.match(/https:\/\/\S+/)[0].split('#')[1]).get('token');
+    const verify=await page.request.post('/api/auth/verify-email',{data:{token}});expect(verify.status()).toBe(200);await page.getByRole('button',{name:'Check verification status'}).click();
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({ email, password: 'Local-test-only-123!', name: 'Synthetic Signup', selectedRole:role });
     await expect(page).toHaveURL(role === 'orgadmin' ? /\/organization\/profile/ : /\/user\/profile/);
@@ -184,8 +188,8 @@ for (const [role, name] of [['user', /Customer/], ['orgadmin', /Organization\/Co
 test('signup retains validation errors and associates them with the form', async ({ page }) => {
   await page.goto('/auth?mode=register');
   await page.getByLabel('Full name').fill('X');
-  await page.getByLabel('Email', { exact: true }).fill('validation@example.test');
-  await page.getByLabel('Password', { exact: true }).fill('Local-test-only-123!');
+  await page.getByLabel('Email', { exact: true }).fill('validation@gmail.com');
+  await page.getByLabel('Password', { exact: true }).fill('Local-test-only-123!');await page.getByLabel('Confirm password',{exact:true}).fill('Local-test-only-123!');
   await page.getByRole('button', { name: 'Sign up', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveText('Check the highlighted fields to continue.');
   await expect(page.getByText('Enter your full name.',{exact:true})).toBeVisible();

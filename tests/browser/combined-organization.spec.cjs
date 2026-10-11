@@ -6,10 +6,11 @@ test.beforeAll(seed);
 for (const width of [320, 1440]) test(`combined organization selects both service categories and persists through admin approval at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 1000 });
   await page.goto('/auth?mode=register');
-  const email = `combined-${width}-${Date.now()}@example.test`, name = `Combined Organization ${width}`;
+  const email = `combined.${width}.${Date.now()}@gmail.com`, name = `Combined Organization ${width}`;
   await page.getByLabel('Full name').fill('Combined Owner');
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill('Local-test-only-123!');
+  if(await page.getByLabel('Confirm password',{exact:true}).count())await page.getByLabel('Confirm password',{exact:true}).fill('Local-test-only-123!');
   await page.getByRole('radio', { name: /Organization\/Company/ }).check();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByLabel('Organization/Company Name').fill(name);
@@ -47,6 +48,7 @@ for (const width of [320, 1440]) test(`combined organization selects both servic
   await page.getByRole('button', { name: 'Submit application', exact: true }).click();
   const services = ['catalog_elderly_care', 'catalog_housekeeping', 'catalog_cooking_meal_preparation'];
   expect((await submitted).postDataJSON()).toMatchObject({ organizationType: combined, servicesOffered: services });
+  await expect(page.getByRole('heading',{name:'Verify your Gmail'})).toBeVisible();const emailBody=await require('./d1-fixtures.cjs').mail(email);const token=new URLSearchParams(emailBody.text.match(/https:\/\/\S+/)[0].split('#')[1]).get('token');expect(await page.evaluate(async token=>(await fetch('/api/auth/verify-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})})).status,token)).toBe(200);await page.getByRole('button',{name:'Check verification status'}).click();
   await expect(page).toHaveURL(/\/organization\/profile/);
   await page.reload();
   await expect(type).toHaveValue(combined);

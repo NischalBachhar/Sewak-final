@@ -13,7 +13,7 @@ test('asset security headers allow Cloudflare sessions without external auth ori
  expect(headers['content-security-policy']).toContain("connect-src 'self';");
  expect(headers['content-security-policy']).not.toMatch(/firebase|googleapis/);
  expect(headers['x-content-type-options']).toBe('nosniff');expect(headers['x-frame-options']).toBe('DENY');
- expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');expect(headers['permissions-policy']).toContain('camera=()');
+ expect(headers['referrer-policy']).toBe('no-referrer');expect(headers['permissions-policy']).toContain('camera=()');
  await signIn(page,'customer');await page.goto('/user/profile');await expect(page.getByRole('button',{name:'Save Profile',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>window.__cspViolations)).toEqual([]);
 });
@@ -57,7 +57,7 @@ test('superadmin profile editor saves a validated profile and supports keyboard 
 test('not-found, direct-link refresh, private metadata and recovery action',async({page})=>{
  await page.goto('/missing-page');await expect(page.getByRole('heading',{name:'Page not found'})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:'Page not found'})).toBeVisible();
  const response=await page.goto('/auth');expect(response.headers()['x-robots-tag']).toContain('noindex');await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content','noindex,nofollow');
- await page.getByLabel('Email',{exact:true}).fill('missing@example.test');await page.getByRole('button',{name:'Forgot password?'}).click();await expect(page.getByText(/Contact your Sewak administrator/)).toBeVisible();
+ await page.getByLabel('Email',{exact:true}).fill('missing@example.test');await page.getByRole('link',{name:'Forgot password?'}).click();await expect(page.getByRole('heading',{name:'Forgot password?'})).toBeVisible();
 });
 
 test('report submission, duplicate retry, private moderator data and safe history agree',async({page})=>{
