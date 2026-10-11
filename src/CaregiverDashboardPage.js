@@ -446,13 +446,6 @@ export default function CaregiverDashboardPage() {
 
       {error && <div className="error-message">{error}</div>}
 
-      <section className="caregiver-day-overview" aria-label="Today's work overview">
-        <div><span>Today's jobs</span><strong>{todaysJobs.length}</strong></div>
-        <div><span>Pending requests</span><strong>{bookings.filter((booking) => booking.status === "pending").length}</strong></div>
-        <div><span>Completed jobs</span><strong>{earnings.completed}</strong></div>
-        <div className="caregiver-day-overview__next"><span>Next job</span><strong>{nextJob ? `${nextJob.userName || "Customer"} · ${nextJob.date || "Schedule pending"}` : "No upcoming job"}</strong></div>
-      </section>
-
       {/* HOME TAB */}
       {activeTab === "home" && (
         <div>
