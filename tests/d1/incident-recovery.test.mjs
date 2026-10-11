@@ -50,5 +50,8 @@ test('operator recovery is explicit, pinned, and does not auto-restore any D1 da
  assert.ok(code.includes("await smoke()"));
  assert.ok(code.includes("'rollback',INCIDENT_VERSION"));
  assert.ok(code.includes("'--message','Revert failed incident repair validation'"));
+ assert.ok(code.includes("'--yes'"),'code-only automatic rollback must not hang at a Wrangler prompt');
+ assert.ok(code.includes('waitForDeploymentReady'),'all readiness assertions remain required');
+ assert.ok(code.includes("stage:phase,category:safeD1Category(error)"),'fixed recovery phases must be logged without raw exceptions');
  assert.doesNotMatch(code,/time_travel\/restore|DELETE FROM|DROP TABLE|UPDATE cf_credentials/);
 });

@@ -12,3 +12,9 @@ The special operator checks the **exact active Worker version**, pinned account 
 6. After full success, manually inspect existing customer/caregiver/organization login, booking, ratings, and responsive layout. Do not assume synthetic QA proves every existing account works. The old Worker code may have produced credential hashes incompatible with the new implementation; if existing-user login fails, diagnose compatibility rather than resetting all accounts.
 
 Never use this exception for another Worker version, database, user account, or failure mode. Cloudflare's normal historical rollout and D1 restore procedures remain separate.
+
+## Deployment readiness
+
+An October 11 attempt uploaded version `9e3b6141-7769-4e78-84cf-72b6343e8998` but failed an immediate post-upload check before synthetic QA. Subsequent read-only probes of that version passed health, anonymous auth, invalid-cookie 401 and public browsing. The reviewed code-only rollback completed. This supports a deployment-readiness race; the original script did not expose the failed phase, so the exact assertion is unconfirmed.
+
+The recovery now waits for a single new version at 100% and passing existing binding/smoke assertions. Only the prior pinned version still appearing in deployment metadata or explicit HTTP 503 smoke responses are retryable, with at most 15 attempts and two-second gaps. Wrong status codes, malformed success payloads, mixed deployments, binding/security failures and full Auth QA failures remain fatal. A persistent 503 still rolls back. Logs contain fixed phase/stage labels and finite categories, never raw exceptions or private request values. Automatic code rollback uses Wrangler's `--yes` so it cannot stall at an additional interactive prompt; the initial recovery authorization prompt remains intact.

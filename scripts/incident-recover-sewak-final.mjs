@@ -13,6 +13,8 @@ import {assertDeploymentConfig,assertLiveBindings,SEWAK_ACCOUNT,targets} from '.
 import {controlledQaGmail} from './synthetic-qa-email.mjs';
 import {openTarget} from './d1-target.mjs';
 import {assertIncidentRecovery,INCIDENT_VERSION} from './incident-recovery-contract.mjs';
+import {DeploymentPending,waitForDeploymentReady} from './deployment-readiness.mjs';
+import {safeD1Category} from '../worker/src/d1-diagnostics.ts';
 
 const argv=process.argv.slice(2),action=argv[0];
 assert.ok(['--prepare','--execute'].includes(action),'Use --prepare or --execute only.');
@@ -67,17 +69,18 @@ async function bookmarks(){
  return values;
 }
 async function smoke(){
+ const status=(stage,actual,expected)=>{if(actual===503)throw new DeploymentPending(stage);assert.equal(actual,expected,'Readiness assertion failed: '+stage);};
  const origin='https://sewak-final.nischalbachhar9.workers.dev';
- const health=await fetch(origin+'/api/health',{cache:'no-store'});
- assert.equal(health.status,200,'New Worker health endpoint failed.');
+ const health=await fetch(origin+'/api/health',{cache:'no-store',signal:AbortSignal.timeout(10000)});
+ status('smoke.health',health.status,200);
  const payload=await health.json();assert.equal(payload.healthy,true);assert.equal(payload.auth,'cloudflare-d1');assert.equal(payload.writesEnabled,true);
- const anonymous=await fetch(origin+'/api/auth/me',{cache:'no-store'});
- assert.equal(anonymous.status,200,'Anonymous auth session endpoint failed.');
+ const anonymous=await fetch(origin+'/api/auth/me',{cache:'no-store',signal:AbortSignal.timeout(10000)});
+ status('smoke.anonymous',anonymous.status,200);
  assert.equal((await anonymous.json()).user,null);
- const expired=await fetch(origin+'/api/auth/me',{headers:{Cookie:'__Host-sewak_session=swk_'+'0'.repeat(43)},cache:'no-store'});
- assert.equal(expired.status,401,'Invalid cookie must return 401 rather than 503.');
- const browse=await fetch(origin+'/api/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'publicCaregivers',search:{text:'',category:'',serviceId:'',workType:'',shift:'',location:'',minimumExperience:0,minimumRating:0,verifiedOnly:false},limit:12})});
- assert.equal(browse.status,200,'Public caregiver search failed.');
+ const expired=await fetch(origin+'/api/auth/me',{headers:{Cookie:'__Host-sewak_session=swk_'+'0'.repeat(43)},cache:'no-store',signal:AbortSignal.timeout(10000)});
+ status('smoke.invalid-cookie',expired.status,401);
+ const browse=await fetch(origin+'/api/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'publicCaregivers',search:{text:'',category:'',serviceId:'',workType:'',shift:'',location:'',minimumExperience:0,minimumRating:0,verifiedOnly:false},limit:12}),signal:AbortSignal.timeout(10000)});
+ status('smoke.browse',browse.status,200);
  assert.ok(Array.isArray((await browse.json()).items),'Caregiver search response malformed.');
 }
 await liveVersion();
@@ -116,7 +119,7 @@ const answer=await readline.question('To authorize a one-time production repair,
 readline.close();
 assert.equal(answer,'RECOVER sewak-final 750f1bb7','Operator did not confirm the incident recovery.');
 console.log('Starting one-time version-pinned repair; original Worker version and D1 bookmarks are recorded locally.');
-let uploaded=false;
+let uploaded=false,phase='upload';
 try{
  const runner=spawnSync(process.execPath,['worker/node_modules/wrangler/bin/wrangler.js','deploy','--config','wrangler.production.toml'],{
    stdio:'inherit',env:{...process.env,WRANGLER_SEND_METRICS:'false',SEWAK_REVIEWED_TARGET:'sewak-final'}
@@ -131,14 +134,23 @@ try{
    throw new Error('Worker upload failed. Inspect actual live state; never retry blindly.');
  }
  uploaded=true;
- const dep=(await cloudflare(root+'/deployments')).deployments[0];
- assert.ok(dep.versions.length===1&&dep.versions[0].percentage===100&&dep.versions[0].version_id!==INCIDENT_VERSION,'Expected newly deployed 100% Worker version.');
- const version=dep.versions[0].version_id;
- assertLiveBindings('sewak-final',(await cloudflare(root+'/settings')).bindings,true);
- assertLiveBindings('sewak-final',(await cloudflare(root+'/versions/'+version)).resources.bindings,true);
- await smoke();
+ const version=await waitForDeploymentReady(async()=>{
+  phase='deployment.activation';
+  const dep=(await cloudflare(root+'/deployments')).deployments[0];
+  assert.ok(dep.versions.length===1&&dep.versions[0].percentage===100,'Expected one 100% Worker version.');
+  if(dep.versions[0].version_id===INCIDENT_VERSION)throw new DeploymentPending(phase);
+  const version=dep.versions[0].version_id;
+  phase='deployment.bindings';
+  assertLiveBindings('sewak-final',(await cloudflare(root+'/settings')).bindings,true);
+  assertLiveBindings('sewak-final',(await cloudflare(root+'/versions/'+version)).resources.bindings,true);
+  phase='deployment.smoke';
+  await smoke();
+  return version;
+ },{onPending:details=>console.log('Waiting for new Worker readiness',details)});
+ phase='verification.d1';
  run(process.execPath,['scripts/verify-cloudflare-data.mjs']);
  const before=new Set(existsSync(outdir)?readdirSync(outdir):[]);
+ phase='verification.auth-qa';
  const result=spawnSync(process.execPath,['scripts/verify-cloudflare-auth.mjs','--worker','sewak-final','--apply-synthetic-qa','--verify-write-enabled-production'],{stdio:'inherit',env:process.env});
  const after=existsSync(outdir)?readdirSync(outdir).filter(name=>/^sewak-final-qa-.*\.json$/.test(name)&&!before.has(name)):[];
  assert.equal(after.length,1,'Expected one newly generated production Auth QA report.');
@@ -146,10 +158,11 @@ try{
  assert.ok(result.status===0&&qa.pass===true&&qa.cleanupVerified===true&&qa.applicationRecordsUnchanged===true&&qa.version===version,'Production Auth QA must pass with verified cleanup and exact new version.');
  console.log(JSON.stringify({recovered:true,worker:'sewak-final',version,authQaPassed:true,cleanupVerified:true}));
 }catch(error){
+ console.error('Incident recovery check failed',{stage:phase,category:safeD1Category(error)});
  // Roll back Worker code only. Never restore D1 automatically or delete customer data.
  if(uploaded) {
   console.error('Post-deployment verification failed; attempting Worker-code rollback to the pinned prior version. Database records are not restored or modified by rollback.');
-  const previous=spawnSync(process.execPath,['worker/node_modules/wrangler/bin/wrangler.js','rollback',INCIDENT_VERSION,'--config','wrangler.production.toml','--message','Revert failed incident repair validation'],{stdio:'inherit',env:process.env});
+  const previous=spawnSync(process.execPath,['worker/node_modules/wrangler/bin/wrangler.js','rollback',INCIDENT_VERSION,'--config','wrangler.production.toml','--message','Revert failed incident repair validation','--yes'],{stdio:'inherit',env:process.env});
   console.error(previous.status===0?'Worker code rollback command completed.':'Worker rollback FAILED; manual Cloudflare intervention required.');
  }
  throw new Error('Incident recovery did not verify. Check operator logs and release state; do not repeat blindly.');
