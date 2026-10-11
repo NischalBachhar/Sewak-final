@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { bookingScheduleLabel, getBookingStatus } from "./bookingModel";
 import { formatNpr } from "./config/brand";
-import { EmptyState, ErrorState, SkeletonCard, StatusBadge } from "./components/CareExperience";
+import { ErrorState, SkeletonCard, StatusBadge } from "./components/CareExperience";
 
 const bookingDateTime = (booking) => {
   const dateMatch = String(booking?.date || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
