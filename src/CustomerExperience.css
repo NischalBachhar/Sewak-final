@@ -125,6 +125,17 @@
 .customer-discovery-shell .browse-caregiver-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px rgba(31,86,101,.11); }
 .customer-discovery-shell .browse-caregiver-grid--single { grid-template-columns: minmax(0, 670px); }
 
+.customer-discovery-shell .browse-advanced-filters { margin-top: 14px; padding: 0; border: 1px solid #dbece7; border-radius: 12px; background: rgba(255,255,255,.75); }
+.customer-discovery-shell .browse-advanced-filters summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 13px 15px; color: #1b726e; font-weight: 750; font-size: 12px; list-style: none; }
+.customer-discovery-shell .browse-advanced-filters summary::-webkit-details-marker { display: none; }
+.customer-discovery-shell .browse-advanced-filters summary span { transition: transform .2s ease; }
+.customer-discovery-shell .browse-advanced-filters[open] summary span { transform: rotate(180deg); }
+.customer-discovery-shell .browse-advanced-filters summary:focus-visible { outline: 3px solid #128e81; outline-offset: 2px; }
+.customer-discovery-shell .browse-advanced-filters__grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-items: center; gap: 12px; padding: 0 14px 15px; }
+@media (max-width: 650px) {
+  .customer-discovery-shell .browse-advanced-filters__grid { grid-template-columns: 1fr; }
+}
+
 /* My Bookings: transform existing functional controls into consistent cards. */
 .customer-bookings { display: grid; gap: 18px; }
 .customer-bookings__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -144,7 +155,7 @@
 .customer-booking-filters select { background: #fff; border-radius: 11px; min-height: 43px; }
 .customer-booking-card { border-radius: 18px !important; border: 1px solid #d9e9e5 !important; box-shadow: 0 10px 26px rgba(22,67,74,.055) !important; padding: clamp(16px,2.6vw,25px) !important; }
 .customer-booking-card:hover { box-shadow: 0 16px 31px rgba(22,67,74,.09) !important; }
-.customer-booking-card .customer-booking-card__identity strong { font-size: 18px !important; color: #19414c !important; }
+.customer-booking-card .customer-booking-card__name { font-size: 18px !important; color: #19414c !important; }
 .customer-booking-card .customer-booking-card__details { border-top: 1px solid #e4efed !important; margin-top: 17px; padding-top: 14px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px 15px; }
 .customer-booking-card .customer-booking-card__details p { margin: 0 0 7px !important; }
 .customer-booking-card .customer-booking-card__payment { background: #f3faf7 !important; border: 1px solid #dfece8 !important; border-radius: 13px !important; margin-top: 15px !important; }
