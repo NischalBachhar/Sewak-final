@@ -1,6 +1,7 @@
+import { apiRequest } from './apiClient';
 import ProfileImage from "./components/ProfileImage";
 import React, { useEffect, useRef, useState } from "react";
-import { collection, getDocs, query, where } from "./d1Client";
+import { collection, getDocs } from "./d1Client";
 import { useNavigate } from "react-router-dom";
 import { db } from "./d1Client";
 
@@ -8,7 +9,7 @@ import { hasVerifiedRating } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
 
-const SHIFTS = ["morning", "day", "night"];
+const SHIFTS = ["morning", "day", "evening", "night"];
 
 // Helper – extract readable service name from vendors data
 const getServiceNameFromVendorData = (serviceString) => {
@@ -103,11 +104,12 @@ function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, req
               {caregiver.organizationName}
             </p>
           )}
+          {rating === null && <p className="browse-rating__count">No verified reviews yet</p>}
           {rating !== null && (
             <div className="browse-rating" aria-label={`${rating.toFixed(1)} out of 5 stars`}>
               <span className="browse-rating__star" aria-hidden="true">★</span>
               <span>{rating.toFixed(1)}</span>
-              <span className="browse-rating__count">({caregiver.reviewCount || 0} reviews)</span>
+              <span className="browse-rating__count">({caregiver.reviewCount || 0} verified reviews)</span>
             </div>
           )}
         </div>
@@ -124,7 +126,7 @@ function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, req
             )}
           </>
         ) : (
-          <span className="browse-service-tag">Services on request</span>
+          <span className="browse-service-tag">Services not specified</span>
         )}
       </div>
 
@@ -152,7 +154,7 @@ function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, req
       <div className="browse-caregiver-card__footer">
         <div className={`browse-price${caregiver.hourlyRate ? "" : " browse-price--unlisted"}`}>
           <small>{caregiver.hourlyRate ? "Starting at" : "Rate"}</small>
-          <strong>{caregiver.hourlyRate ? `${formatNpr(caregiver.hourlyRate)}/hour` : "On request"}</strong>
+          <strong>{Number.isFinite(caregiver.hourlyRate) && (caregiver.hourlyRate > 0 || caregiver.allowZeroRate) ? `${formatNpr(caregiver.hourlyRate)}/hour` : "Not configured"}</strong>
         </div>
         <div className="browse-card-actions">
           <button
@@ -166,7 +168,7 @@ function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, req
           type="button"
           className="browse-card-action"
           onClick={handleBookClick}
-          disabled={caregiver.isSuspended || !caregiver.isApproved}
+          disabled={caregiver.isSuspended || !caregiver.isApproved || !caregiver.isAvailable || !caregiver.servicesOffered?.length}
         >
           {requireLogin ? "Sign in to book" : "Book now"}
           <span aria-hidden="true">→</span>
@@ -450,7 +452,7 @@ function CaregiverCard({ caregiver, services, onSelect, onViewProfile, requireLo
         <button
           className="btn btn-primary btn-full"
           onClick={handleBookClick}
-          disabled={caregiver.isSuspended || !caregiver.isApproved}
+          disabled={caregiver.isSuspended || !caregiver.isApproved || !caregiver.isAvailable || !caregiver.servicesOffered?.length}
         >
           📅 {requireLogin ? "Sign in to book" : "Book now"}
         </button>
@@ -486,6 +488,9 @@ export default function CaregiverListPage({
   const [caregivers, setCaregivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [total, setTotal] = useState(0);
+  const [cursor, setCursor] = useState(null);
+  const [nextCursor, setNextCursor] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
@@ -567,35 +572,22 @@ export default function CaregiverListPage({
     };
   }, [filterSheetOpen]);
 
-  // Load caregivers (approved + not suspended)
+  const searchKey = JSON.stringify({ text: searchTerm, category: userCategory, serviceId: serviceFilter, workType: workTypeFilter, shift: shiftFilter, location: locationFilter, minimumExperience: Number(minimumExperience), minimumRating: Number(minimumRating), verifiedOnly });
+  const lastSearch = useRef(searchKey);
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError("");
+    let active = true;
+    const changed = lastSearch.current !== searchKey;
+    if (changed) { lastSearch.current = searchKey; setCursor(null); }
+    const timer = setTimeout(async () => {
+      setLoading(true); setError('');
       try {
-        const q = query(
-          collection(db, "publicCaregivers"),
-          where("isApproved", "==", true),
-          where("isSuspended", "==", false),
-          where("isBlacklisted", "==", false),
-          where("isOrganizationActive", "==", true),
-        );
-        const snap = await getDocs(q);
-        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setCaregivers(docs);
-      } catch (err) {
-        console.error("Error loading caregivers:", { code: err?.code || "unknown" });
-        setError(
-          err?.code === "permission-denied"
-            ? "Caregiver profiles are temporarily unavailable while access is being updated. Please try again shortly."
-            : "We couldn't load caregiver profiles just now. Please try again shortly.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [reloadKey]);
+        const result = await apiRequest('/api/query', { method: 'POST', json: { path: 'publicCaregivers', search: JSON.parse(searchKey), limit: 12, ...(!changed && cursor ? { cursor } : {}) } });
+        if (active) { setCaregivers(result.items.map(item => ({ id: item.id, ...item.data }))); setTotal(result.total); setNextCursor(result.nextCursor); }
+      } catch (error) { if (active) setError(error.message || 'Caregiver profiles could not be loaded.'); }
+      finally { if (active) setLoading(false); }
+    }, 200);
+    return () => { active = false; clearTimeout(timer); };
+  }, [searchKey, cursor, reloadKey]);
 
   // Load services (used for dropdown)
   useEffect(() => {
@@ -618,59 +610,19 @@ export default function CaregiverListPage({
     return (s.category === "vendor" ? "household" : s.category) === userCategory;
   });
 
-  // Apply all filters
-  const filtered = caregivers.filter((c) => {
-    // Category filter: “both” should show everyone
-    if (userCategory === "caregiver" && !["caregiver", "both"].includes(c.category)) return false;
-    if (userCategory === "household" && !["household", "vendor", "both"].includes(c.category)) return false;
-    // if userCategory is "both" or "", we do not restrict c.category
-
-    // Search
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      if (
-        !(c.name || "").toLowerCase().includes(search) &&
-        !(c.location || "").toLowerCase().includes(search)
-      ) {
-        return false;
-      }
-    }
-
-    // Availability
-    if (c.isAvailable === false) return false;
-
-    // Service filter: compare normalized IDs
-    if (serviceFilter) {
-      const offered = (c.servicesOffered || []).map(normalizeServiceId);
-      if (!offered.includes(normalizeServiceId(serviceFilter))) return false;
-    }
-
-    // Work type filter – your vendors store "fulltime" / "parttime"
-    if (workTypeFilter && c.workType !== workTypeFilter) return false;
-
-    // Shift filter
-    if (shiftFilter && !(c.shifts || []).includes(shiftFilter)) return false;
-
-    // Location filter
-    if (
-      locationFilter &&
-      !(c.location || "").toLowerCase().includes(locationFilter.toLowerCase())
-    )
-      return false;
-
-    if (verifiedOnly && !c.verified) return false;
-
-    if (minimumExperience && Number(c.experience || 0) < Number(minimumExperience)) return false;
-
-    if (minimumRating && (!hasVerifiedRating(c) || Number(c.rating) < Number(minimumRating))) return false;
-
-    return true;
-  });
+  useEffect(() => {
+    if (serviceFilter && services.length && !services.some(service => service.id === serviceFilter && (!userCategory || userCategory === 'both' || service.category === 'both' || (service.category === 'vendor' ? 'household' : service.category) === userCategory))) setServiceFilter('');
+  }, [serviceFilter, services, userCategory]);
+  const filtered = caregivers;
+  const pagination = <div className="browse-card-actions" aria-label="Caregiver pages">
+    {cursor && <button type="button" className="btn btn-outline" disabled={loading} onClick={() => setCursor(null)}>First page</button>}
+    {nextCursor && <button type="button" className="btn btn-outline" disabled={loading} onClick={() => setCursor(nextCursor)}>Next page</button>}
+  </div>;
 
   const featured = filtered.filter((c) => hasVerifiedRating(c) && Number(c.rating) >= 4.5);
   const regular = filtered.filter((c) => !featured.includes(c));
 
-  if (loading) {
+  if (loading && !caregivers.length && !filterSheetOpen && !searchTerm && !serviceFilter && !locationFilter && !minimumRating && !minimumExperience && !workTypeFilter && !userCategory) {
     if (isBrowse) {
       return (
         <section
@@ -771,7 +723,7 @@ export default function CaregiverListPage({
             <div className="browse-list__title-row">
               <h2>Caregivers ready to help</h2>
               <span className="browse-result-count">
-                {filtered.length} {filtered.length === 1 ? "match" : "matches"}
+                {total} {total === 1 ? "match" : "matches"}
               </span>
             </div>
           </div>
@@ -867,7 +819,7 @@ export default function CaregiverListPage({
               <select id="browse-experience-filter" value={minimumExperience} onChange={(event) => setMinimumExperience(event.target.value)}>
                 <option value="">Any experience</option>
                 <option value="1">1+ year</option>
-                <option value="3">3+ years</option>
+                <option value="2">2+ years</option><option value="3">3+ years</option>
                 <option value="5">5+ years</option>
               </select>
             </div>
@@ -876,8 +828,7 @@ export default function CaregiverListPage({
               <label htmlFor="browse-rating-filter">Verified rating</label>
               <select id="browse-rating-filter" value={minimumRating} onChange={(event) => setMinimumRating(event.target.value)}>
                 <option value="">Any verified rating</option>
-                <option value="4">4.0+</option>
-                <option value="4.5">4.5+</option>
+                {[1,2,3,4,5].map(rating => <option key={rating} value={rating}>{rating.toFixed(1)}{rating === 5 ? " stars" : "+ stars"}</option>)}
               </select>
             </div>
 
@@ -925,6 +876,7 @@ export default function CaregiverListPage({
           )}
         </div>
 
+        {loading && <p role="status">Updating results?</p>}
         {filtered.length > 0 ? (
           <>
             {featured.length > 0 && (
@@ -932,7 +884,7 @@ export default function CaregiverListPage({
                 <span className="browse-featured-callout__star" aria-hidden="true">★</span>
                 <div>
                   <strong>Top-rated caregivers</strong>
-                  <span>Profiles with a rating of 4.5 or higher appear first.</span>
+                  <span>Profiles rated 4.5 or higher appear first on this page.</span>
                 </div>
               </div>
             )}
@@ -960,16 +912,20 @@ export default function CaregiverListPage({
           </div>
         )}
 
+        {pagination}
         {filterSheetOpen ? (
           <div className="browse-filter-sheet-backdrop" role="presentation" onMouseDown={() => setFilterSheetOpen(false)}>
             <section ref={filterSheetRef} className="browse-filter-sheet" role="dialog" aria-modal="true" aria-label="Caregiver filters" tabIndex="-1" onMouseDown={(event) => event.stopPropagation()}>
               <div className="browse-filter-sheet__heading"><h2>Filters</h2><button type="button" onClick={() => setFilterSheetOpen(false)} aria-label="Close filters">Close</button></div>
+              <label>Category<select value={userCategory} onChange={event => onChangeUserCategory?.(event.target.value)}><option value="">All support</option><option value="caregiver">Caregiver support</option><option value="household">Household help</option><option value="both">Care + household</option></select></label>
+              <label>Work type<select value={workTypeFilter} onChange={event => handleBrowseWorkTypeChange(event.target.value)}><option value="">Any schedule</option><option value="parttime">Part time</option><option value="fulltime">Full time</option></select></label>
+              {workTypeFilter === 'parttime' && <label>Shift<select value={shiftFilter} onChange={event => { setShiftFilter(event.target.value); onChangeShift?.(event.target.value); }}><option value="">Any shift</option>{SHIFTS.map(shift => <option key={shift}>{shift}</option>)}</select></label>}
               <label>Service<select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}><option value="">Any service</option>{visibleServices.map((service) => <option key={service.id} value={service.id}>{service.label || service.serviceName}</option>)}</select></label>
               <label>Location<input value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} placeholder="City or area" /></label>
-              <label>Experience<select value={minimumExperience} onChange={(event) => setMinimumExperience(event.target.value)}><option value="">Any experience</option><option value="1">1+ year</option><option value="3">3+ years</option><option value="5">5+ years</option></select></label>
-              <label>Verified rating<select value={minimumRating} onChange={(event) => setMinimumRating(event.target.value)}><option value="">Any verified rating</option><option value="4">4.0+</option><option value="4.5">4.5+</option></select></label>
+              <label>Experience<select value={minimumExperience} onChange={(event) => setMinimumExperience(event.target.value)}><option value="">Any experience</option><option value="1">1+ year</option><option value="2">2+ years</option><option value="3">3+ years</option><option value="5">5+ years</option></select></label>
+              <label>Verified rating<select value={minimumRating} onChange={(event) => setMinimumRating(event.target.value)}><option value="">Any verified rating</option>{[1,2,3,4,5].map(rating => <option key={rating} value={rating}>{rating.toFixed(1)}{rating === 5 ? " stars" : "+ stars"}</option>)}</select></label>
               <label className="browse-verified-filter"><input type="checkbox" checked={verifiedOnly} onChange={(event) => setVerifiedOnly(event.target.checked)} /> Verified by Sewak only</label>
-              <div className="browse-filter-sheet__actions"><button type="button" className="browse-filter-clear" onClick={clearFilters}>Clear all</button><button type="button" className="browse-card-action" onClick={() => setFilterSheetOpen(false)}>Show {filtered.length} {filtered.length === 1 ? "caregiver" : "caregivers"}</button></div>
+              <div className="browse-filter-sheet__actions"><button type="button" className="browse-filter-clear" onClick={clearFilters}>Clear all</button><button type="button" className="browse-card-action" onClick={() => setFilterSheetOpen(false)}>Show {total} {total === 1 ? "caregiver" : "caregivers"}</button></div>
             </section>
           </div>
         ) : null}
@@ -1001,7 +957,7 @@ export default function CaregiverListPage({
         &gt; <span>Caregivers</span>
       </div>
 
-      <h2 className="section-title">Available caregivers ({filtered.length})</h2>
+      <h2 className="section-title">Available caregivers ({total})</h2>
 
       {/* Search bar */}
       <div style={{ marginBottom: 16 }}>
@@ -1198,6 +1154,7 @@ export default function CaregiverListPage({
         />
       ))}
 
+      {pagination}
       {filtered.length === 0 && (
         <div className="empty-state">
           <div className="empty-state-icon">🔍</div>
