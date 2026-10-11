@@ -1,4 +1,5 @@
 import { nonMedicalSql } from './catalog.ts';
+import { traceD1 } from './d1-diagnostics.ts';
 import { decodeRecord } from './model.mjs';
 import { canRead, caregiverActive, organizationActive } from './policy.ts';
 import { entities, parseResource, Repository, requireActive, requireActor } from './repository.ts';
@@ -119,7 +120,7 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
     if (search.verifiedOnly) add('t.verified=1');
   }
   const base = `FROM ${spec.table} t ${joins.join(' ')} WHERE ${conditions.length ? conditions.join(' AND ') : '1=1'}`;
-  const total = input.search !== undefined ? (await repo.env.DB.prepare(`SELECT COUNT(*) AS total ${base}`).bind(...params).first<Data>())?.total || 0 : undefined;
+  const total = input.search !== undefined ? (await traceD1('public.caregivers.count',()=>repo.env.DB.prepare(`SELECT COUNT(*) AS total ${base}`).bind(...params).first<Data>()))?.total || 0 : undefined;
   if (input.aggregate) {
     requireThat(name === 'bookings' && actor, 'Aggregates are only available for authorized bookings.');
     badInput(!input.cursor && !input.order && Object.keys(input.aggregate).length <= 5, 'Invalid aggregate.');
@@ -147,7 +148,7 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
   badInput(params.length <= 98, 'Too many query parameters.');
   const sql = `SELECT ${columns.join(',')}${extraColumns} ${base}${cursorClause} ORDER BY ${sortExpression} ${order.direction},t.id ${order.direction} LIMIT ?`;
   params.push(size + (single ? 0 : 1));
-  const result = await repo.env.DB.prepare(sql).bind(...params).all<Data>();
+  const result = await traceD1(name === 'publicCaregivers'?'public.caregivers.page':name === 'publicServices'?'public.services.page':'query.records.page',()=>repo.env.DB.prepare(sql).bind(...params).all<Data>());
   const page = result.results.slice(0, size);
   const items = page.map((row) => {
     const record = decodeRecord(source, row)!;

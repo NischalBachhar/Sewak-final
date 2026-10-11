@@ -4,6 +4,12 @@ on:
   pull_request:
     paths:
       - 'scripts/verify-cloudflare-auth.mjs'
+      - 'scripts/diagnose-production-d1-readonly.mjs'
+      - 'worker/src/d1-diagnostics.ts'
+      - 'worker/src/cloudflare-auth.ts'
+      - 'worker/src/queries.ts'
+      - 'tests/d1/d1-diagnostics.test.mjs'
+      - 'tests/d1/d1-diagnostic-operator.test.mjs'
       - '.github/workflows/auth-qa-safety.yml'
   workflow_dispatch:
 
@@ -27,4 +33,4 @@ jobs:
           npm ci
           npm --prefix worker ci
       - name: Test Cloudflare deployment safeguards offline
-        run: node --test tests/d1/operator.test.mjs
+        run: node --test tests/d1/operator.test.mjs tests/d1/d1-diagnostics.test.mjs tests/d1/d1-diagnostic-operator.test.mjs
