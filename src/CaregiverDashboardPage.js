@@ -25,7 +25,6 @@ import "./OrganizationDashboard.css";
 import WorkspaceShell from "./components/WorkspaceShell";
 import CareWeekPreview from "./components/CareWeekPreview";
 
-const STATUS_OPTIONS = ["pending", "accepted", "in_progress", "completed", "cancelled"];
 const SHIFT_OPTIONS = ["morning", "day", "night"];
 const CAREGIVER_TABS = ["home", "jobs", "schedule", "profile", "earnings"];
 
