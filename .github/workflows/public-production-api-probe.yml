@@ -1,0 +1,60 @@
+name: Read-only production public API probe
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/public-production-api-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  public-api-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe health and public catalog without credentials or writes
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const origin = 'https://sewak-final.nischalbachhar9.workers.dev';
+          const cases = [
+            {name:'health',path:'/api/health'},
+            {name:'caregiver-directory',path:'/api/query',body:{
+              path:'publicCaregivers',
+              search:{text:'',category:'',serviceId:'',workType:'',shift:'',location:'',minimumExperience:0,minimumRating:0,verifiedOnly:false},
+              limit:12,
+            }},
+            {name:'public-services',path:'/api/query',body:{path:'publicServices',limit:12}},
+          ];
+          let failures=0;
+          for (const item of cases) {
+            try {
+              const response=await fetch(origin+item.path,{
+                method:item.body?'POST':'GET',
+                headers:item.body?{'Content-Type':'application/json'}:{},
+                ...(item.body?{body:JSON.stringify(item.body)}:{}),
+                redirect:'error',
+                signal:AbortSignal.timeout(15000),
+              });
+              const result=await response.json().catch(()=>null);
+              // The probe emits no returned records, personal information or credentials.
+              const errorCode=typeof result?.error?.code==='string'?result.error.code.slice(0,100):null;
+              const entry={check:item.name,status:response.status,code:errorCode,
+                healthy:item.name==='health'?result?.healthy===true:undefined,
+                writesEnabled:item.name==='health'?result?.writesEnabled:undefined,
+                auth:item.name==='health'?result?.auth:undefined,
+                count:item.name==='health'?undefined:Array.isArray(result?.items)?result.items.length:null,
+              };
+              console.log(JSON.stringify(entry));
+              if (!response.ok || (item.name==='health'&&result?.healthy!==true) || (item.name!=='health'&&!Array.isArray(result?.items))) failures++;
+            } catch (error) {
+              failures++;
+              console.log(JSON.stringify({check:item.name,status:'network-error',reason:error.name||'Error'}));
+            }
+          }
+          if(failures) {
+            console.error('Read-only production API probe failed '+failures+' checks; no mutations were attempted.');
+            process.exitCode=1;
+          }
+          NODE
