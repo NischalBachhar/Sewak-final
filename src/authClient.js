@@ -27,16 +27,22 @@ async function request(path, body) {
 export async function refreshSession() { const before = generation; const result = await request('me'); return before === generation ? publish(result) : auth.currentUser; }
 export function onSessionChanged(listener) {
   listeners.add(listener);
-  if (!initial) initial = refreshSession().catch(error => { initial = null; for (const fn of listeners) fn(null, error); });
+  if (!initial) {
+    const before = generation;
+    initial = refreshSession().catch(error => {
+      if (before !== generation) return auth.currentUser;
+      initial = null; for (const fn of listeners) fn(null, error);
+    });
+  }
   else if (loaded) listener(auth.currentUser);
   return () => listeners.delete(listener);
 }
-async function startSession(path, body) { const version = ++generation; const result = await request(path, body); return version === generation ? publish(result) : auth.currentUser; }
+async function startSession(path, body) { const version = ++generation; const result = await request(path, body); if (version !== generation) return auth.currentUser; ++generation; return publish(result); }
 export async function signIn(email, password) { return startSession('login', { email, password }); }
 export async function register(input) { return startSession('register', input); }
-export async function signOut() { ++generation; try { await request('logout', {}); } catch (error) { if (error.code !== 'unauthenticated') throw error; } publish(null); initial = null; }
-export async function changePassword(currentPassword, newPassword) { ++generation; await request('change-password', { currentPassword, newPassword }); publish(null); initial = null; }
+export async function signOut() { ++generation; try { await request('logout', {}); } catch (error) { if (error.code !== 'unauthenticated') throw error; } ++generation; publish(null); initial = null; }
+export async function changePassword(currentPassword, newPassword) { ++generation; await request('change-password', { currentPassword, newPassword }); ++generation; publish(null); initial = null; }
 export async function activateAccount(token, password) { return startSession('activate', { token, password }); }
 export async function bootstrapAccount({ email, password, name, bootstrapToken }) { return startSession('bootstrap', { email, password, name, bootstrapToken }); }
-export async function revokeSessions(input = { all: true }) { const result = await request('revoke-sessions', input); if (result.signedOut) publish(null); return result; }
+export async function revokeSessions(input = { all: true }) { const result = await request('revoke-sessions', input); if (result.signedOut) { ++generation; publish(null); initial = null; } return result; }
 export const listSessions = () => request('sessions');

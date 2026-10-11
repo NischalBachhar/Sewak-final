@@ -59,6 +59,8 @@ test('failed real login rate upsert logs the exact fixed SQL stage and still ret
     assert.equal(response.status,503);
     assert.equal((await response.json()).error.code,'unavailable');
     assert.ok(events.some(x=>x[1]?.stage==='auth.rate.ip-upsert'&&x[1]?.category==='sql-schema'));
+    assert.ok(events.some(x=>x[0]==='Sewak request failed'&&x[1]?.category==='sql-schema'));
+    assert.ok(!JSON.stringify(events).includes('database-capacity'));
     assert.ok(!JSON.stringify(events).includes('never-log@example.test'));
     assert.ok(!JSON.stringify(events).includes('Synthetic-password-123!'));
   } finally {console.error=log;}

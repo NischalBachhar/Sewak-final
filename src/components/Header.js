@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import logoSvg from "../logoSewak.jpeg";
 import "./Header.css";
 
-export default function Header({ user, userRole, userDoc, onLogout, onBrowseCaregivers, onMyBookings, notificationCount }) {
+export default function Header({ user, userRole, userDoc, onLogout, logoutError, onBrowseCaregivers, onMyBookings, notificationCount }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [showMenu, setShowMenu] = useState(false);
@@ -68,14 +68,14 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
     setShowMenu(false);
   };
 
-  const handleLogout = () => {
-    onLogout();
+  const handleLogout = async () => {
+    if (await onLogout() === false) return;
     setShowMenu(false);
-    navigate("/browse");
   };
 
   return (
     <header className={"header header--" + (userRole || "guest")}>
+      {logoutError && <p role="alert">{logoutError}</p>}
       <div className="header-container">
         <button
           type="button"

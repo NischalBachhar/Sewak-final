@@ -3,6 +3,7 @@ import { ApiError, badInput, requireThat, type Actor, type Data, type Env, type 
 export const entities: Record<string, any> = models;
 export type Saved = { data: Data | null; version: number; path: string };
 export type Write = { path: string; data: Data | null };
+export const validAccountRole = (role: unknown) => ['user','caregiver','orgadmin','superadmin'].includes(role as string);
 export class Repository {
   env: Env;
   reads = new Map<string, Saved>();
@@ -24,7 +25,8 @@ export class Repository {
     this.sessionIdentity = identity;
     if (!identity) return null;
     const profile = await this.data(`users/${identity.uid}`);
-    return { ...identity, profile, role: profile?.role || 'user' };
+    requireThat(profile && validAccountRole(profile.role), 'This account cannot sign in.', 401, 'unauthenticated');
+    return { ...identity, profile, role: profile.role };
   }
   // Every source read during authorization/validation is checked INSIDE the same
   // D1 batch as its writes. A failed guard rolls the whole transaction back.

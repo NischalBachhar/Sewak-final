@@ -59,7 +59,7 @@ http.createServer(async(req,res)=>{
   if(!fs.existsSync(file)||fs.statSync(file).isDirectory())file=path.join(root,'index.html');
   // The browser test uses exactly the production CSP.
   for(const line of fs.readFileSync('public/_headers','utf8').split('\n')){
-   const header=line.match(/^\s+([^:]+):\s*(.+)$/);if(!header)continue;
+   const header=line.trimEnd().match(/^\s+([^:]+):\s*(.+)$/);if(!header)continue;
    const value=header[2];
    res.setHeader(header[1],value);
   }

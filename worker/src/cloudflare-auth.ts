@@ -1,6 +1,6 @@
 import { registrationKeys, registrationWrites } from './onboarding.ts';
 import { ApiError, badInput, onlyKeys, requireThat, textField, type Data, type Env, type Identity } from './types.ts';
-import { Repository, requireActor, type Write } from './repository.ts';
+import { Repository, requireActor, validAccountRole, type Write } from './repository.ts';
 import { dummyPasswordHash } from './passwords.ts';
 import { traceD1 } from './d1-diagnostics.ts';
 
@@ -28,7 +28,7 @@ export async function authenticateSession(request:Request,env:Env):Promise<Ident
   const tokenHash=await digest(input.token);const s=await traceD1('auth.session.lookup',()=>env.DB.prepare('SELECT s.*,c.email,c.disabled,c.credential_version AS current_version FROM cf_sessions s JOIN cf_credentials c ON c.user_id=s.user_id WHERE s.token_hash=? AND s.audience=?').bind(tokenHash,audience(env)).first<Data>());
   requireThat(s&&!s.disabled&&s.transport===input.transport&&s.credential_version===s.current_version&&s.expires_at>now&&s.last_seen_at>now-IDLE,'Sign in again.',401,'unauthenticated');
   const repo=new Repository(env),profile=await traceD1('auth.session.profile',()=>repo.data('users/'+s.user_id));
-  requireThat(profile&&!profile.isSuspended&&!profile.isBlacklisted,'This account cannot sign in.',401,'unauthenticated');
+  requireThat(profile&&validAccountRole(profile.role)&&!profile.isSuspended&&!profile.isBlacklisted,'This account cannot sign in.',401,'unauthenticated');
   if(profile.role==='caregiver'&&profile.organizationId){const org=await repo.data('organizations/'+profile.organizationId);requireThat(org&&!org.isSuspended&&!org.isBlacklisted,'This account cannot sign in.',401,'unauthenticated');}
   if(now-s.last_seen_at>=300)await traceD1('auth.session.refresh',()=>env.DB.prepare('UPDATE cf_sessions SET last_seen_at=? WHERE id=? AND expires_at>?').bind(now,s.id,now).run());
   return {uid:s.user_id,email:s.email,authTime:s.created_at,sessionId:s.id,transport:input.transport as 'cookie'|'bearer',csrfToken:await digest('csrf:'+input.token)};
@@ -71,7 +71,8 @@ export async function authRoute(request:Request,env:Env,headers:Headers,body:Dat
   if(path==='/auth/login'){
     onlyKeys(body,['email','password','sessionMode']);const transport=mode(request,body),email=normalizedEmail(body.email);badInput(typeof body.password==='string'&&body.password.length<=128,'Invalid credentials.');await authLimit(request,env,'login',email);
     const c=await traceD1('auth.login.credentials',()=>env.DB.prepare('SELECT * FROM cf_credentials WHERE email=?').bind(email).first<Data>());const valid=await traceD1('auth.login.hasher',()=>checkPassword(env,body.password,c?.password_hash||dummyPasswordHash));
-    requireThat(c&&valid&&!c.disabled,'The email or password is incorrect.',401,'invalid-credentials');const profile=await traceD1('auth.login.profile',()=>repo.data('users/'+c.user_id));requireThat(profile&&!profile.isSuspended&&!profile.isBlacklisted,'The email or password is incorrect.',401,'invalid-credentials');
+    requireThat(c&&valid&&!c.disabled,'The email or password is incorrect.',401,'invalid-credentials');const profile=await traceD1('auth.login.profile',()=>repo.data('users/'+c.user_id));requireThat(profile&&validAccountRole(profile.role)&&!profile.isSuspended&&!profile.isBlacklisted,'The email or password is incorrect.',401,'invalid-credentials');
+    if(profile.role==='caregiver'&&profile.organizationId){const org=await repo.data('organizations/'+profile.organizationId);requireThat(org&&!org.isSuspended&&!org.isBlacklisted,'The email or password is incorrect.',401,'invalid-credentials');}
     const session=await newSession(env,c.user_id,c.credential_version,transport);
     await traceD1('auth.login.session-commit',()=>repo.commit([], [env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,(SELECT credential_version=? AND disabled=0 FROM cf_credentials WHERE user_id=?))').bind('auth:'+session.id,c.credential_version,c.user_id),session.statement,env.DB.prepare('DELETE FROM commit_guards WHERE id=?').bind('auth:'+session.id),env.DB.prepare('DELETE FROM cf_sessions WHERE user_id=? AND id IN (SELECT id FROM cf_sessions WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT -1 OFFSET 10)').bind(c.user_id,c.user_id)]));
     return sessionResponse(env,headers,c.user_id,c.email,profile,session,transport);
