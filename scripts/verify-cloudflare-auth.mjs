@@ -7,11 +7,12 @@ import {openTarget} from './d1-target.mjs';
 import {cloudflare} from './cloudflare-operator.mjs';
 import {assertLiveBindings} from './deployment-policy.mjs';
 import {entities} from '../worker/src/model.mjs';
+import {controlledQaGmail, syntheticQaEmail} from './synthetic-qa-email.mjs';
 import { qaFailureDetail } from './qa-failure-detail.mjs';
 const worker=process.argv[process.argv.indexOf('--worker')+1];
 assert.ok(['sewak','sewak-final'].includes(worker),'Exact Sewak Worker required');
 assert.ok(process.argv.includes('--apply-synthetic-qa'),'Explicit synthetic auth QA flag required');
-const staging=worker==='sewak',config=readFileSync(staging?'wrangler.toml':'wrangler.production.toml','utf8'),ids=[...config.matchAll(/^database_id = "([^"]+)"/gm)].map(m=>m[1]);
+const staging=worker==='sewak',qaGmail=staging ? null : controlledQaGmail(process.env.SEWAK_QA_GMAIL),config=readFileSync(staging?'wrangler.toml':'wrangler.production.toml','utf8'),ids=[...config.matchAll(/^database_id = "([^"]+)"/gm)].map(m=>m[1]);
 const liveWritesQA=process.argv.includes('--verify-write-enabled-production');
 if(liveWritesQA)assert.equal(worker,'sewak-final','Write-enabled QA is production-only');
 const expectedWrites=liveWritesQA ? true : false;
@@ -22,6 +23,7 @@ assert.equal(ids.includes('36fa1df1-aa5d-43a1-ad0e-a4e310c513c3'),!staging);
 const origin=`https://${worker}.nischalbachhar9.workers.dev`,target=await openTarget({remote:true,mainId:ids[0],mediaId:ids[1]}),{DB,MEDIA_DB}=target;
 const run=randomUUID(),password=randomBytes(32).toString('base64url')+'!Aa9',users=[],checks=[],report={auth:'cloudflare-d1',worker,writesEnabled:expectedWrites,qaMode:liveWritesQA?'production-write-enabled':'maintenance-read-only',startedAt:new Date().toISOString(),pass:false,checks};
 const output=`.local-tools/cloudflare-auth/${worker}-qa-${run}.json`;mkdirSync('.local-tools/cloudflare-auth',{recursive:true});
+const syntheticEmail=(role)=>syntheticQaEmail({role,run,staging,gmailBase:qaGmail});
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 async function appHash(){const rows={};for(const table of [...new Set(Object.values(entities).map(e=>e.table))])rows[table]=(await DB.prepare(`SELECT * FROM ${table} ORDER BY id`).all()).results;rows.media=(await MEDIA_DB.prepare('SELECT id,owner_id,file_size,digest FROM media ORDER BY id').all()).results;return hash(rows);}
 const before=await appHash();let bootstrapOwned=false,browser;
@@ -56,7 +58,7 @@ if(liveWritesQA){
  assert.ok(Date.now()-Date.parse(validation.checkedAt)<3600000,'Refresh the D1 integrity report: it must be less than one hour old');
 }
  for(const role of ['user','caregiver','orgadmin','superadmin']){
-  const email=`qa-${role}-${run}@example.invalid`;let path='/auth/register',body={email,password,name:'Synthetic QA '+role,sessionMode:'bearer'};
+  const email=syntheticEmail(role);let path='/auth/register',body={email,password,name:'Synthetic QA '+role,sessionMode:'bearer'};
   if(staging&&role==='superadmin'){
    assert.equal(await DB.prepare('SELECT id FROM cf_bootstrap').first(),null,'No existing staging bootstrap may be overwritten');const token='swk_'+randomBytes(32).toString('base64url');
    await DB.prepare('INSERT INTO cf_bootstrap(id,email,token_hash,expires_at) VALUES(1,?,?,?)').bind(email,createHash('sha256').update(token).digest('hex'),Math.floor(Date.now()/1000)+600).run();bootstrapOwned=true;path='/auth/bootstrap';body.bootstrapToken=token;
@@ -99,7 +101,7 @@ if(liveWritesQA){
  await DB.prepare('UPDATE cf_sessions SET expires_at=0 WHERE id=? AND user_id=?').bind(expired.data.session.id,customer.uid).run();await request('/auth/me',{headers:{Authorization:'Bearer '+expired.data.token},expected:401,label:'expired session'});
  const changed=randomBytes(32).toString('base64url');await request('/auth/change-password',{headers:authorization(caregiver),body:{currentPassword:password,newPassword:changed},label:'password change'});await request('/auth/me',{headers:authorization(caregiver),expected:401,label:'password revokes old session'});
  await request('/auth/logout',{headers:authorization(org),body:{},label:'logout'});await request('/auth/me',{headers:authorization(org),expected:401,label:'logout revokes session'});
- const missing=`qa-rate-${run}@example.invalid`;for(let i=0;i<10;i++)await request('/auth/login',{body:{email:missing,password,sessionMode:'bearer'},expected:401,label:'failed login '+(i+1)});await request('/auth/login',{body:{email:missing.toUpperCase(),password,sessionMode:'bearer'},expected:429,label:'persistent normalized-email rate limit'});
+ const missing=syntheticEmail('rate');for(let i=0;i<10;i++)await request('/auth/login',{body:{email:missing,password,sessionMode:'bearer'},expected:401,label:'failed login '+(i+1)});await request('/auth/login',{body:{email:missing.toUpperCase(),password,sessionMode:'bearer'},expected:429,label:'persistent normalized-email rate limit'});
  const {chromium}=await import('@playwright/test');browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext(),external=[];
  const forbidden=url=>/googleapis\.com|firebaseio\.com|firebaseapp\.com|firebasestorage\.app/.test(new URL(url).hostname);
  await context.route('**/*',route=>forbidden(route.request().url())?route.abort('internetdisconnected'):route.continue());
@@ -116,9 +118,9 @@ finally{
  try{
   // A network timeout can happen after commit but before response delivery.
   // Recover only this run's exact synthetic IDs before removing its records.
-  for(const role of ['user','caregiver','orgadmin','superadmin']){const email=`qa-${role}-${run}@example.invalid`,row=await DB.prepare('SELECT id FROM users WHERE email=?').bind(email).first();if(row&&!users.some(u=>u.uid===row.id))users.push({uid:row.id,email,role});}
+  for(const role of ['user','caregiver','orgadmin','superadmin']){const email=syntheticEmail(role),row=await DB.prepare('SELECT id FROM users WHERE email=?').bind(email).first();if(row&&!users.some(u=>u.uid===row.id))users.push({uid:row.id,email,role});}
   for(const u of users){assert.ok(u.email.includes(run));await MEDIA_DB.prepare('DELETE FROM media WHERE owner_id=?').bind(u.uid).run();await DB.batch([DB.prepare('DELETE FROM cf_invitations WHERE user_id=?').bind(u.uid),DB.prepare('DELETE FROM cf_sessions WHERE user_id=?').bind(u.uid),DB.prepare('DELETE FROM cf_credentials WHERE user_id=? AND email=?').bind(u.uid,u.email),DB.prepare('DELETE FROM users WHERE id=? AND email=?').bind(u.uid,u.email)]);assert.equal(await DB.prepare('SELECT id FROM users WHERE id=?').bind(u.uid).first(),null);}
-  if(staging||bootstrapOwned)await DB.prepare('DELETE FROM cf_bootstrap WHERE email=?').bind(`qa-superadmin-${run}@example.invalid`).run();
+  if(staging||bootstrapOwned)await DB.prepare('DELETE FROM cf_bootstrap WHERE email=?').bind(syntheticEmail('superadmin')).run();
   assert.equal(await appHash(),before,'Original application/media rows remain exact after synthetic QA cleanup');report.cleanupVerified=true;report.applicationRecordsUnchanged=true;
  }catch(error){report.cleanupFailure={name:error.name,message:error.message};}
  report.pass=Boolean(report.checksPassed&&report.cleanupVerified);report.completedAt=new Date().toISOString();writeFileSync(output,JSON.stringify(report,null,2));await target.close();
