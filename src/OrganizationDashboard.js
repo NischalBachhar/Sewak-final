@@ -452,7 +452,6 @@ export default function OrganizationDashboard() {
   }
 
   const orgServices = services.filter((s) => s.organizationId === user?.uid);
-  const globalServices = services.filter((s) => !s.organizationId);
 
   return (
     <div className="org-dashboard-root">
@@ -1129,26 +1128,20 @@ export default function OrganizationDashboard() {
           )}
 
           <h4 style={{ color: "var(--theme-text)", marginBottom: 12 }}>
-            Your Services ({orgServices.length})
+            Service offerings ({orgServices.length})
           </h4>
           {orgServices.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon" />
               <p className="empty-state-title">No services yet</p>
               <p className="empty-state-text">
-                Add services that your caregivers can offer.
+                Add caregiving or household services your team can offer.
               </p>
             </div>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: 12,
-              }}
-            >
+            <div className="org-service-grid">
               {orgServices.map((service) => (
-                <div key={service.id} className="card">
+                <div key={service.id} className="org-service-card">
                   {editingService?.id === service.id ? (
                     <div className="form">
                       <label>Service Name</label>
@@ -1204,6 +1197,7 @@ export default function OrganizationDashboard() {
                     </div>
                   ) : (
                     <>
+                      <div className="org-service-heading"><span className="org-service-icon"><OrganizationIcon name="heart" size={20}/></span><span className={service.isActive === false ? "org-status org-status-neutral" : "org-status org-status-success"}>{service.isActive === false ? "Retired" : "Active"}</span></div>
                       <strong
                         style={{
                           color: "var(--theme-text)",
@@ -1223,17 +1217,8 @@ export default function OrganizationDashboard() {
                         {service.category === "both"
                           ? "Both"
                           : service.category === "caregiver"
-                            ? "Care Giver"
+                            ? "Caregiving"
                             : "Household"}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: 11,
-                          color: "var(--theme-text-muted)",
-                          margin: "4px 0 12px 0",
-                        }}
-                      >
-                        ID: {service.id}
                       </p>
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
@@ -1250,6 +1235,7 @@ export default function OrganizationDashboard() {
                         </button>
                         <button
                           className="btn btn-outline"
+                          disabled={service.isActive === false}
                           onClick={() =>
                             handleDeleteService(service.id, service.label)
                           }
@@ -1260,7 +1246,7 @@ export default function OrganizationDashboard() {
                             border: "1px solid var(--theme-danger-dark)",
                           }}
                         >
-                          Delete
+                          Retire service
                         </button>
                       </div>
                     </>
@@ -1270,72 +1256,6 @@ export default function OrganizationDashboard() {
             </div>
           )}
 
-          {globalServices.length > 0 && (
-            <div
-              style={{
-                marginTop: 40,
-                paddingTop: 24,
-                borderTop: "2px solid var(--theme-text)",
-              }}
-            >
-              <h4
-                style={{
-                  color: "var(--theme-text)",
-                  marginBottom: 12,
-                }}
-              >
-                Platform Services ({globalServices.length})
-              </h4>
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "var(--theme-text-muted)",
-                  marginBottom: 12,
-                }}
-              >
-                These services are available to all organizations.
-              </p>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                {globalServices.map((service) => (
-                  <div
-                    key={service.id}
-                    style={{
-                      padding: 12,
-                      background: "var(--theme-surface)",
-                      border: "1px solid var(--theme-text)",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <strong
-                      style={{
-                        color: "var(--theme-text)",
-                        fontSize: 13,
-                      }}
-                    >
-                      {service.label}
-                    </strong>
-                    <p
-                      style={{
-                        fontSize: 11,
-                        color: "var(--theme-text-muted)",
-                        margin: "4px 0 0 0",
-                      }}
-                    >
-                      {service.category === "both"
-                        ? "Both"
-                        : service.category}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </section>
       )}
 
@@ -1348,8 +1268,7 @@ export default function OrganizationDashboard() {
               <div className="empty-state-icon" />
               <p className="empty-state-title">No blacklisted caregivers</p>
               <p className="empty-state-text">
-                Caregivers you blacklist will be suspended and won&apos;t
-                receive jobs.
+                No restricted staff records are associated with your organization. Sewak operations manages safety restrictions and reinstatement.
               </p>
             </div>
           ) : (
@@ -1482,7 +1401,7 @@ export default function OrganizationDashboard() {
                 className="btn btn-outline"
                 onClick={() => setEditingProfile(true)}
               >
-                ✏️ Edit Profile
+                Edit organization
               </button>
             </div>
 
@@ -1545,7 +1464,7 @@ export default function OrganizationDashboard() {
               }}
             >
               <strong>Total Caregivers:</strong>{" "}
-              {organizationData?.totalCaregivers || 0}
+              {caregivers.length}
             </p>
             <p
               style={{
