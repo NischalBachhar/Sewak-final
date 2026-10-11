@@ -2,6 +2,7 @@ import {readFileSync,existsSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import {assertFreeAccount,cloudflare} from './cloudflare-operator.mjs';
 import {assertDeploymentConfig,assertLiveBindings} from './deployment-policy.mjs';
+import {assertReleaseEvidence} from './release-evidence.mjs';
 const valueFlags=new Set(['--worker','--validation','--auth-qa']);
 const switches=new Set(['--cutover-maintenance','--free-plan-confirmed','--dry-run']);
 const seen=new Set();for(let i=2;i<process.argv.length;i++){const flag=process.argv[i];if(seen.has(flag))throw new Error('Duplicate deploy argument: '+flag);seen.add(flag);if(valueFlags.has(flag)){if(!process.argv[++i]||process.argv[i].startsWith('--'))throw new Error('Missing value for '+flag);}else if(!switches.has(flag))throw new Error('Unsupported deploy override: '+flag);}
@@ -30,14 +31,11 @@ if(!dryRun)await assertFreeAccount(account,{attested:process.argv.includes('--fr
 if(!dryRun&&worker==='sewak-final'&&(selectedWrites||cutoverMaintenance)){
  const reportPath=process.argv[process.argv.indexOf('--validation')+1];
  const validation=JSON.parse(readFileSync(reportPath,'utf8'));
- if(!validation.pass||validation.backend!=='cloudflare-d1'||validation.worker!=='sewak-final'||Date.now()-Date.parse(validation.checkedAt)>3600000)throw new Error('Supply --validation with a passing current Cloudflare-only production D1 report.');
  if(/MIGRATION_ENABLED\s*=\s*"true"/.test(config))throw new Error('Disable the migration endpoint before opening application writes.');
- if(worker==='sewak-final'){
-  const qaPath=process.argv[process.argv.indexOf('--auth-qa')+1];
-  if(!process.argv.includes('--auth-qa'))throw new Error('Supply a passing Cloudflare Auth QA report.');
-  const qa=JSON.parse(readFileSync(qaPath,'utf8'));
-  if(!qa.pass||qa.auth!=='cloudflare-d1'||(selectedWrites&&qa.worker!=='sewak-final'))throw new Error('Cloudflare Auth gates have not passed for this deployment phase.');
- }
+ if(!process.argv.includes('--auth-qa'))throw new Error('Supply a fresh passing production Auth QA report.');
+ const qaPath=process.argv[process.argv.indexOf('--auth-qa')+1];
+ const qa=JSON.parse(readFileSync(qaPath,'utf8'));
+ assertReleaseEvidence({validation,qa,writesEnabled:selectedWrites});
 }
 const result=spawnSync(process.execPath,['worker/node_modules/wrangler/bin/wrangler.js','deploy','--config',configFile,...(dryRun?['--dry-run','--outdir','.local-tools/cloudflare-auth-release']:[])],{stdio:'inherit',env:{...process.env,WRANGLER_SEND_METRICS:'false',SEWAK_REVIEWED_TARGET:worker}});
 if(result.status!==0)process.exit(result.status??1);
