@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import logoSvg from "../logoSewak.jpeg";
 import "./Header.css";
 
 export default function Header({ user, userRole, userDoc, onLogout, onBrowseCaregivers, onMyBookings, notificationCount }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
@@ -79,12 +80,35 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
         <button
           type="button"
           className="header-logo"
-          onClick={() => handleNavigate("/")}
+          onClick={() => handleNavigate(userRole === "user" && userDoc?.profileComplete ? "/user/home" : "/")}
           aria-label="Go to Sewak home"
         >
           <img src={logoSvg} alt="" className="header-logo-img" />
           <span className="header-logo-text">Sewak</span>
         </button>
+
+        {userRole === "user" && userDoc?.profileComplete && (
+          <nav className="header-customer-nav" aria-label="Customer pages">
+            <button
+              type="button"
+              className={"header-customer-nav__item" + (location.pathname === "/user/home" ? " is-active" : "")}
+              aria-current={location.pathname === "/user/home" ? "page" : undefined}
+              onClick={() => handleNavigate("/user/home")}
+            >Home</button>
+            <button
+              type="button"
+              className={"header-customer-nav__item" + (location.pathname === "/user" ? " is-active" : "")}
+              aria-current={location.pathname === "/user" ? "page" : undefined}
+              onClick={() => onBrowseCaregivers ? onBrowseCaregivers() : handleNavigate("/user")}
+            >Find Care</button>
+            <button
+              type="button"
+              className={"header-customer-nav__item header-customer-nav__item--bookings" + (location.pathname.startsWith("/user/mybookings") || location.pathname.startsWith("/user/bookings/") ? " is-active" : "")}
+              aria-current={location.pathname === "/user/mybookings" ? "page" : undefined}
+              onClick={() => onMyBookings ? onMyBookings() : handleNavigate("/user/mybookings")}
+            >My Bookings{notificationCount > 0 && <span className="header-customer-nav__count">{notificationCount}</span>}</button>
+          </nav>
+        )}
 
         {/* User Menu */}
         <div className="header-menu" ref={menuRef}>
@@ -153,6 +177,9 @@ export default function Header({ user, userRole, userDoc, onLogout, onBrowseCare
                 {/* Navigation Items - User/Customer */}
                 {userRole === "user" && (
                   <>
+                    <button type="button" className="dropdown-item" onClick={() => handleNavigate("/user/home")}>
+                      ⌂ My Dashboard
+                    </button>
                     <button
                       type="button"
                       className="dropdown-item"
