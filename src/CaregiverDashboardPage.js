@@ -1,3 +1,5 @@
+import ServiceSelector from './components/ServiceSelector';
+import NepalCitySelect from './components/NepalCitySelect';
 // src/CaregiverDashboardPage.js
 import React, { useEffect, useState } from "react";
 import { uploadProfileImage } from "./profileImages";
@@ -9,9 +11,9 @@ import {
   onSnapshot,
   doc,
   getDoc,
-  getDocs,
   serverTimestamp,
   updateDoc,
+  writeBatch,
 } from "./d1Client";
 import { changePassword } from "./authClient";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -74,7 +76,6 @@ export default function CaregiverDashboardPage() {
   const [error, setError] = useState(null);
   const [myReports, setMyReports] = useState([]);
   const [reportsError, setReportsError] = useState("");
-  const [services, setServices] = useState([]);
 
   // Password Change
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -225,14 +226,7 @@ export default function CaregiverDashboardPage() {
           );
         }
 
-        // Caregivers use the PII-free service projection. Private service
-        // records are intentionally restricted to operations and their owner.
-        const servicesSnap = await getDocs(collection(db, "publicServices"));
-        const servicesData = servicesSnap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
-        setServices(servicesData);
+
       } catch (err) {
         console.error("Error loading profile", { code: err?.code || "unknown" });
       }
@@ -288,10 +282,12 @@ export default function CaregiverDashboardPage() {
       const finalShifts =
         editWorkType === "parttime" ? editShifts : [];
 
-      await updateDoc(doc(db, "vendors", user.uid), {
+      const batch = writeBatch(db);
+      batch.update(doc(db, "vendors", user.uid), {
         name: editName,
         phone: editPhone,
         location: editLocation,
+        servicesOffered: editServices,
         bio: editBio,
         category: editCategory,
         workType: editWorkType,
@@ -302,12 +298,13 @@ export default function CaregiverDashboardPage() {
         updatedAt: new Date().toISOString(),
       });
 
-      await updateDoc(doc(db, "users", user.uid), {
+      batch.update(doc(db, "users", user.uid), {
         name: editName,
         phone: editPhone,
         location: editLocation,
       });
 
+      await batch.commit();
       alert("Profile updated successfully!");
       const vendorSnap = await getDoc(doc(db, "vendors", user.uid));
       if (vendorSnap.exists()) {
@@ -1001,13 +998,7 @@ export default function CaregiverDashboardPage() {
               maxLength={10}
             />
 
-            <label>Location</label>
-            <input
-              value={editLocation}
-              onChange={(e) => setEditLocation(e.target.value)}
-              required
-              placeholder="e.g., Kathmandu"
-            />
+            <NepalCitySelect value={editLocation} onChange={setEditLocation} />
 
             <label>Bio / About Yourself</label>
             <textarea
@@ -1201,62 +1192,7 @@ export default function CaregiverDashboardPage() {
               </>
             )}
 
-            {/* Services */}
-            <label>Services You Offer</label>
-            <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--theme-text-muted)" }}>
-              Services are managed by your organization so care assignments remain verified.
-            </p>
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-                marginBottom: 12,
-              }}
-            >
-              {editServices.length === 0 && (
-                <p style={{ fontSize: 12, color: "var(--theme-text-muted)" }}>
-                  No services are assigned yet.
-                </p>
-              )}
-              {editServices.map((serviceId) => {
-                const service = services.find((item) => item.id === serviceId);
-                return (
-                  <span
-                    key={serviceId}
-                    style={{
-                      padding: "6px 12px",
-                      borderRadius: 6,
-                      border: "1px solid var(--theme-positive)",
-                      background: "var(--theme-positive-soft)",
-                      color: "var(--theme-positive)",
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {service?.label || serviceId}
-                  </span>
-                );
-              })}
-            </div>
-
-            <label>Hourly Rate</label>
-            <input
-              type="number"
-              value={editHourlyRate}
-              onChange={(e) => setEditHourlyRate(e.target.value)}
-              min={0}
-              placeholder="500"
-            />
-
-            <label>Years of Experience</label>
-            <input
-              type="number"
-              value={editExperience}
-              onChange={(e) => setEditExperience(e.target.value)}
-              min={0}
-              placeholder="0"
-            />
+            <ServiceSelector value={editServices} onChange={setEditServices} category={editCategory} organizationId={profileData?.organizationId} />
 
             <button
               type="submit"
@@ -1444,7 +1380,7 @@ export default function CaregiverDashboardPage() {
                   }}
                 >
                   {profileData?.isApproved
-                    ? "Approved by organization"
+                    ? "Approved by Sewak"
                     : "Pending organization approval"}
                 </span>
               </div>
@@ -1457,7 +1393,7 @@ export default function CaregiverDashboardPage() {
                     margin: 0,
                   }}
                 >
-                  Your organization admin needs to approve your profile
+                  Sewak needs to approve your profile
                   before you appear in listings.
                 </p>
               )}
