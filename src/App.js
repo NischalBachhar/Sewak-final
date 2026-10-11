@@ -42,15 +42,10 @@ function App() {
   const [userShift, setUserShift] = useState("");
   const customerBookings = useCustomerBookings(userRole === "user" ? user?.uid : null);
   const [notificationCount, setNotificationCount] = useState(0);
-  const [signingOut, setSigningOut] = useState(false);
-  const [signedOut, setSignedOut] = useState(false);
-  const [logoutError, setLogoutError] = useState("");
   const bookingsSnapshotRef = useRef([]);
   const bookingsInitialLoadRef = useRef(true);
   const seenCompletedIdsRef = useRef([]);
   const navigate = useNavigate();
-  const location = useLocation();
-  useEffect(() => { if (location.pathname === '/browse') setSignedOut(false); }, [location.pathname]);
 
   const parseSavedIds = (value) => {
     try {
@@ -61,21 +56,34 @@ function App() {
     }
   };
 
+  const location = useLocation();
+  const logoutInFlight = useRef(false);
+  const [logoutRequested, setLogoutRequested] = useState(false);
+  const [logoutPending, setLogoutPending] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+
   const handleLogout = async () => {
-    setSigningOut(true);
+    if (logoutInFlight.current) return;
+    logoutInFlight.current = true;
+    setLogoutPending(true);
+    setLogoutRequested(true);
     setLogoutError("");
     try {
       await signOut();
-      setSignedOut(true);
-      return true;
     } catch (err) {
-      console.error("Logout error:", { code: err?.code || "unknown" });
+      setLogoutRequested(false);
       setLogoutError("We couldn't sign you out. Please try again.");
-      return false;
     } finally {
-      setSigningOut(false);
+      logoutInFlight.current = false;
+      setLogoutPending(false);
     }
   };
+
+  useEffect(() => {
+    if (logoutRequested && !logoutPending && !loading && !user && location.pathname === "/browse") {
+      setLogoutRequested(false);
+    }
+  }, [logoutRequested, logoutPending, loading, user, location.pathname]);
 
   const handleBrowseCaregivers = () => {
     navigate("/user");
@@ -136,7 +144,7 @@ function App() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (!user || !userRole || registrationPending || signingOut) return;
+    if (!user || !userRole || registrationPending || logoutPending) return;
 
     const path = window.location.pathname;
 
@@ -161,7 +169,7 @@ function App() {
         );
       }
     }
-  }, [user, userRole, userDoc?.profileComplete, navigate, registrationPending, signingOut]);
+  }, [user, userRole, userDoc?.profileComplete, navigate, registrationPending, logoutPending]);
 
   useEffect(() => {
     if (!user || userRole !== "user" || !userDoc?.profileComplete) return;
@@ -186,13 +194,16 @@ function App() {
     }
   }, [user, userRole, userDoc?.profileComplete, navigate]);
 
+  // Select the public destination only after the session observer confirms logout.
+  // This also avoids rendering the protected-route fallback on the old URL.
+  if (logoutRequested && !loading && !user) {
+    return location.pathname === "/browse" ? <BrowsePage /> : <Navigate to="/browse" replace />;
+  }
+
   if (window.location.pathname === "/account/setup") return <AccountSetupPage />;
-  // Router navigation is a transition; keep the logout destination explicit
-  // until it commits so the anonymous protected-route redirect cannot win.
-  if (signedOut && !user && location.pathname !== '/browse') return <Navigate to="/browse" replace />;
   if (registrationPending || userDoc?.registrationIncomplete || (!user && window.location.pathname === "/auth")) return <AuthPage />;
 
-  if (loading || signingOut) {
+  if (loading) {
     return (
       <main
         className="app-shell"
@@ -243,6 +254,7 @@ function App() {
             className="btn btn-outline"
             style={{ marginTop: 16 }}
             onClick={handleLogout}
+            disabled={logoutPending}
           >
             Sign out
           </button>
@@ -306,6 +318,7 @@ function App() {
           userRole={userRole}
           userDoc={userDoc}
           onLogout={handleLogout}
+          logoutPending={logoutPending}
           logoutError={logoutError}
           onBrowseCaregivers={handleBrowseCaregivers}
           notificationCount={notificationCount}
@@ -326,6 +339,7 @@ function App() {
           userRole={userRole}
           userDoc={userDoc}
           onLogout={handleLogout}
+          logoutPending={logoutPending}
           logoutError={logoutError}
           onBrowseCaregivers={handleBrowseCaregivers}
           notificationCount={notificationCount}
@@ -351,6 +365,7 @@ function App() {
         userRole={userRole}
         userDoc={userDoc}
         onLogout={handleLogout}
+        logoutPending={logoutPending}
         logoutError={logoutError}
         onBrowseCaregivers={handleBrowseCaregivers}
         onMyBookings={handleMyBookings}
