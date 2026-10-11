@@ -233,7 +233,7 @@ export default function MyBookingsPage() {
             {/* Work Type */}
             <div style={{ marginTop: 10 }}>
               <p style={{ fontSize: 13, color: "var(--theme-text-muted)", marginBottom: 4 }}>
-                <strong>Work Type:</strong> {b.caregiverWorkType === "fulltime" ? "💼 Full Time" : "⏰ Part Time"}
+                <strong>Caregiver availability:</strong> {b.caregiverWorkType === "fulltime" ? "Full time" : b.caregiverWorkType === "parttime" ? "Part time" : "Not specified"}
               </p>
             </div>
 
@@ -367,7 +367,7 @@ export default function MyBookingsPage() {
           <div className="customer-booking-stats">
             <div className="customer-booking-stats__card">
               <small>Paid via Fonepay</small>
-              <strong>{formatNpr(bookings.filter((b) => b.paymentMethod === "fonepay" && b.paymentStatus === "paid").reduce((sum, b) => sum + (b.amountPaid || 0), 0), "NPR 0")}</strong>
+              <strong>{formatNpr(bookings.filter((b) => b.paymentMethod === "fonepay" && b.paymentStatus === "paid").reduce((sum, b) => sum + (b.amountPaid || b.totalAmount || 0), 0), "NPR 0")}</strong>
             </div>
             <div className="customer-booking-stats__card">
               <small>Cash awaiting confirmation</small>
