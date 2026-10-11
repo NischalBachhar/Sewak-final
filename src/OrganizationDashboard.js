@@ -249,7 +249,7 @@ export default function OrganizationDashboard() {
         createdBy: user.uid,
       });
 
-      alert("Service added successfully!");
+      setNotice("Service added successfully.");
       setNewServiceLabel("");
       setNewServiceCategory("caregiver");
       setShowAddServiceModal(false);
@@ -290,7 +290,7 @@ export default function OrganizationDashboard() {
         category: editServiceCategory === "household" ? "vendor" : editServiceCategory,
         updatedAt: serverTimestamp(),
       }, true);
-      alert("Service updated!");
+      setNotice("Service updated successfully.");
       setEditingService(null);
       setEditServiceLabel("");
       setEditServiceCategory("caregiver");
@@ -318,7 +318,7 @@ export default function OrganizationDashboard() {
     }
     try {
       await retireService(doc(db, "services", serviceId));
-      alert("Service retired. Historical bookings are preserved.");
+      setNotice("Service retired. Historical bookings are preserved.");
       const servicesSnap = await getDocs(
         query(
           collection(db, "services"),
@@ -332,7 +332,7 @@ export default function OrganizationDashboard() {
       setServices(servicesData);
     } catch (err) {
       console.error("Error deleting service", { code: err?.code || "unknown" });
-      alert("Could not delete service.");
+      setError("Could not retire service.");
     }
   };
 
@@ -1012,13 +1012,13 @@ export default function OrganizationDashboard() {
                     disabled={addingCaregiver}
                     style={{ marginTop: 8, width: "100%" }}
                   >
-                    {addingCaregiver ? "Adding Caregiver..." : "Add Caregiver"}
+                    {addingCaregiver ? "Inviting team member..." : "Send team invitation"}
                   </button>
                 </form>
               </div>
             </AccessibleDialog>
           )}
-        </div>
+        </section>
       )}
 
       {/* BOOKINGS TAB */}
