@@ -1,9 +1,12 @@
 const {test,expect}=require('./test.cjs');
 const {seed,db}=require('./seed.cjs');
+const {seedReviewedVerification}=require('./d1-fixtures.cjs');
 
 test.beforeAll(async()=>{
   await seed();
   for(let i=0;i<26;i++) await db.doc(`vendors/discovery-${i}`).set({name:`Discovery Person ${String(i).padStart(2,'0')}`,location:i===0?'Tansen Town':'Kathmandu',category:i===1?'household':'caregiver',workType:'parttime',shifts:['morning'],servicesOffered:i===1?['catalog_housekeeping']:i===2?[]:['catalog_elderly_care'],isAvailable:true,isApproved:true,verified:i===0,hourlyRate:500,experience:i===0?3:0});
+  // Five reviewed records replace the retired legacy verified-boolean shortcut.
+  await seedReviewedVerification('discovery-0');
   for(const [id,rating] of [['a',3],['b',5]]) {
     await db.doc('bookings/discovery-'+id).set({caregiverId:'discovery-0',userId:'e2e-customer',status:'completed'});
     await db.doc('reviews/discovery-'+id).set({bookingId:'discovery-'+id,caregiverId:'discovery-0',customerId:'e2e-customer',rating,isVerifiedReview:true,isHidden:false});
@@ -22,6 +25,7 @@ for(const width of [320,360,375,390,414,430,768,1024,1440]) test(`discovery filt
   await expect(scope.getByRole('combobox',{name:'Service',exact:true}).locator('option[value="catalog_housekeeping"]')).toHaveCount(0);
   await scope.getByRole('combobox',{name:'Service',exact:true}).selectOption('catalog_elderly_care');
   await scope.getByLabel('Location',{exact:true}).fill('Tansen');
+  if(!mobile) await scope.locator('summary').filter({hasText:'More filters'}).click();
   await scope.getByRole('combobox',{name:'Experience',exact:true}).selectOption('2');
   await scope.getByRole('combobox',{name:'Work type',exact:true}).selectOption('parttime');
   await scope.getByRole('combobox',{name:'Verified rating',exact:true}).selectOption('4');
@@ -65,7 +69,7 @@ async function login(page,role){await page.goto('/auth');await page.getByLabel('
 
 test('organization owner edits caregiver services and custom city, with save, reload and cancel persistence',async({page})=>{
   await login(page,'org');await page.goto('/organization?tab=caregivers');
-  await page.getByRole('button',{name:'Edit caregiver',exact:true}).first().click();
+  await page.getByRole('button',{name:'View details',exact:true}).first().click();await page.getByRole('button',{name:'Edit worker profile',exact:true}).first().click();
   const editor=page.getByRole('dialog',{name:'Edit caregiver profile'});
   await editor.getByRole('combobox',{name:'City *',exact:true}).selectOption('Other');
   await editor.getByLabel('Enter your city *').fill('Tansen Town');
@@ -73,7 +77,7 @@ test('organization owner edits caregiver services and custom city, with save, re
   await editor.getByRole('button',{name:'Save profile',exact:true}).click();
   await expect(editor).toHaveCount(0);
   expect((await db.doc('vendors/e2e-caregiver').get()).data()).toMatchObject({location:'Tansen Town',servicesOffered:expect.arrayContaining(['catalog_elderly_care']),organizationId:'e2e-org'});
-  await page.reload(); await page.getByRole('button',{name:'Edit caregiver',exact:true}).first().click();
+  await page.reload(); await page.getByRole('button',{name:'View details',exact:true}).first().click();await page.getByRole('button',{name:'Edit worker profile',exact:true}).first().click();
   await expect(editor.getByLabel('Enter your city *')).toHaveValue('Tansen Town');
   await expect(editor.getByLabel('Elderly Care',{exact:true})).toBeChecked();
   await editor.getByRole('combobox',{name:'City *',exact:true}).selectOption('Pokhara');

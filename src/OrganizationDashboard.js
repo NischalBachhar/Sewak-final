@@ -500,7 +500,6 @@ export default function OrganizationDashboard() {
           <OrganizationSectionHeader eyebrow="WORKFORCE" title="Team members" description="Manage caregivers and household workers in one organized workspace." action={<button type="button" className="org-primary-action" onClick={() => { setShowAddCaregiverModal(true); setError(""); }}><OrganizationIcon name="plus" size={18}/> Add team member</button>}/>
           <OrganizationTeamList caregivers={caregivers} orgBlacklist={orgBlacklist} services={[...services, ...sharedServices]} onEdit={setEditingCaregiver}/>
           {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={updated => { setCaregivers(items => items.map(item => item.id === updated.id ? updated : item)); setEditingCaregiver(null); setNotice("Caregiver profile saved."); }} />}
-          {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={updated => { setCaregivers(items => items.map(item => item.id === updated.id ? updated : item)); setEditingCaregiver(null); setNotice("Caregiver profile saved."); }} />}
           {/* Add Caregiver Modal */}
           {showAddCaregiverModal && (
             <AccessibleDialog onDismiss={() => setShowAddCaregiverModal(false)}

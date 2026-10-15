@@ -1,3 +1,4 @@
+import { VerificationManagement } from './components/VerificationWorkspace';
 import { saveService, retireService } from "./servicePublishing";
 import AccessibleDialog from "./components/AccessibleDialog";
 import WorkspaceShell from "./components/WorkspaceShell";
@@ -33,6 +34,7 @@ const dashboardTabs = [
   "blacklist",
   "admins",
   "analytics",
+  "verification",
 ];
 
 
@@ -1171,7 +1173,7 @@ export default function AdminDashboardPage() {
       activeTab={activeTab}
       onSelect={(tab) => navigate("/superadmin/" + tab)}
       items={dashboardTabs.map((id) => ({
-        id,
+        id, label: id === "verification" ? "Verification Management" : undefined,
         count: id === "organizations" ? pendingOrgCount + pendingOrganizationApplicationCount
           : id === "caregivers" ? pendingCaregiverCount
           : id === "blacklist" ? pendingBlacklistCount : undefined,
@@ -1181,6 +1183,7 @@ export default function AdminDashboardPage() {
       <div className="dashboard-admin-content">
         {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={savedCaregiver} />}
 
+      {activeTab === "verification" && <VerificationManagement />}
       {/* Error Messages */}
       {error && (
         <div

@@ -468,7 +468,7 @@ function App() {
               element={
                 <div className="app-shell dashboard-shell dashboard-shell--caregiver">
                   <div className="app-card">
-                    <DashboardPath root="/caregiver" sections={["dashboard", "home", "jobs", "schedule", "profile", "earnings"]}><CaregiverDashboardPage /></DashboardPath>
+                    <DashboardPath root="/caregiver" sections={["dashboard", "home", "jobs", "schedule", "profile", "earnings", "verification"]}><CaregiverDashboardPage /></DashboardPath>
                   </div>
                 </div>
               }
@@ -482,7 +482,7 @@ function App() {
             element={
               <div className="app-shell dashboard-shell dashboard-shell--admin">
                 <div className="app-card">
-                  <DashboardPath root="/superadmin" sections={["overview", "organizations", "caregivers", "bookings", "services", "blacklist", "admins", "analytics"]}><AdminDashboardPage /></DashboardPath>
+                  <DashboardPath root="/superadmin" sections={["overview", "organizations", "caregivers", "bookings", "services", "blacklist", "admins", "analytics", "verification"]}><AdminDashboardPage /></DashboardPath>
                 </div>
               </div>
             }

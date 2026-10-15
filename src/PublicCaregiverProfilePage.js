@@ -290,11 +290,11 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
         <aside className="caregiver-profile-aside">
           <CaregiverTrustSummary
             caregiverName={caregiver.name}
-            verificationItems={getCaregiverVerification(caregiver)}
+            verificationItems={[...getCaregiverVerification(caregiver), {key:'police',label:'Police Clearance Verified',state:caregiver.verificationSource==='audited_v1'?caregiver.policeClearanceVerificationStatus:'not_submitted'}]}
             heading="Trust and verification"
             summary="A green status only appears when the matching record is approved by Sewak."
-            overallState={caregiver.verified ? "verified" : "not_verified"}
-            overallLabel={caregiver.verified ? "Verified by Sewak" : "Verification not complete"}
+            overallState={(caregiver.verificationSource === "audited_v1" && caregiver.verified) ? "verified" : "not_verified"}
+            overallLabel={(caregiver.verificationSource === "audited_v1" && caregiver.verified) ? "Verified by Sewak" : "Verification not complete"}
             experienceYears={caregiver.experience}
             completedSessions={caregiver.jobsCompleted}
             rating={rating}

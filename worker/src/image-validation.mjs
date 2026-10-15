@@ -3,8 +3,8 @@ export const MAX_IMAGE_DIMENSION = 512;
 const fail = () => { throw new Error('Malformed or unsupported profile image. Use a still WebP or JPEG.'); };
 // Strict container/frame inspection without paid image transformations or a
 // CPU-heavy decoder. Never trusts request MIME, filename or client dimensions.
-export function inspectImage(bytes, claimedType) {
-  if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > MAX_IMAGE_BYTES) throw new Error('Profile images must be at most 200 KB.');
+export function inspectImage(bytes, claimedType, limits = {}) {
+  if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > (limits.maxBytes || MAX_IMAGE_BYTES)) throw new Error('Profile images must be at most 200 KB.');
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const ascii = (at, n) => String.fromCharCode(...bytes.subarray(at, at + n));
   let width = 0, height = 0, mime = '';
@@ -70,6 +70,6 @@ export function inspectImage(bytes, claimedType) {
     }
     if (!scan || !frame || offset !== bytes.length - 2) fail();
   } else fail();
-  if (claimedType !== mime || width < 1 || height < 1 || width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) fail();
+  if (claimedType !== mime || width < 1 || height < 1 || width > (limits.maxDimension || MAX_IMAGE_DIMENSION) || height > (limits.maxDimension || MAX_IMAGE_DIMENSION)) fail();
   return { mime, width, height, size: bytes.length };
 }

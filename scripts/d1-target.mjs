@@ -24,6 +24,6 @@ export async function openTarget({remote=false, mainId, mediaId, persist='.local
     return {DB:make(mainId),MEDIA_DB:make(mediaId),close:async()=>{}};
   }
   const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
-  const mf = new Miniflare(convertV4MiniflareOptions({name:'sewak-local',modules:true, script:'export default {fetch(){return new Response("Local migration harness")}}', compatibilityDate:'2026-09-01', d1Databases:{DB:'sewak-db',MEDIA_DB:'sewak-media'}, resourcePersistencePath:persist}));
-  return {DB:await mf.getD1Database('DB'),MEDIA_DB:await mf.getD1Database('MEDIA_DB'),close:()=>mf.dispose()};
+  const mf = new Miniflare(convertV4MiniflareOptions({name:'sewak-local',modules:true, script:'export default {fetch(){return new Response("Local migration harness")}}', compatibilityDate:'2026-09-01', d1Databases:{DB:'sewak-db',MEDIA_DB:'sewak-media',EVIDENCE_DB:'sewak-evidence'}, resourcePersistencePath:persist}));
+  return {DB:await mf.getD1Database('DB'),MEDIA_DB:await mf.getD1Database('MEDIA_DB'),EVIDENCE_DB:await mf.getD1Database('EVIDENCE_DB'),close:()=>mf.dispose()};
 }

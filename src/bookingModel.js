@@ -64,28 +64,28 @@ export const getCaregiverVerification = (caregiver = {}) => [
   {
     key: "identity",
     label: "Identity verified",
-    state: caregiver.identityVerificationStatus || (caregiver.verified ? "verified" : "not_verified"),
+    state: caregiver.verificationSource === "audited_v1" ? caregiver.identityVerificationStatus : "not_submitted",
   },
   {
     key: "phone",
     label: "Phone verified",
-    state: caregiver.phoneVerificationStatus || "not_verified",
+    state: caregiver.verificationSource === "audited_v1" ? caregiver.phoneVerificationStatus : "not_submitted",
   },
   {
     key: "training",
     label: "Training verified",
     state:
-      caregiver.trainingVerificationStatus || (caregiver.isCertified ? "verified" : "not_verified"),
+      caregiver.verificationSource === "audited_v1" ? caregiver.trainingVerificationStatus : "not_submitted",
   },
   {
     key: "background",
     label: "Background check",
-    state: caregiver.backgroundVerificationStatus || (caregiver.backgroundChecked ? "verified" : "not_verified"),
+    state: caregiver.verificationSource === "audited_v1" ? caregiver.backgroundVerificationStatus : "not_submitted",
   },
   {
     key: "references",
     label: "References verified",
-    state: caregiver.referencesVerificationStatus || "not_verified",
+    state: caregiver.verificationSource === "audited_v1" ? caregiver.referencesVerificationStatus : "not_submitted",
   },
 ];
 
