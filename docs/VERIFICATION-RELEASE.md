@@ -42,4 +42,33 @@ The full audits are **not clean**: root has 100 findings (4 low, 17 moderate, 76
 
 `scripts/verify-caregiver-verification.mjs` requires the explicit `--apply-synthetic-qa` flag and a pinned target. Production fixtures use unique owner-controlled email aliases and unpublished, unavailable caregiver profiles. It checks all five synthetic approvals, encrypted image round-trips, unauthorized preview denial, stale decisions, evidence withdrawal, phone-change revocation and responsive dashboard views. No actual identity document, reference call or government match is claimed. Cleanup is restricted to this run's exact generated users and evidence IDs; original application/verification rows are compared by an in-memory hash and foreign keys are checked afterward. Full auth and data reports must be regenerated for the deployed version.
 
-Production application deployment and final version-matched results are recorded in the completion update below.
+## Production completion
+
+The guarded production deployment succeeded on 15 October 2026 from source commit `5816c778ace161c6e11c9d5f119252d043d7b811` on `feature/sewak-secure-verification`.
+
+- Live application: https://sewak-final.nischalbachhar9.workers.dev
+- Active Worker version: `0a2a7e97-c132-4939-8376-914e98a8c737`, receiving 100% of traffic.
+- All three pinned database bindings and the 15-minute maintenance trigger were verified. Production writes remain enabled; staging remains read-only.
+- Live feature QA: **33 HTTP checks passed**, covering all five synthetic approval workflows, encrypted image round-trips, unauthorized access denial, stale-review rejection, unpublished-profile exclusion, evidence withdrawal and phone-change revocation. Exact synthetic cleanup and unchanged original application/verification records passed.
+- Final authentication follow-up: **54 HTTP checks passed**, plus real browser cookie login, session restoration, HttpOnly/storage checks, and loaded caregiver/admin verification pages at **320, 390 and 1440 pixels**, with no overflow or page errors. Screenshots were visually inspected. Cleanup and unchanged original application/media records passed.
+- Final integrity verification after cleanup: MAIN, MEDIA and EVIDENCE all passed quick-check with **zero foreign-key violations**, against the same active Worker version.
+- Final operator/release tests: **27 passed, 0 failed**. Source syntax and diff checks passed; credential/runtime scan passed across 375 repository files with zero private-credential or retired Firebase runtime matches.
+
+### Authentication QA qualification
+
+The first postdeployment registration-based run successfully registered and mapped all four roles, but stopped at password change with a 503. A seeded follow-up passed password change but stopped at failed-login attempt 5 with another 503. Cleanup passed for both. The transient 503 root cause was not established; the final run passed without an authentication/runtime code change. These observations remain recorded and must not be described as a permanently fixed availability defect.
+
+Follow-ups used explicit `--seed-synthetic-fixtures` to insert only new random QA users/credentials through the pinned operator database connection. This avoided further public registrations after the operator's hourly allowance was used; no rate-limit bucket was cleared, modified or weakened. The final 54 checks include login of seeded identities and do **not** include registration. Registration coverage comes from the first postdeployment run on this exact version. A follow-up fixture initially omitted profile field-presence metadata and therefore redirected to profile completion; that QA-only setup was corrected, and its cleanup passed. No application code was changed for this correction.
+
+The final report explicitly identifies `operator-seeded-no-registration-coverage`. The deployment evidence guard rejects such reports as standalone release authorization: a future deployment still requires fresh, passing registration-based authentication QA. The browser helper now waits for a successful verification-data response and rendered content before capturing screenshots; earlier loading-state screenshots are not used as the final UI evidence.
+
+Local evidence, kept outside Git:
+
+- Feature: `.local-tools/cloudflare-auth/sewak-final-verification-b954332a-b6fa-41d5-bd90-a738e1078003.json`
+- Initial postdeployment registration/503: `.local-tools/cloudflare-auth/sewak-final-qa-dc4c5679-0f60-47a5-9408-7cb35ae48a42.json`
+- Seeded follow-up/503: `.local-tools/cloudflare-auth/sewak-final-qa-374267b9-2889-4ea3-ba77-a17f0d9a3da4.json`
+- Corrected fixture predecessor: `.local-tools/cloudflare-auth/sewak-final-qa-5a8270c2-25bd-4712-b0b5-d3d8fec587e8.json`
+- Passing final follow-up: `.local-tools/cloudflare-auth/sewak-final-qa-a8d09ea2-b6a5-4a07-a56f-70498487afaa.json`
+- Final integrity: `.local-tools/cloudflare-auth/cloudflare-data-check.json`
+
+The final commit after deployment contains operator QA, release-guard tests and this report only; it does not change the deployed application bundle. The feature branch is pushed; no pull request or merge into `main` was performed. The separate auth/notification checkout's seven pre-existing changed paths remain untouched. Dependency-toolchain findings and the portable encryption-key backup recommendation above remain outstanding.

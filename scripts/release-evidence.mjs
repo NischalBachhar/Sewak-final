@@ -35,6 +35,7 @@ export function assertReleaseEvidence({validation, qa, writesEnabled, now = Date
     qa.writesEnabled === writesEnabled &&
     qa.version === validation.version &&
     qa.checksPassed === true &&
+    (qa.fixtureSetup === undefined || qa.fixtureSetup === 'registration-api') &&
     qa.cleanupVerified === true &&
     qa.applicationRecordsUnchanged === true &&
     !qa.failure && !qa.cleanupFailure,

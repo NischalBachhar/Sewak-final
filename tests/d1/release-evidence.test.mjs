@@ -36,6 +36,7 @@ for (const [label, modify] of [
   ['unverified cleanup', r => {r.qa.cleanupVerified = false;}],
   ['unexpected changes to application data', r => {r.qa.applicationRecordsUnchanged = false;}],
   ['incomplete Auth checks', r => {r.qa.checksPassed = false;}],
+  ['seeded follow-up QA without registration coverage', r => {r.qa.fixtureSetup = 'operator-seeded-no-registration-coverage';}],
   ['a failed Auth cleanup', r => {r.qa.cleanupFailure = {message: 'failure'};}],
   ['failed D1 integrity', r => {r.validation.checks.DB.integrity = 'failed';}],
   ['D1 foreign-key violations', r => {r.validation.checks.MEDIA_DB.foreignKeyViolations = 1;}],

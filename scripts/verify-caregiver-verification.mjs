@@ -8,6 +8,7 @@ import {cloudflare} from './cloudflare-operator.mjs';
 import {targets,SEWAK_ACCOUNT,assertLiveBindings} from './deployment-policy.mjs';
 import {controlledQaGmail,syntheticQaEmail} from './synthetic-qa-email.mjs';
 import {entities,encodeRecord,insertSQL} from '../worker/src/model.mjs';
+import {verifyVerificationViews} from './verification-browser-qa.mjs';
 
 assert.ok(process.argv.includes('--apply-synthetic-qa'),'Explicit synthetic QA authorization required');
 const worker=process.argv[process.argv.indexOf('--worker')+1];
@@ -82,13 +83,7 @@ try{
   assert.equal((await DB.prepare("SELECT status FROM verification_records WHERE caregiver_id=? AND kind='phone'").bind(uid).first()).status,'revoked');
  }
  const {chromium}=await import('@playwright/test');browser=await chromium.launch({channel:'chrome',headless:true});
- for(const [role,user,route]of [['caregiver',caregiver,'/caregiver?tab=verification'],['admin',admin,'/superadmin/verification']]){
-  const context=await browser.newContext(),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.name));
-  await page.goto(origin+'/auth');await page.getByLabel('Email',{exact:true}).fill(user.email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL(url=>url.pathname!=='/auth');
-  for(const width of [320,390,1440]){await page.setViewportSize({width,height:900});await page.goto(origin+route);await page.getByRole('heading',{name:role==='caregiver'?'My Verification':'Verification Management',exact:true}).waitFor();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));await page.screenshot({path:`.local-tools/verification-live-${worker}-${role}-${width}.png`,fullPage:true});}
-  assert.deepEqual(errors,[]);await context.close();
- }
- report.browser={roles:2,widths:[320,390,1440],pageErrors:0};report.checksPassed=true;
+ report.browser=await verifyVerificationViews(browser,{origin,worker,accounts:[{role:'caregiver',email:caregiver.email,password},{role:'admin',email:admin.email,password}]});report.checksPassed=true;
 }catch(error){report.failure={name:error.name,message:error.message};}
 finally{
  if(browser)await browser.close();
