@@ -74,7 +74,7 @@ try{
    await request(`/api/verification/review/${uid}/${kind}`,admin.token,{body:{version:2,decision:'verified',confirmed:true,method:methods[kind],outcome:'SYNTHETIC QA ONLY. No real document, call or police match claimed.',...(kind==='background'?{policeResult:'matched'}:{}),...(kind==='references'?{referenceConfirmations:[0,1].map(index=>({index,confirmed:true,notes:'SYNTHETIC test fixture only.'}))}:{})}});
   }
   const own=(await request('/api/verification/me',caregiver.token)).data;assert.equal(own.records.filter(r=>r.status==='verified').length,5);
-  const hidden=(await request('/api/records/publicCaregivers/'+uid,null,{expected:404})).data;assert.ok(!JSON.stringify(hidden).includes('SYNTHETIC-'+run));
+  const hidden=(await request('/api/records/publicCaregivers/'+uid,null)).data;assert.deepEqual(hidden.items,[]);assert.ok(!JSON.stringify(hidden).includes('SYNTHETIC-'+run));
   await request(`/api/verification/review/${uid}/identity`,admin.token,{body:{version:2,decision:'rejected',reason:'Stale decision rejected.',confirmed:true},expected:409});
   await request('/api/verification/evidence/'+identityImage,caregiver.token,{method:'DELETE'});
   assert.equal((await DB.prepare("SELECT status FROM verification_records WHERE caregiver_id=? AND kind='identity'").bind(uid).first()).status,'revoked');
