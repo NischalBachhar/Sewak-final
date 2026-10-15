@@ -9,7 +9,7 @@ function reports(writesEnabled = true) {
       pass: true, backend: 'cloudflare-d1', worker: 'sewak-final', version: 'v-123',
       checkedAt: new Date(now - 10 * 60_000).toISOString(),
       health: {healthy: true, auth: 'cloudflare-d1', writesEnabled},
-      checks: {DB: {integrity: 'ok', foreignKeyViolations: 0}, MEDIA_DB: {integrity: 'ok', foreignKeyViolations: 0}},
+      checks: {DB: {integrity: 'ok', foreignKeyViolations: 0}, MEDIA_DB: {integrity: 'ok', foreignKeyViolations: 0}, EVIDENCE_DB: {integrity: 'ok', foreignKeyViolations: 0}},
     },
     qa: {
       pass: true, auth: 'cloudflare-d1', worker: 'sewak-final', version: 'v-123',
@@ -39,6 +39,8 @@ for (const [label, modify] of [
   ['a failed Auth cleanup', r => {r.qa.cleanupFailure = {message: 'failure'};}],
   ['failed D1 integrity', r => {r.validation.checks.DB.integrity = 'failed';}],
   ['D1 foreign-key violations', r => {r.validation.checks.MEDIA_DB.foreignKeyViolations = 1;}],
+  ['missing evidence database validation', r => {delete r.validation.checks.EVIDENCE_DB;}],
+  ['evidence database corruption', r => {r.validation.checks.EVIDENCE_DB.integrity = 'failed';}],
   ['a mismatched D1 write mode', r => {r.validation.health.writesEnabled = false;}],
   ['a wrong Auth worker', r => {r.qa.worker = 'sewak';}],
   ['a missing Auth report', r => {r.qa = undefined;}],

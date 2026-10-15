@@ -1,6 +1,6 @@
 # Secure caregiver verification
 
-Implementation branch: `feature/sewak-secure-verification`, based on refreshed `origin/main` at `387a45f`. The separate auth/notification branch and its uncommitted work are not included. This feature has not been deployed. Existing `APP_WRITES_ENABLED`, production configuration, deployment policy and release guards are unchanged.
+Implementation branch: `feature/sewak-secure-verification`, based on refreshed `origin/main` at `387a45f`. The separate auth/notification branch and its uncommitted work are not included. The initial implementation was held locally. The owner authorized commit, push and deployment on 15 October 2026; see [VERIFICATION-RELEASE.md](VERIFICATION-RELEASE.md) for the release state. `APP_WRITES_ENABLED` remains unchanged: staging false, production true. Release guards now pin the separate evidence databases and require schema, key and integrity readiness.
 
 ## Workflows
 
@@ -129,7 +129,10 @@ migrations_dir = "../migrations/evidence"
 "@ | Set-Content -Encoding utf8 '.local-tools\verification-preparation.toml'
 node $verificationWrangler d1 migrations list sewak-staging-db --config wrangler.toml --remote
 # Review pending migrations before applying; MAIN includes any prior unrun additive migrations.
-node $verificationWrangler d1 migrations apply sewak-staging-db --config wrangler.toml --remote
+# Existing MAIN schemas predate Wrangler migration tracking. Do not replay 0001-0004.
+# First confirm verification_records is absent; stop if this migration is already applied.
+node $verificationWrangler d1 execute DB --config wrangler.toml --remote --command "SELECT name FROM sqlite_master WHERE name='verification_records'"
+node $verificationWrangler d1 execute DB --config wrangler.toml --remote --file migrations/main/0006_secure_verification.sql --yes
 if ($LASTEXITCODE -ne 0) { throw 'Staging MAIN migration failed' }
 node $verificationWrangler d1 migrations apply EVIDENCE_DB --config '.local-tools\verification-preparation.toml' --remote
 if ($LASTEXITCODE -ne 0) { throw 'Staging evidence migration failed' }
@@ -138,10 +141,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Staging evidence migration failed' }
 node $verificationWrangler secret put VERIFICATION_ENCRYPTION_KEY --config wrangler.toml
 ```
 
-Before approving an eventual release, the owner must review binding the new UUID as `EVIDENCE_DB`, cron/retention settings and the evidence key. **The current existing deployment guard requires exactly two D1 bindings and staging read-only mode. It remains unchanged and deliberately blocks deployment with a third binding.** A separately authorized release must extend that guard to pin the reviewed evidence UUID, preserve all existing account/database/QA checks, and authorize any staging write-enablement separately. Do not bypass the guard with a raw deployment command. No deployment command or write-flag change is part of these instructions. Migration-before-code order is required because public projections now depend on the new safe view.
+The authorized release configuration now pins `EVIDENCE_DB` independently for staging and production, enables bounded maintenance every 15 minutes, and keeps the existing write modes. The deployment guard requires exactly three pinned databases, checks the evidence secret and required schema before upload, and requires evidence-database integrity in production release reports. All existing account, audience, CI-override, authentication, mode and cleanup checks remain. Use `deploy-worker.mjs`; do not deploy directly with Wrangler. Apply migrations before code because public projections depend on the safe view.
+
+The two evidence keys have separate encrypted local recovery copies under `.local-tools/staging-verification-key.dpapi` and `.local-tools/production-verification-key.dpapi`. These use Windows DPAPI and require this Windows user/profile to decrypt; they are excluded from Git. Preserve the Windows profile backup and transfer the keys securely to the owner's password manager for portable recovery. Never print keys in chat or replace a live key without a tested re-encryption plan.
 
 If the unmerged auth/notification feature is later integrated, retain its email verification/session guards and route existing in-app delivery to the verification events without enabling optional email by default. Its reserved `0005` migration does not collide with this feature's `0006`.
 
 ## Deliberate limits / release prerequisites
 
-Manual reviewer training, consent/privacy wording approval, official portal availability and real evidence review are operational responsibilities. No government endorsement, professional licensing or safety guarantee is implied. Optional PDF ingestion, automated phone codes, OCR, email and external background services are excluded. Staging bindings, secrets, cron activation, Free-account capacity, staging CPU measurements and the separately approved deployment-guard extension remain required before any deployment. Production data, infrastructure, settings and deployments have not been modified.
+Manual reviewer training, consent/privacy wording approval, official portal availability and real evidence review are operational responsibilities. No government endorsement, professional licensing or safety guarantee is implied. Optional PDF ingestion, automated phone codes, OCR, email and external background services are excluded. Bindings, secrets, cron and deployment guards are configured in the authorized release follow-up. Staging remains read-only, so application-write flows are validated in real local workerd and controlled unpublished production QA. Production CPU under sustained real traffic and manual reviewer operations remain ongoing checks. Consult the release report for actual migrations, deployment versions and QA results.

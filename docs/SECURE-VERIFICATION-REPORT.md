@@ -1,5 +1,7 @@
 # Caregiver verification implementation report
 
+This is the initial implementation checkpoint. The later owner-authorized release is recorded in [VERIFICATION-RELEASE.md](VERIFICATION-RELEASE.md); statements below about production being unchanged describe the initial checkpoint only.
+
 Implementation is local on `feature/sewak-secure-verification`, based on refreshed `origin/main` commit `387a45f`. No production or staging database, secret, setting, deployment, billing configuration or write flag was changed. No merge or pull request was created. The original auth/notification checkout and its seven uncommitted paths were preserved in place; this feature uses an isolated worktree.
 
 ## Delivered functionality
