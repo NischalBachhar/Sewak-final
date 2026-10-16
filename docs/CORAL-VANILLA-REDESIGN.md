@@ -18,6 +18,22 @@ Started from `origin/main` at `387a45fbf015d3913a98cbff059d31600209f065` in `.wo
 
 Relative to the preserved live baseline, this redesign changes no Worker code, database migrations, write settings, secrets, payment calculations or deployment safeguards. It also themes the existing verification workspace, retaining encrypted evidence and authorized public badges. Local browser data is synthetic and exists only in the loopback D1 fixture server. The owner subsequently authorized commit, push and deployment; GitHub merge has not been requested.
 
+## Production release
+
+The owner explicitly approved temporary synthetic production QA and deployment. Commit `f12f248dfdc3e989a76b356e2c840a6eb6d95906` was pushed and deployed through the existing guarded deployment script on 2026-10-16. The active Worker version is `a0062dfe-9c2e-42fa-aa5a-c4ea3215e878`, serving [the live Sewak site](https://sewak-final.nischalbachhar9.workers.dev/). [PR #31](https://github.com/NischalBachhar/Sewak-final/pull/31) remains open, stacked on `feature/sewak-secure-verification`; it has not been merged.
+
+All four GitHub CI checks passed for the deployed application commit: authentication regression, customer web UI, organization workspace and signed-in visual QA. Deployment preserved the three D1 bindings, password hasher, encrypted verification workflow, production write mode and scheduled trigger. No migration, secret change, billing change or automatic Cloudflare Git deployment reconnection was performed.
+
+Production evidence:
+
+- Before deployment, registration-based authentication QA passed all 54 checks on the prior live version. All four temporary role accounts and their test records were removed; existing application/media records were unchanged.
+- On the new version, the first post-deployment run passed registration for all four synthetic accounts, role isolation, CSRF, private media, password change, logout, browser session restoration and caregiver/admin verification views at 320, 390 and 1440px. It stopped when the tenth deliberately invalid login reached the shared IP rate limit from the preceding run. Cleanup passed and existing application/media records were unchanged. This run is retained as registration evidence, not reported as a complete passing auth run.
+- After the login window expired naturally, the existing operator-seeded follow-up passed all 54 checks on the same deployed version, including the normalized-email rate limit and all-session revocation. Browser session restoration and both verification roles passed again. Its temporary accounts and test records were removed, and existing application/media records remained unchanged. This follow-up has no independent registration coverage; the preceding current-version registration report supplies that evidence.
+- Read-only live browser checks passed on `/`, `/browse`, `/auth` and `/auth?mode=register` at 320, 375, 768, 1366 and 1920px: 20 route/viewport combinations, zero page errors, no horizontal overflow and the requested palette. The homepage image loaded successfully. Published HTML, main JavaScript, main CSS and the homepage WebP matched the reviewed production build by SHA-256.
+- Final read-only integrity checks after cleanup passed for DB, MEDIA_DB and EVIDENCE_DB at 16:28:45 UTC: all integrity results were `ok`, with zero foreign-key violations. The active version remained `a0062dfe-9c2e-42fa-aa5a-c4ea3215e878`; health and production write mode remained unchanged.
+
+The passing pre-deployment auth report is `sewak-final-qa-c9ae3b49-5914-4f7b-a7ad-2c18a2800567.json`; the initial post-deployment report is `sewak-final-qa-88df182c-85e9-4ccd-8d01-10983c7cb7ab.json`; the passing seeded follow-up is `sewak-final-qa-89b4b06f-25fe-48e9-9eb0-60db755d58c9.json`. The [sanitized release evidence](CORAL-VANILLA-RELEASE.json) records both post-deployment reports, public asset hashes and final database integrity. Raw production QA logs and authenticated screenshots remain local and excluded from the PR.
+
 ## Validation
 
 Validated locally on Windows on 2026-10-16:
@@ -50,7 +66,7 @@ The anonymous root previously redirected to discovery; there is no equivalent ho
 - Local browser verification uses desktop Chrome with responsive viewports and synthetic loopback D1 data. It does not establish real-device Safari/Firefox behavior, email delivery or production health.
 - The installed Browserslist dataset reports that it is 10 months old. It does not fail lint or build. Dependency refresh is outside this visual change.
 - The generated homepage image is illustrative. The existing Sewak logo and established application data remain authoritative.
-- Deployment is authorized, but automatic approval review rejected the required production auth-QA command because it creates and removes synthetic production accounts. No production test-data writes or deployment were performed by that rejected command. Explicit approval for the synthetic QA writes is still needed; the release guard will not be bypassed.
+- Production QA deliberately exercises authentication throttling. Closely spaced runs can exhaust the shared IP allowance; follow-up checks must wait for its natural reset. Registration evidence and any operator-seeded follow-up must be identified separately. No rate-limit bucket or policy was cleared or weakened.
 
 ## Dependency audit
 
@@ -73,6 +89,7 @@ Relative to the preserved live baseline `f548df1`:
 - [.github/workflows/signed-in-visual-qa.yml](../.github/workflows/signed-in-visual-qa.yml)
 - [docs/CORAL-VANILLA-AUDIT.json](../docs/CORAL-VANILLA-AUDIT.json)
 - [docs/CORAL-VANILLA-REDESIGN.md](../docs/CORAL-VANILLA-REDESIGN.md)
+- [docs/CORAL-VANILLA-RELEASE.json](../docs/CORAL-VANILLA-RELEASE.json)
 - [docs/design/coral-vanilla/README.md](../docs/design/coral-vanilla/README.md)
 - [docs/design/coral-vanilla/after/admin-1440-overview.png](../docs/design/coral-vanilla/after/admin-1440-overview.png)
 - [docs/design/coral-vanilla/after/browse-1366.png](../docs/design/coral-vanilla/after/browse-1366.png)

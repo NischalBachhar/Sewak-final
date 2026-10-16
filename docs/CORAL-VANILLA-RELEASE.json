@@ -1,0 +1,229 @@
+{
+  "applicationCommit": "f12f248dfdc3e989a76b356e2c840a6eb6d95906",
+  "worker": "sewak-final",
+  "version": "a0062dfe-9c2e-42fa-aa5a-c4ea3215e878",
+  "origin": "https://sewak-final.nischalbachhar9.workers.dev",
+  "authorization": "Owner explicitly approved synthetic production QA and deployment.",
+  "postDeploymentCoverage": "Combined evidence: current-version API registration in the initial run plus a passing operator-seeded follow-up after natural login rate-limit expiry. The seeded run alone does not cover registration.",
+  "initial": {
+    "file": "sewak-final-qa-88df182c-85e9-4ccd-8d01-10983c7cb7ab.json",
+    "version": "a0062dfe-9c2e-42fa-aa5a-c4ea3215e878",
+    "fixtureSetup": "registration-api",
+    "startedAt": "2026-10-16T16:12:40.284Z",
+    "completedAt": "2026-10-16T16:13:49.740Z",
+    "pass": false,
+    "checks": 50,
+    "cleanupVerified": true,
+    "applicationRecordsUnchanged": true,
+    "browser": {
+      "realCookieLogin": true,
+      "sessionRestored": true,
+      "privateProfile": true,
+      "firebaseRequests": 0,
+      "firebaseNetworkBlocked": true,
+      "httpOnly": true
+    },
+    "verificationBrowser": {
+      "roles": 2,
+      "widths": [
+        320,
+        390,
+        1440
+      ],
+      "pageErrors": 0,
+      "dataLoaded": true
+    },
+    "failure": {
+      "name": "AssertionError",
+      "message": "failed login 10: HTTP 429 rate-limited — Too many attempts. Try again later.\n\n429 !== 401\n"
+    }
+  },
+  "followup": {
+    "file": "sewak-final-qa-89b4b06f-25fe-48e9-9eb0-60db755d58c9.json",
+    "version": "a0062dfe-9c2e-42fa-aa5a-c4ea3215e878",
+    "fixtureSetup": "operator-seeded-no-registration-coverage",
+    "startedAt": "2026-10-16T16:26:11.306Z",
+    "completedAt": "2026-10-16T16:27:49.372Z",
+    "pass": true,
+    "checks": 54,
+    "cleanupVerified": true,
+    "applicationRecordsUnchanged": true,
+    "browser": {
+      "realCookieLogin": true,
+      "sessionRestored": true,
+      "privateProfile": true,
+      "firebaseRequests": 0,
+      "firebaseNetworkBlocked": true,
+      "httpOnly": true
+    },
+    "verificationBrowser": {
+      "roles": 2,
+      "widths": [
+        320,
+        390,
+        1440
+      ],
+      "pageErrors": 0,
+      "dataLoaded": true
+    }
+  },
+  "data": {
+    "pass": true,
+    "backend": "cloudflare-d1",
+    "worker": "sewak-final",
+    "version": "a0062dfe-9c2e-42fa-aa5a-c4ea3215e878",
+    "checkedAt": "2026-10-16T16:28:45.579Z",
+    "health": {
+      "healthy": true,
+      "writesEnabled": true,
+      "auth": "cloudflare-d1"
+    },
+    "checks": {
+      "DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      },
+      "MEDIA_DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      },
+      "EVIDENCE_DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      }
+    }
+  },
+  "publicBrowser": {
+    "checkedAt": "2026-10-16T16:17:02.071Z",
+    "pass": true,
+    "health": {
+      "healthy": true,
+      "writesEnabled": true,
+      "auth": "cloudflare-d1"
+    },
+    "assets": [
+      {
+        "path": "/index.html",
+        "sha256": "abcf9b14cd07b6d16f75e251fcdae6dfe82ae2f6028ae78b29d84ef809e859ca"
+      },
+      {
+        "path": "/images/care-for-every-generation.webp",
+        "sha256": "5a971123645505f6d16c18e534b610d9a2ac5a0bcf64e2115cd3c98900f9a5e2"
+      },
+      {
+        "path": "/static/js/main.39f447c2.js",
+        "sha256": "3500c7cb6d97022dea56827891b44b40cfb116a09d516ce7d003630eb1bf9d12"
+      },
+      {
+        "path": "/static/css/main.854f79f5.css",
+        "sha256": "371b58016d392745a12fd95de7fa4fe39ad1a17226ef9aee78d6a0937e0efa29"
+      }
+    ],
+    "checks": [
+      {
+        "route": "/",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "route": "/browse",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 375,
+        "overflow": false
+      },
+      {
+        "route": "/browse",
+        "width": 375,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 375,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 375,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "route": "/browse",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 1366,
+        "overflow": false
+      },
+      {
+        "route": "/browse",
+        "width": 1366,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 1366,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 1366,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 1920,
+        "overflow": false
+      },
+      {
+        "route": "/browse",
+        "width": 1920,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 1920,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 1920,
+        "overflow": false
+      }
+    ],
+    "pageErrors": 0
+  },
+  "rateLimitsModified": false,
+  "migrationsApplied": false,
+  "pullRequestMerged": false
+}
