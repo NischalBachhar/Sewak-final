@@ -8,9 +8,9 @@ let robots = 'User-agent: *\nAllow: /\n';
 if (raw) {
   const origin = new URL(raw);
   if (!['http:', 'https:'].includes(origin.protocol) || origin.origin !== raw.replace(/\/$/, '') || origin.username || origin.password) throw new Error('REACT_APP_CANONICAL_ORIGIN must be a valid origin without a path.');
-  const canonical = `${origin.origin}/browse`;
+  const canonical = `${origin.origin}/`;
   html = html.replace('</head>', `<link rel="canonical" href="${canonical}"><meta property="og:url" content="${canonical}"></head>`);
-  fs.writeFileSync('build/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${canonical}</loc></url></urlset>`);
+  fs.writeFileSync('build/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${canonical}</loc></url><url><loc>${origin.origin}/browse</loc></url></urlset>`);
   robots += `Sitemap: ${origin.origin}/sitemap.xml\n`;
 } else {
   console.warn('Canonical origin is not configured; sitemap/canonical URLs are omitted. Set REACT_APP_CANONICAL_ORIGIN for release builds.');

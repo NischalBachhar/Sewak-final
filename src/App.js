@@ -9,6 +9,7 @@ import AuthPage from "./AuthPage";
 import CaregiverListPage from "./CaregiverListPage";
 import PublicCaregiverProfilePage from "./PublicCaregiverProfilePage";
 import BrowsePage from "./BrowsePage";
+import HomePage from "./HomePage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
@@ -303,7 +304,7 @@ function App() {
           element={<PublicCaregiverProfilePage />}
         />
         <Route path="/payment-callback" element={<PaymentCallbackPage />} />
-        <Route path="/" element={<Navigate to="/browse" replace />} />
+        <Route path="/" element={<HomePage />} />
         {["/user/*", "/caregiver/*", "/organization/*", "/superadmin/*"].map((path) => <Route key={path} path={path} element={<Navigate to="/auth" replace />} />)}
         <Route path="*" element={<NotFound />} />
       </Routes>
