@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import logoSvg from "../logoSewak.jpeg";
 import "./Header.css";
+import { WorkspaceIcon } from "./WorkspaceShell";
 
 export default function Header({ user, userRole, userDoc, onLogout, logoutPending, logoutError, onBrowseCaregivers, onMyBookings, notificationCount }) {
   const navigate = useNavigate();
@@ -33,20 +34,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
 
   if (!user) return null;
 
-  const getRoleIcon = (role) => {
-    switch (role) {
-      case "user":
-        return "👨‍👩‍👧";
-      case "caregiver":
-        return "👩‍💼";
-      case "orgadmin":
-        return "🏢";
-      case "superadmin":
-        return "🔐";
-      default:
-        return "👤";
-    }
-  };
+  const getRoleIcon = (role) => <WorkspaceIcon type={role === 'superadmin' ? 'admins' : role === 'orgadmin' ? 'organizations' : 'profile'} />;
 
   const getRoleLabel = (role) => {
     switch (role) {
@@ -161,12 +149,12 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
                   </p>
                   {userRole === "caregiver" && userDoc?.organizationName && (
                     <p style={{ margin: "4px 0 0 0", color: "var(--theme-text-muted)", fontSize: 11 }}>
-                      🏢 {userDoc.organizationName}
+                      {userDoc.organizationName}
                     </p>
                   )}
                   {userRole === "orgadmin" && userDoc?.organizationName && (
                     <p style={{ margin: "4px 0 0 0", color: "var(--theme-text-muted)", fontSize: 11 }}>
-                      🏢 {userDoc.organizationName}
+                      {userDoc.organizationName}
                     </p>
                   )}
                 </div>
@@ -177,7 +165,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
                 {userRole === "user" && (
                   <>
                     <button type="button" className="dropdown-item" onClick={() => handleNavigate("/user/home")}>
-                      ⌂ My Dashboard
+                      My Dashboard
                     </button>
                     <button
                       type="button"
@@ -190,7 +178,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
                         }
                       }}
                     >
-                      📋 Browse Caregivers
+                      Browse Caregivers
                     </button>
                     <button
                       type="button"
@@ -203,14 +191,14 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
                         }
                       }}
                     >
-                      📅 My Bookings{notificationCount > 0 ? ` (${notificationCount})` : ""}
+                      My Bookings{notificationCount > 0 ? ` (${notificationCount})` : ""}
                     </button>
                     <button
                       type="button"
                       className="dropdown-item"
                       onClick={() => handleNavigate("/user/profile")}
                     >
-                      👤 My Profile
+                      My Profile
                     </button>
                   </>
                 )}
@@ -223,21 +211,21 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
                       className="dropdown-item"
                       onClick={() => handleNavigate("/caregiver?tab=jobs")}
                     >
-                      📊 Job Dashboard
+                      Job Dashboard
                     </button>
                     <button
                       type="button"
                       className="dropdown-item"
                       onClick={() => handleNavigate("/caregiver?tab=profile")}
                     >
-                      👤 My Profile
+                      My Profile
                     </button>
                     <button
                       type="button"
                       className="dropdown-item"
                       onClick={() => handleNavigate("/caregiver?tab=earnings")}
                     >
-                      💰 My Earnings
+                      My Earnings
                     </button>
                   </>
                 )}
@@ -258,42 +246,42 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
                       className="dropdown-item"
                       onClick={() => handleNavigate("/superadmin/organizations")}
                     >
-                      🏢 All Organizations
+                      All Organizations
                     </button>
                     <button
                       type="button"
                       className="dropdown-item"
                       onClick={() => handleNavigate("/superadmin/caregivers")}
                     >
-                      👥 All Caregivers
+                      All Caregivers
                     </button>
                     <button
                       type="button"
                       className="dropdown-item"
                       onClick={() => handleNavigate("/superadmin/bookings")}
                     >
-                      📅 All Bookings
+                      All Bookings
                     </button>
                     <button
                       type="button"
                       className="dropdown-item"
                       onClick={() => handleNavigate("/superadmin/services")}
                     >
-                      🛠️ Services
+                      Services
                     </button>
                     <button
                       type="button"
                       className="dropdown-item"
                       onClick={() => handleNavigate("/superadmin/blacklist")}
                     >
-                      🚫 Reports
+                      Reports
                     </button>
                     <button
                       type="button"
                       className="dropdown-item"
                       onClick={() => handleNavigate("/superadmin/analytics")}
                     >
-                      ⚙️ Settings
+                      Settings
                     </button>
                   </>
                 )}
@@ -302,7 +290,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
 
                 {/* Logout */}
                 <button type="button" className="dropdown-item logout" onClick={handleLogout} disabled={logoutPending}>
-                  🚪 Logout
+                  Logout
                 </button>
               </div>
             </>

@@ -6,6 +6,8 @@ import { bookingScheduleLabel, getBookingStatus } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { ErrorState, SkeletonCard, StatusBadge } from "./components/CareExperience";
 import ProfileImage from "./components/ProfileImage";
+import { LoginIcon } from "./components/LoginExperience";
+import { WorkspaceIcon } from "./components/WorkspaceShell";
 
 const bookingDateTime = (booking) => {
   const dateMatch = String(booking?.date || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -74,11 +76,11 @@ export default function CustomerHomePage() {
       <section className="customer-welcome" aria-labelledby="customer-home-title">
         <div className="customer-welcome__content">
           <p className="customer-eyebrow"><span className="customer-eyebrow__dot" aria-hidden="true" /> Sewak care dashboard</p>
-          <h1 id="customer-home-title">Hello, {displayName}<span className="customer-welcome__spark" aria-hidden="true"> ✨</span></h1>
+          <h1 id="customer-home-title">Hello, {displayName}</h1>
           <p>Care for your loved ones, made simpler. Find trusted support and keep every care update in one calm place.</p>
           <div className="customer-welcome__actions">
             <button type="button" className="customer-action customer-action--primary" onClick={() => navigate("/user")}>
-              <span aria-hidden="true">⌕</span> Find care <span aria-hidden="true">→</span>
+              <WorkspaceIcon type="caregivers" /> Find care <span aria-hidden="true">→</span>
             </button>
             <button type="button" className="customer-action customer-action--light" onClick={() => navigate("/user/mybookings")}>
               View my bookings <span aria-hidden="true">↗</span>
@@ -87,7 +89,7 @@ export default function CustomerHomePage() {
         </div>
         <div className="customer-welcome__visual" aria-hidden="true">
           <div className="customer-welcome__halo" />
-          <div className="customer-welcome__heart">♥</div>
+          <div className="customer-welcome__heart"><LoginIcon name="heart" /></div>
           <div className="customer-welcome__floating customer-welcome__floating--top">✦ Care made personal</div>
           <div className="customer-welcome__floating customer-welcome__floating--bottom">✓ Here when you need us</div>
         </div>
@@ -95,7 +97,7 @@ export default function CustomerHomePage() {
 
       <section className="customer-summary" aria-label="Your care overview">
         <div className="customer-summary__item">
-          <span className="customer-summary__icon customer-summary__icon--teal" aria-hidden="true">▦</span>
+          <span className="customer-summary__icon customer-summary__icon--teal" aria-hidden="true"><WorkspaceIcon type="bookings" /></span>
           <div><p>Active requests</p><strong>{activeBookings.length}</strong><small>Care being arranged</small></div>
         </div>
         <div className="customer-summary__item">
@@ -148,17 +150,17 @@ export default function CustomerHomePage() {
           </div>
           <div className="customer-shortcuts">
             <button type="button" className="customer-shortcut" onClick={() => navigate("/user")}>
-              <span className="customer-shortcut__icon customer-shortcut__icon--teal" aria-hidden="true">♡</span>
+              <span className="customer-shortcut__icon customer-shortcut__icon--teal" aria-hidden="true"><LoginIcon name="heart" /></span>
               <span><strong>Find care support</strong><small>Browse caregivers and household help</small></span>
               <span aria-hidden="true">↗</span>
             </button>
             <button type="button" className="customer-shortcut" onClick={() => navigate("/user/mybookings")}>
-              <span className="customer-shortcut__icon customer-shortcut__icon--blue" aria-hidden="true">▦</span>
+              <span className="customer-shortcut__icon customer-shortcut__icon--blue" aria-hidden="true"><WorkspaceIcon type="bookings" /></span>
               <span><strong>Manage bookings</strong><small>Track requests, care and payments</small></span>
               <span aria-hidden="true">↗</span>
             </button>
             <button type="button" className="customer-shortcut" onClick={() => navigate("/user/profile")}>
-              <span className="customer-shortcut__icon customer-shortcut__icon--gold" aria-hidden="true">◉</span>
+              <span className="customer-shortcut__icon customer-shortcut__icon--gold" aria-hidden="true"><WorkspaceIcon type="profile" /></span>
               <span><strong>Update your profile</strong><small>Keep contact and location details ready</small></span>
               <span aria-hidden="true">↗</span>
             </button>

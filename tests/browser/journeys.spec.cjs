@@ -20,7 +20,7 @@ test('asset security headers allow Cloudflare sessions without external auth ori
 for(const width of [320,375,430,768,1366,1920])test(`public and four authenticated role routes at ${width}px`,async({browser})=>{
  const context=await browser.newContext({viewport:{width,height:900}});const page=await context.newPage();
  await page.goto('/browse');await expect(page.getByRole('heading',{name:/Care that feels/})).toBeVisible();await checkOverflow(page);
- await page.getByRole('button',{name:'Create an account',exact:true}).click();await expect(page.getByLabel('Full name')).toBeVisible();
+ await page.getByRole('link',{name:'Sign up',exact:true}).click();await expect(page.getByLabel('Full name')).toBeVisible();
  for(const [role,route,heading]of[['customer','/user/home','Hello, Test'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Booking management'],['admin','/superadmin/caregivers','Caregivers']]){
   const roleContext=await browser.newContext({viewport:{width,height:900}});const p=await roleContext.newPage();await signIn(p,role);await p.goto(route);
   if(heading)await expect(p.getByRole('heading',{name:new RegExp(heading)}).first()).toBeVisible();else await expect(p.getByRole('heading',{name:/Test caregiver|Caregiver|My jobs|Jobs/i}).first()).toBeVisible();
@@ -100,8 +100,17 @@ test('an authenticated account without a profile can resume organization signup 
 test('organization pagination preserves global and filtered counts with legacy missing earnings',async({page})=>{
  await db.doc('users/archived-customer').set({role:'user'});await db.doc('vendors/departed-caregiver').set({name:'Archived caregiver'});
  const batch=db.batch();for(let i=0;i<28;i++)batch.set(db.doc(`bookings/pagination-${String(i).padStart(2,'0')}`),{organizationId:'e2e-org',caregiverId:'departed-caregiver',userId:'archived-customer',userName:`Archived Customer ${i}`,status:'completed',totalAmount:100,...(i%2?{vendorEarnings:85}:{})});await batch.commit();
- await signIn(page,'org');await page.goto('/organization?tab=bookings');await expect(page.locator('.org-results-label')).toHaveText(/30 matching bookings overall.*25 shown from this page.*Up to 25 per page/);
- await page.getByLabel('Booking status').selectOption('completed');await expect(page.locator('.org-results-label')).toHaveText(/29 matching bookings overall.*25 shown from this page.*Up to 25 per page/);await page.getByRole('button',{name:'Next',exact:true}).click();await expect(page.getByText(/^Customer:/)).toHaveCount(4);await expect(page.getByRole('button',{name:'Next',exact:true})).toBeDisabled();await expect(page.locator('.org-results-label')).toHaveText(/29 matching bookings overall.*4 shown from this page/);await page.getByRole('button',{name:'Previous',exact:true}).click();await expect(page.getByText(/^Customer:/)).toHaveCount(25);await page.getByLabel('Booking status').selectOption('');await expect(page.locator('.org-results-label')).toHaveText(/30 matching bookings overall/);
+ await signIn(page,'org');await page.goto('/organization?tab=bookings');
+ await expect(page.locator('.org-results-label')).toHaveText('30 matching bookings overall · 25 shown from this page · Up to 25 per page');
+ await page.getByLabel('Booking status').selectOption('completed');
+ await expect(page.locator('.org-results-label')).toHaveText('29 matching bookings overall · 25 shown from this page · Up to 25 per page');
+ await page.getByRole('button',{name:'Next',exact:true}).click();
+ await expect(page.getByText(/^Customer:/)).toHaveCount(4);
+ await expect(page.getByRole('button',{name:'Next',exact:true})).toBeDisabled();
+ await expect(page.locator('.org-results-label')).toHaveText('29 matching bookings overall · 4 shown from this page · Up to 25 per page');
+ await page.getByRole('button',{name:'Previous',exact:true}).click();await expect(page.getByText(/^Customer:/)).toHaveCount(25);
+ await page.goto('/organization?tab=overview');
+ await expect(page.locator('.org-metric').filter({hasText:'Total bookings'}).locator('strong')).toHaveText('30');
 });
 
 test('unknown authenticated dashboard paths render not-found without losing the signed-in account',async({page})=>{

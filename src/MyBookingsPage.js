@@ -97,9 +97,9 @@ export default function MyBookingsPage() {
             marginBottom: 12,
             padding: 12,
             borderRadius: 8,
-            backgroundColor: "#e8f5e9",
-            border: "1px solid #c8e6c9",
-            color: "#256029",
+            backgroundColor: "var(--color-success-soft)",
+            border: "1px solid var(--color-success)",
+            color: "var(--color-success)",
           }}
         >
           {completionNotification}

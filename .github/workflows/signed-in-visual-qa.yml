@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 35
     env:
       CI: 'true'
-      SEWAK_BROWSER_GREP: 'Visual QA|real D1 customer request|superadmin profile editor'
+      SEWAK_BROWSER_GREP: 'Visual QA|Coral and Vanilla|Homepage|Accessibility:|verification|real D1 customer request|superadmin profile editor'
     steps:
       - name: Checkout reviewed code
         uses: actions/checkout@v4

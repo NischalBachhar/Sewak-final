@@ -130,7 +130,7 @@ function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, req
         )}
       </div>
 
-      <div className="browse-assurance-row" aria-label="Profile checks">
+      <div className="browse-assurance-row" role="group" aria-label="Profile checks">
         {caregiver.backgroundChecked && <span className="browse-assurance-tag">Background checked</span>}
         {caregiver.verified && <span className="browse-assurance-tag">ID verified</span>}
         {caregiver.isCertified && <span className="browse-assurance-tag browse-assurance-tag--certified">Certified</span>}
@@ -614,7 +614,7 @@ export default function CaregiverListPage({
     if (serviceFilter && services.length && !services.some(service => service.id === serviceFilter && (!userCategory || userCategory === 'both' || service.category === 'both' || (service.category === 'vendor' ? 'household' : service.category) === userCategory))) setServiceFilter('');
   }, [serviceFilter, services, userCategory]);
   const filtered = caregivers;
-  const pagination = <div className="browse-card-actions" aria-label="Caregiver pages">
+  const pagination = <div className="browse-card-actions" role="navigation" aria-label="Caregiver pages">
     {cursor && <button type="button" className="btn btn-outline" disabled={loading} onClick={() => setCursor(null)}>First page</button>}
     {nextCursor && <button type="button" className="btn btn-outline" disabled={loading} onClick={() => setCursor(nextCursor)}>Next page</button>}
   </div>;

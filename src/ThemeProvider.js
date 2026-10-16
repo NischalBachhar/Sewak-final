@@ -6,7 +6,7 @@ const setThemeVariables = () => {
   if (!root) return;
 
   const alias = {
-    "--page-bg": `radial-gradient(circle at top, ${theme.colors.background} 0%, ${theme.colors.backgroundAccent} 45%, ${theme.colors.background} 100%)`,
+    "--page-bg": theme.colors.background,
     "--card-bg": theme.colors.surface,
     "--card-border": theme.colors.border,
     "--text": theme.colors.text,

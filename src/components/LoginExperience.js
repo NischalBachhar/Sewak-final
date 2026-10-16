@@ -25,14 +25,14 @@ export default function LoginExperience() {
       <div className="login-intro">
         <p className="login-eyebrow">A helping hand. A little peace of mind.</p>
         <h1 id="login-experience-title">Trusted care, when<br className="login-desktop-break" /> your family needs it.</h1>
-        <p className="login-description">Find verified caregivers for children, adults, elderly family members and home care.</p>
+        <p className="login-description">Reconnect with care for children, adults, elderly family members and your home.</p>
       </div>
       <div className="login-visual">
         <img className="login-care-illustration" src={careIllustration} width="600" height="340" alt="A caregiver sharing a warm moment with an older woman and a child at home." />
         <div className="login-visual-note"><span><LoginIcon name="heart" /></span><div>Care that feels like home<small>For every generation.</small></div></div>
       </div>
       <ul className="login-trust" aria-label="The Sewak care experience">
-        <li><LoginIcon name="shield" /><span>Verified<br />caregivers</span></li>
+        <li><LoginIcon name="shield" /><span>Profile verification<br />details</span></li>
         <li><LoginIcon name="clock" /><span>Flexible hourly<br />&amp; shift booking</span></li>
         <li><LoginIcon name="home" /><span>Care designed for<br />Nepali families</span></li>
       </ul>
