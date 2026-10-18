@@ -61,6 +61,16 @@ Desktop default-state reduction is 18.5–19.9% below the hero. Phones retain co
 
 ## Limits and remaining enhancement
 
-Discovery has an existing validated in-page service selector, but does not consume a service query parameter. All cards deliberately keep normal /browse navigation. Deep linking a selected service remains a separate discovery enhancement. Organization selection remains part of the existing signup workflow. Visual and automated browser QA used Chrome; other browser engines and manual screen-reader testing were not performed. Browserslist reported its existing old-data warning; no dependency updates were made. No Worker, D1, secrets, notifications, booking permissions, pricing, shared tokens or dashboard changes. No merge or Cloudflare deployment.
+Discovery has an existing validated in-page service selector, but does not consume a service query parameter. All cards deliberately keep normal /browse navigation. Deep linking a selected service remains a separate discovery enhancement. Organization selection remains part of the existing signup workflow. Visual and automated browser QA used Chrome; other browser engines and manual screen-reader testing were not performed. Browserslist reported its existing old-data warning; no dependency updates were made. No Worker, D1, secrets, notifications, booking permissions, pricing, shared tokens or dashboard changes. At initial PR delivery, no merge or Cloudflare deployment had occurred.
 
 Screenshot pixels and baseline height assertions run only when the recorded platform and Chrome version match, because platform fonts differ. Other environments run all responsive, behavioral and accessibility assertions and generate their own captures.
+
+## Approved production release — 18 October 2026
+
+Homepage application commit `74ecef5` was deployed through the guarded release script to Worker version `ddd7dda0-434c-4632-b7f5-902bea576f53`. All 54 registration-based auth QA checks passed before deployment, with cleanup and unchanged existing application/media records. The first pre-deployment attempt detected a separate real administrator account safety action during its snapshot window; that action was preserved and the subsequent full run passed.
+
+On the deployed version, the full auth run passed 49 checks and stopped at one HTTP 503 on the tenth intentional failed login. A bounded supplemental run passed all 16 targeted checks, including ten failed logins, normalized-email throttling, all-session revocation and health. Both post-deployment runs verified synthetic cleanup and unchanged existing application/media records. The original full run remains failed; the intermittent HTTP 503 cause is unresolved. Post-deployment fixtures were operator-seeded and do not provide independent registration coverage. No rate limits were reset or weakened.
+
+All three current-version databases passed final integrity checks with zero foreign-key violations. Production browser smoke passed 32 page/viewport combinations with zero page errors or overflow; four published asset hashes matched the reviewed build. The Worker bundle is byte-identical to the prior release. No migrations, secret changes, write-setting changes or PR merges occurred.
+
+See [sanitized release evidence](HOMEPAGE-REFINEMENT-RELEASE.json). Private reports, test identities and credentials remain excluded from Git.
