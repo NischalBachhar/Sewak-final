@@ -42,7 +42,7 @@ export default function HomeCaregiverMarketplace() {
   // bookable section with the selected service. No second listing page.
   useEffect(() => {
     setDraft({ ...emptyFields(), serviceId: urlService });
-    setFilters(previous => previous.serviceId === urlService && Object.keys(previous).length <= 1
+    setFilters(previous => (previous.serviceId || '') === urlService && Object.keys(previous).length <= (urlService ? 1 : 0)
       ? previous : searchFields({ ...emptyFields(), serviceId: urlService }));
     setCursor(null);
   }, [urlService]);
