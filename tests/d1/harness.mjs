@@ -29,13 +29,15 @@ export function sqliteD1() {
   return adapter;
 }
 export function environment() {
-  const DB=sqliteD1(),MEDIA_DB=sqliteD1();
+  const DB=sqliteD1(),MEDIA_DB=sqliteD1(),EVIDENCE_DB=sqliteD1();
   DB.database.exec(readFileSync(new URL('../../migrations/main/0001_sewak.sql',import.meta.url),'utf8'));
   DB.database.exec(readFileSync(new URL('../../migrations/main/0002_auth_state.sql',import.meta.url),'utf8'));
   DB.database.exec(readFileSync(new URL('../../migrations/main/0003_cloudflare_auth.sql',import.meta.url),'utf8'));
   DB.database.exec(readFileSync(new URL('../../migrations/main/0004_catalog_onboarding.sql',import.meta.url),'utf8'));
   MEDIA_DB.database.exec(readFileSync(new URL('../../migrations/media/0001_profile_images.sql',import.meta.url),'utf8'));
-  return {DB,MEDIA_DB,AUTH_AUDIENCE:'sewak-test',PASSWORD_HASHER:{idFromName:x=>x,get:()=>({fetch:(url,init)=>new PasswordHasher().fetch(new Request(url,init))})},APP_WRITES_ENABLED:'true'};
+  DB.database.exec(readFileSync(new URL('../../migrations/main/0006_secure_verification.sql',import.meta.url),'utf8'));
+  EVIDENCE_DB.database.exec(readFileSync(new URL('../../migrations/evidence/0001_private_evidence.sql',import.meta.url),'utf8'));
+  return {DB,MEDIA_DB,EVIDENCE_DB,VERIFICATION_ENCRYPTION_KEY:Buffer.alloc(32,7).toString('base64url'),AUTH_AUDIENCE:'sewak-test',PASSWORD_HASHER:{idFromName:x=>x,get:()=>({fetch:(url,init)=>new PasswordHasher().fetch(new Request(url,init))})},APP_WRITES_ENABLED:'true'};
 }
 export async function seed(env) {
   const records = {

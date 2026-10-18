@@ -26,7 +26,7 @@
   background: var(--theme-surface);
   border: 1px solid var(--theme-border);
   border-radius: 16px;
-  box-shadow: 0 14px 34px rgba(64, 45, 26, 0.07);
+  box-shadow: 0 14px 34px var(--color-shadow);
 }
 
 .caregiver-profile-hero {
@@ -35,7 +35,7 @@
   justify-content: space-between;
   gap: 28px;
   padding: clamp(20px, 4vw, 38px);
-  background: linear-gradient(135deg, #fffdf8 0%, #f2faf7 100%);
+  background: linear-gradient(135deg, var(--brand-white) 0%, var(--brand-vanilla) 100%);
 }
 
 .caregiver-profile-hero__identity {
@@ -52,13 +52,13 @@
   height: 112px;
   overflow: hidden;
   place-items: center;
-  border: 4px solid #fff;
+  border: 4px solid var(--brand-sand);
   border-radius: 50%;
   background: var(--theme-help);
-  color: #fff;
+  color: var(--color-on-brand);
   font-size: 34px;
   font-weight: 800;
-  box-shadow: 0 8px 20px rgba(15, 118, 110, 0.2);
+  box-shadow: 0 8px 20px var(--color-shadow);
 }
 
 .caregiver-profile-avatar img {
@@ -92,7 +92,7 @@
   align-items: center;
   gap: 7px;
   margin: 0;
-  color: #166534;
+  color: var(--brand-ink);
   font-size: 14px;
   font-weight: 700;
 }
@@ -114,7 +114,7 @@
 
 .caregiver-profile-rating,
 .caregiver-profile-price { margin: 0; }
-.caregiver-profile-rating strong { color: #a16207; font-size: 19px; }
+.caregiver-profile-rating strong { color: var(--brand-coral); font-size: 19px; }
 .caregiver-profile-rating span,
 .caregiver-profile-price span { display: block; margin-top: 2px; color: var(--theme-text-muted); font-size: 13px; }
 .caregiver-profile-rating--muted { color: var(--theme-text-muted); font-size: 14px; }
@@ -126,7 +126,7 @@
   border: 0;
   border-radius: 10px;
   background: var(--theme-help);
-  color: #fff;
+  color: var(--color-on-brand);
   cursor: pointer;
   font: inherit;
   font-weight: 800;
@@ -147,11 +147,11 @@
 .caregiver-profile-section { padding: 24px; }
 .caregiver-profile-section h2 { font-size: 20px; }
 .caregiver-profile-skills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-.caregiver-profile-skills span { padding: 7px 10px; border-radius: 999px; background: #e8f5f1; color: #0f766e; font-size: 13px; font-weight: 700; }
+.caregiver-profile-skills span { padding: 7px 10px; border-radius: 999px; background: var(--brand-vanilla); color: var(--brand-coral); font-size: 13px; font-weight: 700; }
 .caregiver-profile-muted { color: var(--theme-text-muted) !important; }
 .caregiver-profile-reviews { display: grid; gap: 12px; margin-top: 16px; }
-.caregiver-profile-review { padding: 16px; border: 1px solid var(--theme-border); border-radius: 12px; background: #fffefa; }
-.caregiver-profile-review strong { color: #a16207; }
+.caregiver-profile-review { padding: 16px; border: 1px solid var(--theme-border); border-radius: 12px; background: var(--brand-white); }
+.caregiver-profile-review strong { color: var(--brand-coral); }
 .caregiver-profile-review p { margin: 8px 0; line-height: 1.55; }
 .caregiver-profile-review small { color: var(--theme-text-muted); }
 .caregiver-profile-section--pricing dl { display: grid; gap: 14px; margin: 16px 0 0; }
@@ -183,8 +183,8 @@
     gap: 16px;
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--theme-border);
-    background: rgba(255, 253, 248, 0.97);
-    box-shadow: 0 -10px 24px rgba(64, 45, 26, 0.1);
+    background: var(--brand-white);
+    box-shadow: 0 -10px 24px var(--color-shadow);
   }
   .caregiver-profile-sticky-book span { color: var(--theme-text); font-size: 15px; font-weight: 800; }
   .caregiver-profile-sticky-book button { min-width: 126px; padding: 0 16px; }

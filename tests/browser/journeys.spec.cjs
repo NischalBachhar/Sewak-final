@@ -20,12 +20,12 @@ test('asset security headers allow Cloudflare sessions without external auth ori
 for(const width of [320,375,430,768,1366,1920])test(`public and four authenticated role routes at ${width}px`,async({browser})=>{
  const context=await browser.newContext({viewport:{width,height:900}});const page=await context.newPage();
  await page.goto('/browse');await expect(page.getByRole('heading',{name:/Care that feels/})).toBeVisible();await checkOverflow(page);
- await page.getByRole('button',{name:'Create an account',exact:true}).click();await expect(page.getByLabel('Full name')).toBeVisible();
- for(const [role,route,heading]of[['customer','/user/home','Hello, Test'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Organization Dashboard'],['admin','/superadmin/caregivers','Caregivers']]){
+ await page.getByRole('link',{name:'Sign up',exact:true}).click();await expect(page.getByLabel('Full name')).toBeVisible();
+ for(const [role,route,heading]of[['customer','/user/home','Hello, Test'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Booking management'],['admin','/superadmin/caregivers','Caregivers']]){
   const roleContext=await browser.newContext({viewport:{width,height:900}});const p=await roleContext.newPage();await signIn(p,role);await p.goto(route);
   if(heading)await expect(p.getByRole('heading',{name:new RegExp(heading)}).first()).toBeVisible();else await expect(p.getByRole('heading',{name:/Test caregiver|Caregiver|My jobs|Jobs/i}).first()).toBeVisible();
   await checkOverflow(p);await p.reload();await expect(p.getByRole('button',{name:/Account menu for/})).toBeVisible();await checkOverflow(p);
-  if(role==='org'){await p.goto('/organization?tab=caregivers');await p.getByRole('button',{name:'Add New Caregiver',exact:true}).first().click();await expect(p.getByRole('dialog')).toBeVisible();await p.keyboard.press('Escape');await expect(p.getByRole('dialog')).toHaveCount(0);}
+  if(role==='org'){await p.goto('/organization?tab=caregivers');await p.getByRole('button',{name:'Add team member',exact:true}).first().click();await expect(p.getByRole('dialog')).toBeVisible();await p.keyboard.press('Escape');await expect(p.getByRole('dialog')).toHaveCount(0);}
   await roleContext.close();
  }
  await context.close();
@@ -78,7 +78,17 @@ test('organization retains booking history after caregiver leaves roster; custom
  try {
   await vendorRef.update({organizationId:null});await signIn(page,'org');await page.goto('/organization?tab=bookings');await expect(page.getByText('Test Customer').first()).toBeVisible();
   await page.getByRole('button',{name:/Account menu for/}).click();await page.getByRole('button',{name:/Logout/}).click();await expect(page.getByRole('button',{name:/Account menu for/})).toHaveCount(0);
-  await signIn(page,'customer');await page.goto('/user/mybookings');page.on('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:/Cancel request|Cancel booking|^Cancel$/}).last().click();await expect.poll(async()=> (await db.doc(`bookings/${id}`).get()).data().status).toBe('cancelled');
+  await signIn(page,'customer');await page.goto('/user/mybookings');
+  // The database commit precedes the success alert. Finish both dialogs before
+  // reloading so CI cannot detach a page with dialog.accept still in flight.
+  const cancellationDialogs = new Promise((resolve,reject) => {
+    const handle = async dialog => {
+      try { await dialog.accept(); if(dialog.type()==='alert'){page.off('dialog',handle);resolve();} }
+      catch(error){page.off('dialog',handle);reject(error);}
+    };
+    page.on('dialog',handle);
+  });
+  await page.getByRole('button',{name:/Cancel request|Cancel booking|^Cancel$/}).last().click();await cancellationDialogs;await expect.poll(async()=> (await db.doc(`bookings/${id}`).get()).data().status).toBe('cancelled');
   await page.reload();await expect(page.getByText(/Cancelled/).last()).toBeVisible();await page.goBack();await expect(page.getByRole('button',{name:/Account menu for Test Customer/})).toBeVisible();
  } finally {await vendorRef.set(vendor);await context.close();}
 });
@@ -100,8 +110,17 @@ test('an authenticated account without a profile can resume organization signup 
 test('organization pagination preserves global and filtered counts with legacy missing earnings',async({page})=>{
  await db.doc('users/archived-customer').set({role:'user'});await db.doc('vendors/departed-caregiver').set({name:'Archived caregiver'});
  const batch=db.batch();for(let i=0;i<28;i++)batch.set(db.doc(`bookings/pagination-${String(i).padStart(2,'0')}`),{organizationId:'e2e-org',caregiverId:'departed-caregiver',userId:'archived-customer',userName:`Archived Customer ${i}`,status:'completed',totalAmount:100,...(i%2?{vendorEarnings:85}:{})});await batch.commit();
- await signIn(page,'org');await page.goto('/organization?tab=bookings');await expect(page.getByRole('button',{name:'Bookings (30)',exact:true})).toBeVisible();await expect(page.getByText('30 matching bookings. Showing up to 25 per page.')).toBeVisible();
- await page.getByLabel('Booking status').selectOption('completed');await expect(page.getByText('29 matching bookings. Showing up to 25 per page.')).toBeVisible();await page.getByRole('button',{name:'Next page'}).click();await expect(page.getByText(/^Customer:/)).toHaveCount(4);await expect(page.getByRole('button',{name:'Next page'})).toBeDisabled();await expect(page.getByRole('button',{name:'Bookings (30)',exact:true})).toBeVisible();await page.getByRole('button',{name:'Previous page'}).click();await expect(page.getByText(/^Customer:/)).toHaveCount(25);
+ await signIn(page,'org');await page.goto('/organization?tab=bookings');
+ await expect(page.locator('.org-results-label')).toHaveText('30 matching bookings overall · 25 shown from this page · Up to 25 per page');
+ await page.getByLabel('Booking status').selectOption('completed');
+ await expect(page.locator('.org-results-label')).toHaveText('29 matching bookings overall · 25 shown from this page · Up to 25 per page');
+ await page.getByRole('button',{name:'Next',exact:true}).click();
+ await expect(page.getByText(/^Customer:/)).toHaveCount(4);
+ await expect(page.getByRole('button',{name:'Next',exact:true})).toBeDisabled();
+ await expect(page.locator('.org-results-label')).toHaveText('29 matching bookings overall · 4 shown from this page · Up to 25 per page');
+ await page.getByRole('button',{name:'Previous',exact:true}).click();await expect(page.getByText(/^Customer:/)).toHaveCount(25);
+ await page.goto('/organization?tab=overview');
+ await expect(page.locator('.org-metric').filter({hasText:'Total bookings'}).locator('strong')).toHaveText('30');
 });
 
 test('unknown authenticated dashboard paths render not-found without losing the signed-in account',async({page})=>{
@@ -110,7 +129,7 @@ test('unknown authenticated dashboard paths render not-found without losing the 
 
 test('long form text, keyboard containment and mobile bottom navigation remain usable',async({browser})=>{
  const context=await browser.newContext({viewport:{width:320,height:900}}),page=await context.newPage();
- await signIn(page,'org');await page.goto('/organization?tab=caregivers');const trigger=page.getByRole('button',{name:'Add New Caregiver',exact:true});await trigger.click();const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await dialog.locator('input').first().fill('SyntheticLongName'.repeat(7));await checkOverflow(page);
+ await signIn(page,'org');await page.goto('/organization?tab=caregivers');const trigger=page.getByRole('button',{name:'Add team member',exact:true});await trigger.click();const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await dialog.locator('input').first().fill('SyntheticLongName'.repeat(7));await checkOverflow(page);
  await page.keyboard.press('Shift+Tab');expect(await page.evaluate(()=>Boolean(document.activeElement.closest('[role="dialog"]')))).toBe(true);await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);await expect(trigger).toBeFocused();
  await page.getByRole('button',{name:/Account menu for/}).click();await page.getByRole('button',{name:/Logout/}).click();await signIn(page,'customer');await page.goto('/user/home');const nav=page.getByRole('navigation',{name:'Customer navigation'});await expect(nav).toBeVisible();const bounds=await nav.boundingBox();expect(bounds.y+bounds.height).toBeLessThanOrEqual(902);await nav.getByRole('button',{name:'Bookings',exact:true}).click();await expect(page).toHaveURL(/\/user\/mybookings/);await expect(nav.getByRole('button',{name:'Bookings',exact:true})).toHaveAttribute('aria-current','page');await checkOverflow(page);await context.close();
 });

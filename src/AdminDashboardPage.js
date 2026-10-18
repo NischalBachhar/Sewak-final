@@ -1,3 +1,4 @@
+import { VerificationManagement } from './components/VerificationWorkspace';
 import { saveService, retireService } from "./servicePublishing";
 import AccessibleDialog from "./components/AccessibleDialog";
 import WorkspaceShell from "./components/WorkspaceShell";
@@ -34,6 +35,7 @@ const dashboardTabs = [
   "blacklist",
   "admins",
   "analytics",
+  "verification",
 ];
 
 
@@ -1239,7 +1241,7 @@ export default function AdminDashboardPage() {
       activeTab={activeTab}
       onSelect={(tab) => navigate("/superadmin/" + tab)}
       items={dashboardTabs.map((id) => ({
-        id,
+        id, label: id === "verification" ? "Verification Management" : undefined,
         count: id === "organizations" ? pendingOrgCount + pendingOrganizationApplicationCount
           : id === "caregivers" ? pendingCaregiverCount
           : id === "blacklist" ? pendingBlacklistCount : undefined,
@@ -1249,6 +1251,7 @@ export default function AdminDashboardPage() {
       <div className="dashboard-admin-content">
         {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={savedCaregiver} />}
 
+      {activeTab === "verification" && <VerificationManagement />}
       {/* Error Messages */}
       {error && (
         <div
@@ -1509,7 +1512,7 @@ export default function AdminDashboardPage() {
                         backgroundColor: "white",
                         padding: "20px",
                         borderRadius: "8px",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        boxShadow: "var(--shadow-card)",
                         cursor: "pointer",
                         border:
                           selectedOrg?.id === org.id
@@ -1635,7 +1638,7 @@ export default function AdminDashboardPage() {
               style={{
                 position: "fixed",
                 inset: 0,
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: "var(--color-overlay)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1814,7 +1817,7 @@ export default function AdminDashboardPage() {
               style={{
                 position: "fixed",
                 inset: 0,
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: "var(--color-overlay)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -2025,7 +2028,7 @@ export default function AdminDashboardPage() {
               style={{
                 position: "fixed",
                 inset: 0,
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: "var(--color-overlay)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -2086,7 +2089,7 @@ export default function AdminDashboardPage() {
               style={{
                 position: "fixed",
                 inset: 0,
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: "var(--color-overlay)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -2222,7 +2225,7 @@ export default function AdminDashboardPage() {
               style={{
                 position: "fixed",
                 inset: 0,
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: "var(--color-overlay)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -2287,7 +2290,7 @@ export default function AdminDashboardPage() {
               style={{
                 position: "fixed",
                 inset: 0,
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: "var(--color-overlay)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -2391,7 +2394,7 @@ export default function AdminDashboardPage() {
               style={{
                 position: "fixed",
                 inset: 0,
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: "var(--color-overlay)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -2642,7 +2645,7 @@ export default function AdminDashboardPage() {
                         backgroundColor: "white",
                         padding: "20px",
                         borderRadius: "8px",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        boxShadow: "var(--shadow-card)",
                         border: vendor.isApproved
                           ? "1px solid var(--theme-positive)"
                           : "1px solid var(--theme-warning)",
@@ -2898,7 +2901,7 @@ export default function AdminDashboardPage() {
                         backgroundColor: "white",
                         padding: "20px",
                         borderRadius: "8px",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        boxShadow: "var(--shadow-card)",
                         borderLeft: `4px solid ${
                           booking.status === "completed"
                             ? "var(--theme-positive)"
@@ -2953,7 +2956,7 @@ export default function AdminDashboardPage() {
                 padding: "20px",
                 borderRadius: "8px",
                 marginBottom: "20px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: "var(--shadow-card)",
               }}
             >
               <h3>Add New Service</h3>
@@ -3024,7 +3027,7 @@ export default function AdminDashboardPage() {
                     backgroundColor: "white",
                     padding: "15px",
                     borderRadius: "8px",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                    boxShadow: "var(--shadow-card)",
                   }}
                 >
                   {editingService === service.id ? (
@@ -3159,7 +3162,7 @@ export default function AdminDashboardPage() {
                 padding: "20px",
                 borderRadius: "8px",
                 marginBottom: "20px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: "var(--shadow-card)",
               }}
             >
               <h3>Create New Superadmin</h3>
@@ -3237,7 +3240,7 @@ export default function AdminDashboardPage() {
                   backgroundColor: "white",
                   padding: "20px",
                   borderRadius: "8px",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  boxShadow: "var(--shadow-card)",
                   border:
                     admin.id === currentUser?.uid
                       ? "2px solid var(--theme-help)"
@@ -3320,7 +3323,7 @@ export default function AdminDashboardPage() {
                       backgroundColor: "white",
                       padding: "20px",
                       borderRadius: "8px",
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                      boxShadow: "var(--shadow-card)",
                       borderLeft: `4px solid ${
                         report.status === "approved"
                           ? "var(--theme-positive)"
@@ -3494,7 +3497,7 @@ export default function AdminDashboardPage() {
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "8px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: "var(--shadow-card)",
                 textAlign: "center",
               }}
             >
@@ -3508,7 +3511,7 @@ export default function AdminDashboardPage() {
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "8px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: "var(--shadow-card)",
                 textAlign: "center",
               }}
             >
@@ -3522,7 +3525,7 @@ export default function AdminDashboardPage() {
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "8px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: "var(--shadow-card)",
                 textAlign: "center",
               }}
             >
@@ -3534,7 +3537,7 @@ export default function AdminDashboardPage() {
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "8px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: "var(--shadow-card)",
                 textAlign: "center",
               }}
             >
@@ -3548,7 +3551,7 @@ export default function AdminDashboardPage() {
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "8px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: "var(--shadow-card)",
                 textAlign: "center",
               }}
             >
@@ -3560,7 +3563,7 @@ export default function AdminDashboardPage() {
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "8px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: "var(--shadow-card)",
                 textAlign: "center",
               }}
             >
@@ -3574,7 +3577,7 @@ export default function AdminDashboardPage() {
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "8px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: "var(--shadow-card)",
                 textAlign: "center",
               }}
             >
@@ -3588,7 +3591,7 @@ export default function AdminDashboardPage() {
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "8px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: "var(--shadow-card)",
                 textAlign: "center",
               }}
             >
@@ -3604,7 +3607,7 @@ export default function AdminDashboardPage() {
               backgroundColor: "white",
               padding: "20px",
               borderRadius: "8px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              boxShadow: "var(--shadow-card)",
             }}
           >
             <h3>Global Commission Settings</h3>

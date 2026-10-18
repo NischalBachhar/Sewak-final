@@ -21,7 +21,7 @@ export default function RouteMetadata() {
     document.head.querySelector('link[rel="canonical"]')?.remove();
     const origin = process.env.REACT_APP_CANONICAL_ORIGIN;
     if (data.public && origin) {
-      const url = new URL(pathname === "/" ? "/browse" : pathname, origin).href;
+      const url = new URL(pathname, origin).href;
       const link = document.createElement("link"); link.rel = "canonical"; link.href = url; document.head.append(link); meta("og:url", url, true);
     } else document.head.querySelector('meta[property="og:url"]')?.remove();
   }, [pathname]);

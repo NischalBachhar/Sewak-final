@@ -13,8 +13,8 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  background: radial-gradient(circle at top, var(--theme-background, #fff9ed) 0%, var(--theme-background-accent, #f8edd7) 40%, #f5e6d2 100%);
-  color: var(--theme-text, #1f2937);
+  background: radial-gradient(circle at top, var(--theme-background, var(--brand-vanilla)) 0%, var(--theme-background-accent, var(--brand-vanilla)) 40%, var(--brand-blush) 100%);
+  color: var(--theme-text, var(--brand-ink));
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;

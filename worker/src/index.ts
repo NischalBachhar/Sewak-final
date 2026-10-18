@@ -1,3 +1,4 @@
+import { verificationRoute, verificationMaintenance } from './verification.ts';
 import { authenticateSession, authRoute, enforceCsrf } from './cloudflare-auth.ts';
 export { PasswordHasher } from './passwords.ts';
 import { runAction } from './actions.ts';
@@ -17,6 +18,7 @@ async function jsonBody(request: Request): Promise<Data> {
 }
 export function createWorker(authenticate: (request: Request, env: Env) => Promise<Identity | null> = authenticateSession) {
   return {
+    async scheduled(_controller: ScheduledController, env: Env, context: ExecutionContext) { context.waitUntil(verificationMaintenance(env)); },
     async fetch(request: Request, env: Env): Promise<Response> {
       const url = new URL(request.url);
       const authPath = /^\/(?:api\/)?auth\/(me|login|register|logout|bootstrap|activate|sessions|revoke-sessions|change-password|complete-registration)$/.test(url.pathname);
@@ -49,6 +51,10 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
         enforceCsrf(request,identity);
         if (authPath) return Response.json(await authRoute(request,env,headers,request.method==='POST'?await jsonBody(request):{},identity),{headers});
         const repo = new Repository(env), actor = await repo.actor(identity);
+        if (url.pathname.startsWith('/api/verification/')) {
+          const value = await verificationRoute(request,repo,actor,request.method==='POST'?await jsonBody(request):{});
+          return value instanceof Response ? value : Response.json(value,{headers});
+        }
         let result: unknown;
         if (request.method === 'GET' && url.pathname.startsWith('/api/media/')) {
           const response = await serveProfileImage(request,env,repo,actor,decodeURIComponent(url.pathname.slice(11)));

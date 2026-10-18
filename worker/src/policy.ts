@@ -48,7 +48,7 @@ const userEditable = ['name', 'phone', 'address', 'city', 'location', 'businessP
 const orgEditable = ['organizationName', 'businessPhone', 'businessAddress', 'businessCity', 'businessLicense', 'organizationType', 'organizationTypeOther', 'panVat', 'servicesOffered', 'profileComplete', 'updatedAt'];
 const vendorEditable = ['name', 'phone', 'location', 'category', 'workType', 'shifts', 'hourlyRate', 'experience', 'bio', 'isAvailable', 'servicesOffered', 'updatedAt'];
 const vendorOrganizationAdmin = vendorEditable;
-const vendorAdmin = [...vendorOrganizationAdmin, 'isApproved', 'approvedAt', 'approvedBy', 'allowZeroRate', 'verified', 'backgroundChecked', 'isCertified', 'identityVerificationStatus', 'phoneVerificationStatus', 'trainingVerificationStatus', 'backgroundVerificationStatus', 'referencesVerificationStatus'];
+const vendorAdmin = [...vendorOrganizationAdmin, 'isApproved', 'approvedAt', 'approvedBy', 'allowZeroRate'];
 const serviceEditable = ['label', 'serviceName', 'category', 'description', 'price', 'isActive', 'updatedAt'];
 function same(a: unknown, b: unknown) { return JSON.stringify(a) === JSON.stringify(b); }
 function changes(old: Data, data: Data) { return Object.keys({ ...old, ...data }).filter((key) => !same(old[key], data[key])); }

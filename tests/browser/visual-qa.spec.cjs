@@ -1,9 +1,13 @@
 const { test, expect } = require('./test.cjs');
-const { seed } = require('./seed.cjs');
+const { seed, db } = require('./seed.cjs');
 
 // The QA accounts and D1 data exist only in the loopback fixture server.
 // Never use real accounts, public origins or production data for screenshot runs.
-test.beforeAll(seed);
+test.beforeAll(async () => {
+  await seed();
+  // This suite also runs alone; do not depend on the booking journey running first.
+  await db.doc('bookings/visual-qa-booking').set({ userId: 'e2e-customer', caregiverId: 'e2e-caregiver', organizationId: 'e2e-org', caregiverName: 'Test Caregiver', customerName: 'Test Customer', serviceLabel: 'General care support', status: 'pending', paymentStatus: 'pending', date: '2090-01-02', time: '10:00', durationHours: 2, totalAmount: 1000 });
+});
 
 async function signIn(page, role) {
   await page.goto('/auth');
@@ -54,7 +58,7 @@ const ROLE_ROUTES = {
   ],
 };
 
-for (const width of [320, 390, 768, 1024, 1440]) {
+for (const width of [320, 375, 390, 430, 768, 1024, 1366, 1440, 1920]) {
   for (const role of ['customer', 'caregiver', 'admin']) {
     test('Visual QA: authenticated ' + role + ' routes at ' + width + 'px', async ({ browser }, testInfo) => {
       const context = await browser.newContext({ viewport: { width, height: width < 600 ? 844 : 900 }, reducedMotion: 'reduce' });

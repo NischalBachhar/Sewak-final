@@ -5,6 +5,7 @@ import React from "react";
  * the owning role dashboard; navigation is supplied by its existing route logic.
  */
 const GLYPHS = {
+  verification: <><path d="M12 3 20 6v6c0 4-3 7-8 10-5-3-8-6-8-10V6Z"/><path d="m8 12 3 3 5-6"/></>,
   home: <><path d="m3 10 9-7 9 7"/><path d="M5 9.5V21h14V9.5M9 21v-7h6v7"/></>,
   overview: <><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>,
   jobs: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 5V3h8v2M3 11h18M10 11v3h4v-3"/></>,
@@ -40,6 +41,7 @@ export function WorkspaceIcon({ type, size = 19 }) {
 }
 
 const MENU_LABELS = {
+  verification: "My Verification",
   overview: "Overview",
   home: "Overview",
   jobs: "Job requests",
@@ -78,7 +80,7 @@ export default function WorkspaceShell({
         </div>
         <p className="sewak-workspace__nav-heading">WORKSPACE</p>
         <nav className="sewak-workspace__nav" aria-label={isAdmin ? "Administration sections" : "Caregiver sections"}>
-          {items.map(({ id, count }) => (
+          {items.map(({ id, count, label }) => (
             <button
               key={id}
               type="button"
@@ -87,7 +89,7 @@ export default function WorkspaceShell({
               onClick={() => onSelect(id)}
             >
               <WorkspaceIcon type={id} />
-              <span>{MENU_LABELS[id] || id}</span>
+              <span>{label || MENU_LABELS[id] || id}</span>
               {typeof count === "number" && count > 0 ? <em>{count > 99 ? "99+" : count}</em> : null}
             </button>
           ))}

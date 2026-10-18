@@ -4,9 +4,11 @@ import RouteBoundary from './components/RouteBoundary';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
+import './DesignTokens.css';
 import App from './App';
 import ThemeProvider from './ThemeProvider';
 import './index.css';
+import './DesignSystem.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

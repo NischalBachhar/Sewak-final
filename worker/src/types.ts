@@ -1,6 +1,11 @@
 export interface Env {
   DB: D1Database;
   MEDIA_DB: D1Database;
+  EVIDENCE_DB?: D1Database;
+  VERIFICATION_ENCRYPTION_KEY?: string;
+  VERIFICATION_RETENTION_DAYS?: string;
+  VERIFICATION_BACKGROUND_DAYS?: string;
+  VERIFICATION_MAX_IMAGES?: string;
   ASSETS?: Fetcher;
   AUTH_AUDIENCE?: string;
   PASSWORD_HASHER?: DurableObjectNamespace;

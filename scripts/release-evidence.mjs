@@ -22,7 +22,7 @@ export function assertReleaseEvidence({validation, qa, writesEnabled, now = Date
     validation.health.auth === 'cloudflare-d1' &&
     validation.health.writesEnabled === writesEnabled,
     'Production health/auth or writes mode differs from the release configuration.');
-  for (const database of ['DB', 'MEDIA_DB']) {
+  for (const database of ['DB', 'MEDIA_DB', 'EVIDENCE_DB']) {
     requireEvidence(validation.checks?.[database]?.integrity === 'ok' &&
       validation.checks[database].foreignKeyViolations === 0,
       database + ' integrity must pass with zero foreign-key violations.');
@@ -35,6 +35,7 @@ export function assertReleaseEvidence({validation, qa, writesEnabled, now = Date
     qa.writesEnabled === writesEnabled &&
     qa.version === validation.version &&
     qa.checksPassed === true &&
+    (qa.fixtureSetup === undefined || qa.fixtureSetup === 'registration-api') &&
     qa.cleanupVerified === true &&
     qa.applicationRecordsUnchanged === true &&
     !qa.failure && !qa.cleanupFailure,

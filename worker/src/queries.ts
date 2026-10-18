@@ -1,3 +1,4 @@
+import { trustedVerification } from './verification-validation.ts';
 import { nonMedicalSql } from './catalog.ts';
 import { traceD1 } from './d1-diagnostics.ts';
 import { decodeRecord } from './model.mjs';
@@ -5,7 +6,7 @@ import { canRead, caregiverActive, organizationActive } from './policy.ts';
 import { entities, parseResource, Repository, requireActive, requireActor } from './repository.ts';
 import { active, badInput, canonicalCategory, onlyKeys, pick, requireThat, type Actor, type Data } from './types.ts';
 
-const caregiverPublicKeys = ['name','location','category','workType','shifts','servicesOffered','hourlyRate','experience','bio','jobsCompleted','verified','backgroundChecked','isCertified','isAvailable','organizationId','organizationName','allowZeroRate','identityVerificationStatus','phoneVerificationStatus','trainingVerificationStatus','backgroundVerificationStatus','referencesVerificationStatus'];
+const caregiverPublicKeys = ['name','location','category','workType','shifts','servicesOffered','hourlyRate','experience','bio','jobsCompleted','verified','backgroundChecked','isCertified','isAvailable','organizationId','organizationName','allowZeroRate','identityVerificationStatus','phoneVerificationStatus','trainingVerificationStatus','backgroundVerificationStatus','referencesVerificationStatus','policeClearanceVerificationStatus','verificationSource'];
 function mediaUrl(id: unknown) { return typeof id === 'string' && id ? `/api/media/${encodeURIComponent(id)}` : ''; }
 export function withImage(data: Data) {
   const url = mediaUrl(data.profile_image_id);
@@ -117,7 +118,7 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
       if (value > 0) add(key === 'minimumRating' ? ratingSql + '>=?' : 't.experience>=?',value);
     }
     if (search.verifiedOnly !== undefined) badInput(typeof search.verifiedOnly === 'boolean');
-    if (search.verifiedOnly) add('t.verified=1');
+    if (search.verifiedOnly) add("(SELECT COUNT(*) FROM verification_public_status v WHERE v.caregiver_id=t.id AND v.status='verified')=5");
   }
   const base = `FROM ${spec.table} t ${joins.join(' ')} WHERE ${conditions.length ? conditions.join(' AND ') : '1=1'}`;
   const total = input.search !== undefined ? (await traceD1('public.caregivers.count',()=>repo.env.DB.prepare(`SELECT COUNT(*) AS total ${base}`).bind(...params).first<Data>()))?.total || 0 : undefined;
@@ -144,6 +145,7 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
     cursorClause = ` AND (${sortExpression},t.id) ${operator} (?,?)`;
     params.push(input.cursor.value, input.cursor.id);
   }
+  if (source === 'vendors') extraColumns += ", (SELECT json_group_array(json_object('kind',v.kind,'status',v.status,'police_verified',v.police_verified,'police_requested',v.police_requested)) FROM verification_public_status v WHERE v.caregiver_id=t.id) AS trusted_verification";
   const columns = ['t.id','t.version','t.fields_present','t.extra_json', ...Object.values(spec.fields).map((f: any) => `t."${f.column}"`)];
   badInput(params.length <= 98, 'Too many query parameters.');
   const sql = `SELECT ${columns.join(',')}${extraColumns} ${base}${cursorClause} ORDER BY ${sortExpression} ${order.direction},t.id ${order.direction} LIMIT ?`;
@@ -152,6 +154,7 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
   const page = result.results.slice(0, size);
   const items = page.map((row) => {
     const record = decodeRecord(source, row)!;
+    if (source === 'vendors') Object.assign(record,trustedVerification(JSON.parse(row.trusted_verification || '[]')));
     if (name === 'organizations') record.totalCaregivers = row.current_caregiver_count;
     if (parent) delete record.sessionId;
     const docId = parent ? row.id.slice(parent.length + 1) : row.id;

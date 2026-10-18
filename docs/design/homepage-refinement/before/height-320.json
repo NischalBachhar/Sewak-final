@@ -1,0 +1,40 @@
+{
+  "width": 320,
+  "viewportHeight": 1000,
+  "catalogCount": 18,
+  "heroSHA256": "097108ce42f14f7477f61b8457546de591f4bab0d798e6da8f99d703bb2127fa",
+  "collapsed": {
+    "document": 5038,
+    "belowHero": 4144.265625,
+    "hero": {
+      "x": 0,
+      "y": 111,
+      "width": 320,
+      "height": 782.734375,
+      "top": 111,
+      "right": 320,
+      "bottom": 893.734375,
+      "left": 0
+    },
+    "overflow": false
+  },
+  "expanded": {
+    "document": 7016,
+    "belowHero": 6122.265625,
+    "hero": {
+      "x": 0,
+      "y": -1896,
+      "width": 320,
+      "height": 782.734375,
+      "top": -1896,
+      "right": 320,
+      "bottom": -1113.265625,
+      "left": 0
+    },
+    "overflow": false
+  },
+  "rendering": {
+    "platform": "win32",
+    "browserVersion": "155.0.8059.80"
+  }
+}

@@ -1,3 +1,4 @@
+import { MyVerification } from './components/VerificationWorkspace';
 import ServiceSelector from './components/ServiceSelector';
 import NepalCitySelect from './components/NepalCitySelect';
 // src/CaregiverDashboardPage.js
@@ -28,7 +29,7 @@ import WorkspaceShell from "./components/WorkspaceShell";
 import CareWeekPreview from "./components/CareWeekPreview";
 
 const SHIFT_OPTIONS = ["morning", "day", "night"];
-const CAREGIVER_TABS = ["home", "jobs", "schedule", "profile", "earnings"];
+const CAREGIVER_TABS = ["home", "jobs", "schedule", "profile", "earnings", "verification"];
 
 const localDateKey = (value = new Date()) => {
   const date = value instanceof Date ? value : new Date(value);
@@ -419,6 +420,7 @@ export default function CaregiverDashboardPage() {
         { id: "schedule" },
         { id: "earnings" },
         { id: "profile" },
+        { id: "verification", label: "My Verification" },
       ]}
       alertCount={bookings.filter((booking) => booking.status === "pending").length}
     >
@@ -443,6 +445,7 @@ export default function CaregiverDashboardPage() {
 
       {error && <div className="error-message">{error}</div>}
 
+      {activeTab === "verification" && <MyVerification />}
       {/* HOME TAB */}
       {activeTab === "home" && (
         <div>
@@ -965,7 +968,7 @@ export default function CaregiverDashboardPage() {
       {/* PROFILE TAB */}
       {activeTab === "profile" && (
         <div className="profile-section">
-          <h3 style={{ color: "#000", marginBottom: 12 }}>
+          <h3 style={{ color: "var(--brand-ink)", marginBottom: 12 }}>
             Edit Your Profile
           </h3>
           <form onSubmit={handleSaveProfile} className="form">

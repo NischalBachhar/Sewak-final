@@ -9,6 +9,7 @@ import AuthPage from "./AuthPage";
 import CaregiverListPage from "./CaregiverListPage";
 import PublicCaregiverProfilePage from "./PublicCaregiverProfilePage";
 import BrowsePage from "./BrowsePage";
+import HomePage from "./HomePage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
@@ -303,7 +304,7 @@ function App() {
           element={<PublicCaregiverProfilePage />}
         />
         <Route path="/payment-callback" element={<PaymentCallbackPage />} />
-        <Route path="/" element={<Navigate to="/browse" replace />} />
+        <Route path="/" element={<HomePage />} />
         {["/user/*", "/caregiver/*", "/organization/*", "/superadmin/*"].map((path) => <Route key={path} path={path} element={<Navigate to="/auth" replace />} />)}
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -468,7 +469,7 @@ function App() {
               element={
                 <div className="app-shell dashboard-shell dashboard-shell--caregiver">
                   <div className="app-card">
-                    <DashboardPath root="/caregiver" sections={["dashboard", "home", "jobs", "schedule", "profile", "earnings"]}><CaregiverDashboardPage /></DashboardPath>
+                    <DashboardPath root="/caregiver" sections={["dashboard", "home", "jobs", "schedule", "profile", "earnings", "verification"]}><CaregiverDashboardPage /></DashboardPath>
                   </div>
                 </div>
               }
@@ -482,7 +483,7 @@ function App() {
             element={
               <div className="app-shell dashboard-shell dashboard-shell--admin">
                 <div className="app-card">
-                  <DashboardPath root="/superadmin" sections={["overview", "organizations", "caregivers", "bookings", "services", "blacklist", "admins", "analytics"]}><AdminDashboardPage /></DashboardPath>
+                  <DashboardPath root="/superadmin" sections={["overview", "organizations", "caregivers", "bookings", "services", "blacklist", "admins", "analytics", "verification"]}><AdminDashboardPage /></DashboardPath>
                 </div>
               </div>
             }
