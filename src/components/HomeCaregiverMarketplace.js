@@ -171,7 +171,7 @@ export default function HomeCaregiverMarketplace() {
         {filtered && <button type="button" onClick={clearSearch}>Show all available caregivers</button>}
       </div>}
 
-      {result.caregivers.length > 0 && <div className={'home-marketplace__grid' + (result.caregivers.length === 1 ? ' home-marketplace__grid--single' : '')}
+      {result.caregivers.length > 0 && <div data-testid="home-caregiver-results" className={'home-marketplace__grid' + (result.caregivers.length === 1 ? ' home-marketplace__grid--single' : '')}
         aria-busy={result.status === 'loading'}>
         {result.caregivers.map(caregiver => <CaregiverPreviewCard
           key={caregiver.id} caregiver={caregiver} services={services} compact requireLogin
