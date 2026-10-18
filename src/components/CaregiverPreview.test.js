@@ -84,7 +84,7 @@ test("preview shows an honest empty state instead of inventing providers", async
 test("failed preview requests show retry, not fake caregiver cards", async () => {
   apiRequest.mockRejectedValueOnce(new Error("offline"));
   render(<MemoryRouter><CaregiverPreview /></MemoryRouter>);
-  expect(await screen.findByRole("alert")).toBeTruthy();
+  expect(await screen.findByRole("status")).toBeTruthy();
   apiRequest.mockImplementation((_url, options) => Promise.resolve(
     options.json.path === "publicCaregivers" ? caregivers([["care-a", profile]]) : services,
   ));
