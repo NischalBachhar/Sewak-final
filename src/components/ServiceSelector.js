@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { loadPublicCareServices } from '../caregiverDiscovery';
 import { auth } from '../authClient';
 import { collection, db, getDocs, query, where } from '../d1Client';
 
 export async function loadServiceOptions(organizationId) {
-  const publicList = await getDocs(collection(db, 'publicServices'));
-  const items = publicList.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const items = [...await loadPublicCareServices()];
   if (organizationId && ['orgadmin','superadmin'].includes(auth.currentUser?.role)) {
     const privateList = await getDocs(query(collection(db, 'services'), where('organizationId', '==', organizationId)));
     for (const doc of privateList.docs) if (!items.some(item => item.id === doc.id)) items.push({ id: doc.id, ...doc.data() });

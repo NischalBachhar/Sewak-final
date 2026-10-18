@@ -58,8 +58,8 @@ test('Homepage service error, retry and empty catalog are truthful',async({page}
     await route.continue();
   });
   await page.goto('/');
-  await expect(page.getByRole('alert')).toContainText('We couldn’t load services');
-  mode='ready'; await page.getByRole('button',{name:'Try again'}).click();
+  await expect(page.locator('#services').getByRole('alert')).toContainText('We couldn’t load services');
+  mode='ready'; await page.locator('#services').getByRole('button',{name:'Try again'}).click();
   await expect(page.locator('.home-service').first()).toBeVisible();
   mode='empty'; await page.reload();
   await expect(page.getByText('There are no published services to show yet. Please check back soon.')).toBeVisible();
@@ -75,7 +75,7 @@ test('Homepage keyboard skip link and customer workspace use available width',as
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#main-content$/);
   await signIn(page,'customer'); await page.goto('/user/home');
-  const dashboard=page.getByRole('main',{name:'Customer dashboard'});
+  const dashboard=page.getByRole('main',{name:'Customer homepage'});
   await expect(dashboard).toBeVisible();
   const box=await dashboard.boundingBox();
   expect(box.width).toBeGreaterThanOrEqual(1500); expect(box.width).toBeLessThanOrEqual(1600);

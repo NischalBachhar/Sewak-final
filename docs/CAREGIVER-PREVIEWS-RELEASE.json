@@ -1,0 +1,271 @@
+{
+  "pass": true,
+  "worker": "sewak-final",
+  "origin": "https://sewak-final.nischalbachhar9.workers.dev",
+  "version": "ab3f87c0-dab2-44bf-b8f9-d89906fe88b4",
+  "applicationCommit": "f9ee87973ed27b656d0e9f938a0d6137f049a4d0",
+  "baselineCommit": "639d7ede6a665463f550e16f65b452096daab6da",
+  "priorVersion": "3aa352be-b9da-4b93-af90-5006cfcc5799",
+  "originalFeatureCommit": "42b46e31a1b8272bc848a2f6d9c2ec409858c4f5",
+  "pullRequest": "https://github.com/NischalBachhar/Sewak-final/pull/38",
+  "merged": false,
+  "recordedAt": "2026-10-18T10:01:55.178Z",
+  "validation": {
+    "frontendTests": 96,
+    "d1WorkerdTests": 135,
+    "chromeBrowserTests": 86,
+    "lint": true,
+    "workerTypecheck": true,
+    "productionBuild": true,
+    "guardedDryRun": true,
+    "credentialRuntimeScan": {
+      "pass": true,
+      "filesScanned": 479,
+      "privateCredentialMatches": 0,
+      "firebaseRuntimeReferences": 0
+    },
+    "githubCi": {
+      "applicationCommit": "f9ee87973ed27b656d0e9f938a0d6137f049a4d0",
+      "passed": [
+        "Customer web UI checks",
+        "Cloudflare Auth QA safety checks",
+        "Mobile checks",
+        "Authentication reliability",
+        "Sewak signed-in visual QA (isolated)"
+      ]
+    }
+  },
+  "preDeploymentAuth": {
+    "pass": true,
+    "version": "3aa352be-b9da-4b93-af90-5006cfcc5799",
+    "checks": 54,
+    "fixtureSetup": "registration-api",
+    "completedAt": "2026-10-18T09:25:32.009Z",
+    "cleanupVerified": true,
+    "applicationRecordsUnchanged": true,
+    "browser": {
+      "realCookieLogin": true,
+      "sessionRestored": true,
+      "privateProfile": true,
+      "firebaseRequests": 0,
+      "firebaseNetworkBlocked": true,
+      "httpOnly": true
+    },
+    "evidenceOrigin": "Unmodified fresh registration-based QA from the immediately preceding production release, matching the current production baseline; accepted by the unchanged release guard."
+  },
+  "postDeploymentAuth": {
+    "pass": true,
+    "version": "ab3f87c0-dab2-44bf-b8f9-d89906fe88b4",
+    "checks": 54,
+    "fixtureSetup": "operator-seeded-no-registration-coverage",
+    "completedAt": "2026-10-18T09:58:47.074Z",
+    "cleanupVerified": true,
+    "applicationRecordsUnchanged": true,
+    "browser": {
+      "realCookieLogin": true,
+      "sessionRestored": true,
+      "privateProfile": true,
+      "firebaseRequests": 0,
+      "firebaseNetworkBlocked": true,
+      "httpOnly": true
+    }
+  },
+  "liveSmoke": {
+    "pass": true,
+    "worker": "sewak-final",
+    "version": "ab3f87c0-dab2-44bf-b8f9-d89906fe88b4",
+    "applicationCommit": "f9ee87973ed27b656d0e9f938a0d6137f049a4d0",
+    "startedAt": "2026-10-18T10:00:11.567Z",
+    "pages": [
+      {
+        "path": "/",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "path": "/browse",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "path": "/auth",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "path": "/auth?mode=register",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "path": "/",
+        "width": 390,
+        "overflow": false
+      },
+      {
+        "path": "/browse",
+        "width": 390,
+        "overflow": false
+      },
+      {
+        "path": "/auth",
+        "width": 390,
+        "overflow": false
+      },
+      {
+        "path": "/auth?mode=register",
+        "width": 390,
+        "overflow": false
+      },
+      {
+        "path": "/",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "path": "/browse",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "path": "/auth",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "path": "/auth?mode=register",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "path": "/",
+        "width": 1440,
+        "overflow": false
+      },
+      {
+        "path": "/browse",
+        "width": 1440,
+        "overflow": false
+      },
+      {
+        "path": "/auth",
+        "width": 1440,
+        "overflow": false
+      },
+      {
+        "path": "/auth?mode=register",
+        "width": 1440,
+        "overflow": false
+      },
+      {
+        "path": "/",
+        "width": 1920,
+        "overflow": false
+      },
+      {
+        "path": "/browse",
+        "width": 1920,
+        "overflow": false
+      },
+      {
+        "path": "/auth",
+        "width": 1920,
+        "overflow": false
+      },
+      {
+        "path": "/auth?mode=register",
+        "width": 1920,
+        "overflow": false
+      },
+      {
+        "path": "/user/home",
+        "width": 390,
+        "overflow": false
+      },
+      {
+        "path": "/user/home",
+        "width": 1440,
+        "overflow": false
+      }
+    ],
+    "assets": [
+      {
+        "path": "/index.html",
+        "sha256": "ed9eeabfc794d01b1ad5cde2ee4ca2796c19bde9d0692b5e1555a4439af4ebe9"
+      },
+      {
+        "path": "/images/care-for-every-generation.webp",
+        "sha256": "5a971123645505f6d16c18e534b610d9a2ac5a0bcf64e2115cd3c98900f9a5e2"
+      },
+      {
+        "path": "/static/js/main.8874e9e9.js",
+        "sha256": "1872a44e02d931d18e503f38f3313e5284067988f3180a2be94c2e44d79edb2d"
+      },
+      {
+        "path": "/static/css/main.7be1a433.css",
+        "sha256": "d38812b34c72eac05f1d8e30a0376e4a1a2929b439f93079e69929138a1fcbe5"
+      }
+    ],
+    "fixtureSetup": "operator-seeded-no-registration-coverage",
+    "noBookingSubmitted": true,
+    "publicPreviewProfiles": 1,
+    "authenticatedProfileNavigation": true,
+    "authenticatedBookingNavigation": true,
+    "customerSessionRestored": true,
+    "pageErrors": 0,
+    "firebaseRuntimeRequests": 0,
+    "checksPassed": true,
+    "cleanupVerified": true,
+    "applicationRecordsUnchanged": true,
+    "completedAt": "2026-10-18T10:00:47.254Z"
+  },
+  "rateLimitLimitations": {
+    "registrationSmoke": {
+      "status": 429,
+      "at": "2026-10-18T09:59:32.399Z",
+      "publicPageChecksPassed": 20,
+      "cleanupVerified": true,
+      "applicationRecordsUnchanged": true
+    },
+    "followup": "Post-deploy auth and customer smoke used disposable seeded fixtures; no new independent post-deploy registration coverage is claimed. Registration rate limits were not changed or cleared."
+  },
+  "dataIntegrity": {
+    "pass": true,
+    "backend": "cloudflare-d1",
+    "worker": "sewak-final",
+    "version": "ab3f87c0-dab2-44bf-b8f9-d89906fe88b4",
+    "checkedAt": "2026-10-18T10:01:14.303Z",
+    "health": {
+      "healthy": true,
+      "writesEnabled": true,
+      "auth": "cloudflare-d1"
+    },
+    "checks": {
+      "DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      },
+      "MEDIA_DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      },
+      "EVIDENCE_DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      }
+    }
+  },
+  "boundaries": {
+    "newerModerationFixesPreserved": true,
+    "unrelatedRootCheckoutPreserved": true,
+    "noRealBookingSubmitted": true,
+    "noMigrations": true,
+    "noSecretChanges": true,
+    "noBindingChanges": true,
+    "noBillingChanges": true,
+    "cronUnchanged": "*/15 * * * *",
+    "existingApplicationRecordsUnchanged": true,
+    "billingPlanVerification": "Existing Workers Free operator attestation; billing API inaccessible (403)."
+  },
+  "workflow": "Scoped Cloudflare release with explicit user push and deployment authorization."
+}

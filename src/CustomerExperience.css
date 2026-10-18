@@ -102,7 +102,7 @@
 .customer-discovery-shell .browse-filter-field :is(select,input) { background: var(--brand-white); min-height: 43px; border-radius: 11px; }
 .customer-discovery-shell .browse-caregiver-card { border-radius: 19px; box-shadow: 0 9px 22px var(--color-shadow); transition: transform .2s ease, box-shadow .2s ease; }
 .customer-discovery-shell .browse-caregiver-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px var(--color-shadow); }
-.customer-discovery-shell .browse-caregiver-grid--single { grid-template-columns: minmax(0, 670px); }
+.customer-discovery-shell .browse-caregiver-grid--single { grid-template-columns: minmax(0, 480px); justify-content: center; }
 
 .customer-discovery-shell .browse-advanced-filters { margin-top: 14px; padding: 0; border: 1px solid var(--brand-sand); border-radius: 12px; background: var(--brand-white); }
 .customer-discovery-shell .browse-advanced-filters summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 13px 15px; color: var(--brand-coral); font-weight: 750; font-size: 12px; list-style: none; }

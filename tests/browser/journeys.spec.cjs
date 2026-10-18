@@ -21,7 +21,7 @@ for(const width of [320,375,430,768,1366,1920])test(`public and four authenticat
  const context=await browser.newContext({viewport:{width,height:900}});const page=await context.newPage();
  await page.goto('/browse');await expect(page.getByRole('heading',{name:/Care that feels/})).toBeVisible();await checkOverflow(page);
  await page.getByRole('link',{name:'Sign up',exact:true}).click();await expect(page.getByLabel('Full name')).toBeVisible();
- for(const [role,route,heading]of[['customer','/user/home','Hello, Test'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Booking management'],['admin','/superadmin/caregivers','Caregivers']]){
+ for(const [role,route,heading]of[['customer','/user/home','Find & Book Care'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Booking management'],['admin','/superadmin/caregivers','Caregivers']]){
   const roleContext=await browser.newContext({viewport:{width,height:900}});const p=await roleContext.newPage();await signIn(p,role);await p.goto(route);
   if(heading)await expect(p.getByRole('heading',{name:new RegExp(heading)}).first()).toBeVisible();else await expect(p.getByRole('heading',{name:/Test caregiver|Caregiver|My jobs|Jobs/i}).first()).toBeVisible();
   await checkOverflow(p);await p.reload();await expect(p.getByRole('button',{name:/Account menu for/})).toBeVisible();await checkOverflow(p);

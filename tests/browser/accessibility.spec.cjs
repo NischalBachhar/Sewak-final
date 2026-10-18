@@ -7,7 +7,7 @@ for(const [label,route,role,ready] of [
   ['discovery','/browse',null,'.browse-caregiver-card'],
   ['login','/auth',null,'.auth-card'],
   ['signup','/auth?mode=register',null,'.auth-card'],
-  ['customer','/user/home','customer','.customer-summary'],
+  ['customer','/user/home','customer','.home-discovery'],
   ['booking','/user/book/e2e-caregiver','customer','.booking-form-panel'],
   ['profile','/user/caregivers/e2e-caregiver','customer','.caregiver-profile-hero'],
   ['caregiver','/caregiver?tab=home','caregiver','.sewak-workspace'],

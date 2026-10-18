@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import PublicHeader from './components/PublicHeader';
-import CaregiverPreview from './components/CaregiverPreview';
 import { LoginIcon } from './components/LoginExperience';
 import { loadServiceOptions } from './components/ServiceSelector';
 import HomeServiceIcon from './components/HomeServiceIcon';
 import './HomePage.css';
+import CaregiverPreview from './components/CaregiverPreview';
 
 export default function HomePage() {
   const [services, setServices] = useState([]);
@@ -37,7 +37,6 @@ export default function HomePage() {
         </div>
         <figure className="home-hero__visual"><img src="/images/care-for-every-generation.webp" width="1536" height="1024" fetchPriority="high" alt="Illustration of Nepali caregivers supporting a child, older family members and an adult wheelchair user, with household help at home." /><figcaption>Care, closer to home.</figcaption></figure>
       </section>
-      <CaregiverPreview audience="guest" />
       <div className="home-values" aria-label="Care with Sewak">
         {[['heart', 'Every generation'], ['home', 'Everyday help'], ['shield', 'Informed choices'], ['clock', 'Your care, together']].map(([icon, title]) => <div key={title}><span className="home-icon"><LoginIcon name={icon} /></span><strong>{title}</strong></div>)}
       </div>
@@ -46,16 +45,13 @@ export default function HomePage() {
         {state === 'loading' && <p className="home-catalog-state" role="status">Loading available services…</p>}
         {state === 'error' && <div className="home-catalog-state" role="alert"><p>We couldn’t load services right now.</p><button className="home-button home-button--outline" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>}
         {state === 'ready' && !services.length && <p className="home-catalog-state">There are no published services to show yet. Please check back soon.</p>}
-        <div id="home-service-list" className="home-services">{(showAllServices ? services : services.slice(0, 6)).map(service => <article key={service.id} className="home-service"><span className="home-icon"><HomeServiceIcon service={service} /></span><p className="home-service__category">{service.category === 'household' ? 'Household support' : service.category === 'both' ? 'Care & household support' : 'Caregiver support'}</p><h3>{service.label || service.serviceName}</h3><Link to={`/browse?service=${encodeURIComponent(service.id)}`} aria-label={`Find care for ${service.label || service.serviceName}`}>Explore caregivers <LoginIcon name="arrow" /></Link></article>)}</div>
+        <div id="home-service-list" className="home-services">{(showAllServices ? services : services.slice(0, 6)).map(service => <article key={service.id} className="home-service"><span className="home-icon"><HomeServiceIcon service={service} /></span><p className="home-service__category">{service.category === 'household' ? 'Household support' : service.category === 'both' ? 'Care & household support' : 'Caregiver support'}</p><h3>{service.label || service.serviceName}</h3><Link to="/browse" aria-label={`Explore caregivers for ${service.label || service.serviceName}`}>Explore caregivers <LoginIcon name="arrow" /></Link></article>)}</div>
         {services.length > 6 && <button className="home-button home-button--outline home-services-toggle" aria-expanded={showAllServices} aria-controls="home-service-list" onClick={() => setShowAllServices(value => !value)}>{showAllServices ? 'Show fewer services' : `View all ${services.length} services`}</button>}
       </section>
+      <CaregiverPreview />
       <section id="how-it-works" className="home-how home-section" aria-labelledby="how-title">
         <div className="home-section-heading"><div><p className="home-eyebrow">A simpler way to arrange care</p><h2 id="how-title">A little help.<br /><em>A lot of possibility.</em></h2></div><p>Three steps from searching to arranging support.</p></div>
         <ol className="home-steps">{[['01', 'Find your care partner', 'Search by service and location to find someone who fits your needs.'], ['02', 'Request the support you need', 'Choose a service and schedule. Care is confirmed only after the caregiver accepts.'], ['03', 'Keep care in one place', 'Manage your bookings through your Sewak account.']].map(([number, title, copy]) => <li key={number}><span aria-hidden="true">{number}</span><h3>{title}</h3><p>{copy}</p></li>)}</ol>
-      </section>
-      <section className="home-section home-confidence" aria-labelledby="confidence-title">
-        <div><p className="home-eyebrow">Confidence starts with clarity</p><h2 id="confidence-title">Care decisions made<br /><em>with confidence.</em></h2><p>The details you need to choose thoughtfully.</p></div>
-        <div className="home-confidence__cards"><article><LoginIcon name="shield" /><div><h3>Verification transparency</h3><p>Review the actual verification status on each caregiver’s profile.</p></div></article><article><LoginIcon name="heart" /><div><h3>Clear service information</h3><p>Compare services, availability and pricing before submitting a request.</p></div></article><article><LoginIcon name="clock" /><div><h3>Booking visibility</h3><p>See pending, accepted, active and completed requests in your account.</p></div></article></div>
       </section>
       <section className="home-join home-section" aria-labelledby="join-title"><div><p className="home-eyebrow">Stronger homes. Connected communities.</p><h2 id="join-title">Find care. <em>Or help others find it.</em></h2><p>Explore support for your family. Organizations can select their role at signup and apply for review.</p><Link className="home-text-link" to="/auth">Already part of Sewak? Sign in</Link></div><div className="home-actions"><Link className="home-button" to="/browse">Find Care for My Family <LoginIcon name="arrow" /></Link><Link className="home-button home-button--outline" to="/auth?mode=register">Register My Organization <LoginIcon name="arrow" /></Link></div></section>
     </main>

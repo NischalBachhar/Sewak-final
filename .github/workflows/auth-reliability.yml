@@ -31,6 +31,8 @@ jobs:
       - run: npm run test:browser -- --config playwright.auth.config.cjs
       - name: Registration, approval, booking and security journeys
         run: npm run test:browser -- signup-ui.spec.cjs combined-organization.spec.cjs organization-moderation.spec.cjs journeys.spec.cjs --grep 'signup|combined organization|organization moderation|real D1 customer request|asset security|account switching'
+      - name: Caregiver previews, availability and discovery
+        run: npm run test:browser -- caregiver-previews.spec.cjs zz-discovery.spec.cjs
       - run: npm run build:release
         env:
           REACT_APP_CANONICAL_ORIGIN: https://sewak-final.nischalbachhar9.workers.dev
