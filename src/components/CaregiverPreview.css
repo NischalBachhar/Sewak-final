@@ -1,0 +1,25 @@
+.request-availability { display: inline-flex; align-items: center; gap: 5px; width: fit-content; max-width: 100%; padding: 5px 8px; margin-top: 8px; border-radius: 7px; font-size: 11px; font-weight: 650; line-height: 1.4; }
+.request-availability--accepting { color: var(--color-success); background: var(--color-success-soft); }
+.request-availability--unavailable, .request-availability--unknown { color: var(--brand-cocoa); background: var(--brand-vanilla); }
+.caregiver-booking-reason { color: var(--brand-cocoa); margin: 10px 0 0; font-size: 12px; line-height: 1.5; }
+.caregiver-preview { min-width: 0; color: var(--brand-ink); }
+.caregiver-preview__heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 22px; }
+.caregiver-preview__heading h2 { margin: 0 0 9px; font: 500 clamp(27px, 2.7vw, 38px)/1.15 var(--font-display); letter-spacing: -.025em; }
+.caregiver-preview__heading p { margin: 0; color: var(--brand-cocoa); font-size: 13px; max-width: 530px; }
+.caregiver-preview__heading > a { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; color: var(--brand-coral-hover); font-size: 13px; font-weight: 650; }
+.caregiver-preview__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+.caregiver-preview__state { margin: 0; padding: 22px; background: var(--brand-white); border: 1px solid var(--brand-sand); border-radius: 16px; color: var(--brand-cocoa); font-size: 14px; }
+.caregiver-preview-card { border-color: var(--brand-sand); box-shadow: none; }
+.caregiver-preview-card .browse-caregiver-card__name-row { flex-wrap: wrap; }
+.caregiver-preview-card .browse-caregiver-card__name-row h3 { white-space: normal; overflow-wrap: anywhere; }
+.caregiver-preview-card .browse-caregiver-card__footer { flex-direction: column; align-items: stretch; gap: 14px; }
+.caregiver-preview-card .browse-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.caregiver-preview-card .browse-card-action { flex: 1; min-height: 44px; text-decoration: none; }
+.caregiver-preview-card .browse-rating { flex-wrap: wrap; }
+.caregiver-preview-card .browse-caregiver-card__location { font-size: 12px; }
+.caregiver-preview-card .browse-service-tag { overflow-wrap: anywhere; }
+.caregiver-preview--customer { padding: 22px; border: 1px solid var(--brand-sand); border-radius: 20px; background: var(--brand-white); }
+.caregiver-preview--customer .caregiver-preview__heading h2 { font-family: inherit; font-size: 22px; font-weight: 650; }
+.caregiver-preview a:focus-visible, .caregiver-preview button:focus-visible { outline: 3px solid var(--brand-coral-hover); outline-offset: 3px; }
+@media (max-width: 1000px) { .caregiver-preview__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .caregiver-preview__grid { grid-template-columns: minmax(0, 1fr); } .caregiver-preview--customer { padding: 16px; } }

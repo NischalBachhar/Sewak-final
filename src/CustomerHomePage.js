@@ -5,6 +5,7 @@ import { useAuth } from "./AuthContext";
 import { bookingScheduleLabel, getBookingStatus } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { ErrorState, SkeletonCard, StatusBadge } from "./components/CareExperience";
+import CaregiverPreview from './components/CaregiverPreview';
 import ProfileImage from "./components/ProfileImage";
 import { LoginIcon } from "./components/LoginExperience";
 import { WorkspaceIcon } from "./components/WorkspaceShell";
@@ -188,6 +189,7 @@ export default function CustomerHomePage() {
           <p className="customer-recent-empty">Your care history will appear here after your first booking.</p>
         )}
       </section>
+      <CaregiverPreview signedIn />
     </main>
   );
 }
