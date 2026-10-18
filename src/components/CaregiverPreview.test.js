@@ -33,7 +33,7 @@ beforeEach(() => { apiRequest.mockReset(); window.localStorage.clear(); });
 test("request status badge describes the availability toggle, not instant free slots", () => {
   const { rerender } = render(<AvailabilityBadge isAvailable={true} />);
   expect(screen.getByText("Accepting requests")).toBeTruthy();
-  expect(screen.getByLabelText(/dates require confirmation/)).toBeTruthy();
+  expect(screen.getByText(/dates require confirmation/)).toBeTruthy();
   rerender(<AvailabilityBadge isAvailable={false} />);
   expect(screen.getByText("Not accepting requests")).toBeTruthy();
 });
