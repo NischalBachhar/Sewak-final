@@ -1,0 +1,36 @@
+{
+  "width": 768,
+  "viewportHeight": 1000,
+  "catalogCount": 18,
+  "heroSHA256": "ec3d0e5b41bba94168e40e10504ab321505bd2cbc7ae411c33ee395a1024f792",
+  "collapsed": {
+    "document": 3436,
+    "belowHero": 2810.234375,
+    "hero": {
+      "x": 0,
+      "y": 118,
+      "width": 768,
+      "height": 507.765625,
+      "top": 118,
+      "right": 768,
+      "bottom": 625.765625,
+      "left": 0
+    },
+    "overflow": false
+  },
+  "expanded": {
+    "document": 5001,
+    "belowHero": 4375.234375,
+    "hero": {
+      "x": 0,
+      "y": -1223,
+      "width": 768,
+      "height": 507.765625,
+      "top": -1223,
+      "right": 768,
+      "bottom": -715.234375,
+      "left": 0
+    },
+    "overflow": false
+  }
+}
