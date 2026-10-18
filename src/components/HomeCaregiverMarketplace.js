@@ -97,14 +97,37 @@ export default function HomeCaregiverMarketplace() {
   const loadingFirst = result.status === 'loading' && !cursor;
   const totalLabel = result.total === 1 ? '1 care professional' : result.total + ' care professionals';
   const canLoadMore = result.status === 'ready' && Boolean(result.nextCursor);
+  // These are active catalog filters, never claims that providers offer each service.
+  const quickServices = [...services]
+    .sort((a, b) => {
+      const priority = service => {
+        const label = String(service.label || service.serviceName || '').toLowerCase();
+        if (/elderly care/.test(label)) return 0;
+        if (/child care|babysitt/.test(label)) return 1;
+        if (/disability/.test(label)) return 2;
+        if (/cooking|household|cleaning/.test(label)) return 3;
+        return 4;
+      };
+      return priority(a) - priority(b);
+    })
+    .slice(0, 4);
+  const chooseService = serviceId => {
+    setDraft(previous => ({ ...previous, serviceId }));
+    setCursor(null);
+    setFilters(previous => {
+      const next = { ...previous };
+      if (serviceId) next.serviceId = serviceId;
+      else delete next.serviceId;
+      return next;
+    });
+  };
 
   return (
     <section id="caregivers" className="home-marketplace" aria-labelledby={headingId}>
       <div className="home-marketplace__intro">
         <div>
-          <p className="home-marketplace__eyebrow">SEWAK · FIND CARE</p>
           <h1 id={headingId}>Find and book a caregiver</h1>
-          <p>Compare real care professionals, check who is accepting requests, and start your booking here.</p>
+          <p>Choose a service, compare real caregivers and request care.</p>
         </div>
         <Link className="home-marketplace__advanced" to="/browse">
           Advanced filters <span aria-hidden="true">→</span>
@@ -112,12 +135,7 @@ export default function HomeCaregiverMarketplace() {
       </div>
 
       <form className="home-marketplace__search" onSubmit={applySearch} role="search" aria-label="Find caregivers on Sewak">
-        <label className="home-marketplace__field home-marketplace__field--name">
-          <span>Caregiver or area</span>
-          <input type="search" name="caregiver" value={draft.text} onChange={event => edit('text', event.target.value)}
-            maxLength={160} placeholder="Search names or areas" />
-        </label>
-        <label className="home-marketplace__field">
+        <label className="home-marketplace__field home-marketplace__field--service">
           <span>Service</span>
           <select name="service" value={draft.serviceId} onChange={event => edit('serviceId', event.target.value)}>
             <option value="">All services</option>
@@ -127,15 +145,16 @@ export default function HomeCaregiverMarketplace() {
               <option value={draft.serviceId}>Selected service</option>}
           </select>
         </label>
-        <button className="home-marketplace__filter-toggle" type="button" aria-expanded={moreFiltersOpen}
-          aria-controls="home-marketplace-extra-filters" onClick={() => setMoreFiltersOpen(value => !value)}>
-          {moreFiltersOpen ? 'Fewer filters' : 'More filters'}
-        </button>
+        <label className="home-marketplace__field home-marketplace__field--location">
+          <span>City or locality</span>
+          <input type="text" name="location" value={draft.location} onChange={event => edit('location', event.target.value)}
+            maxLength={160} placeholder="e.g. Kathmandu" />
+        </label>
         <div id="home-marketplace-extra-filters" className={'home-marketplace__advanced-fields' + (moreFiltersOpen ? ' is-open' : '')}>
-          <label className="home-marketplace__field">
-            <span>City or locality</span>
-            <input type="text" name="location" value={draft.location} onChange={event => edit('location', event.target.value)}
-              maxLength={160} placeholder="e.g. Kathmandu" />
+          <label className="home-marketplace__field home-marketplace__field--name">
+            <span>Caregiver name or keyword</span>
+            <input type="search" name="caregiver" value={draft.text} onChange={event => edit('text', event.target.value)}
+              maxLength={160} placeholder="Search names or areas" />
           </label>
           <label className="home-marketplace__field">
             <span>Support type</span>
@@ -146,20 +165,39 @@ export default function HomeCaregiverMarketplace() {
             </select>
           </label>
         </div>
-        <button className="home-marketplace__submit" type="submit">Find caregivers <span aria-hidden="true">→</span></button>
+        <button className="home-marketplace__filter-toggle" type="button" aria-expanded={moreFiltersOpen}
+          aria-controls="home-marketplace-extra-filters" onClick={() => setMoreFiltersOpen(value => !value)}>
+          {moreFiltersOpen ? 'Fewer filters' : 'More filters'}
+        </button>
+        <button className="home-marketplace__submit" type="submit" aria-label="Find caregivers">
+          <span className="home-marketplace__submit-full">Find caregivers</span>
+          <span className="home-marketplace__submit-short" aria-hidden="true">Find care</span>
+          <span aria-hidden="true">→</span>
+        </button>
       </form>
       {catalogState === 'error' && <p className="home-marketplace__catalog-note" role="status">Service choices could not be loaded. You can still search by name, location, or category.</p>}
 
       <div className="home-marketplace__results-head">
-        <div>
+        <div className="home-marketplace__results-title">
           <h2>Caregivers accepting requests</h2>
-          <p>{loadingFirst ? 'Loading real caregiver profiles…' :
+          <p>{loadingFirst ? 'Loading profiles…' :
             result.status === 'error' ? 'Unable to show current results.' :
               totalLabel + ' match' + (result.total === 1 ? 'es' : '') + ' your search.'}</p>
         </div>
-        {filtered && <button type="button" className="home-marketplace__clear" onClick={clearSearch}>Clear filters</button>}
+        <div className="home-marketplace__results-tools">
+          {filtered && <button type="button" className="home-marketplace__clear" onClick={clearSearch}>Clear filters</button>}
+          <span className="home-marketplace__availability-note" title="A caregiver must accept your request before a visit is confirmed.">Dates confirmed after acceptance</span>
+        </div>
       </div>
-      <p className="home-marketplace__availability-note">Accepting requests does not guarantee availability at a chosen date or time. Care is confirmed when the caregiver accepts.</p>
+      {catalogState === 'ready' && quickServices.length > 1 &&
+        <div className="home-marketplace__quick-services" role="group" aria-label="Quick service filters">
+          {quickServices.map(service => <button key={service.id} type="button"
+            className={filters.serviceId === service.id ? 'is-active' : ''}
+            aria-pressed={filters.serviceId === service.id}
+            onClick={() => chooseService(filters.serviceId === service.id ? '' : service.id)}>
+            {service.label || service.serviceName}
+          </button>)}
+        </div>}
 
       {loadingFirst && <div className="home-marketplace__state" role="status">Finding caregivers who accept requests…</div>}
       {result.status === 'error' && <div className="home-marketplace__state" role="status">

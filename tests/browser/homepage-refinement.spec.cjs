@@ -71,10 +71,10 @@ test('Homepage filters genuine profiles without visiting another search page', a
   await page.goto('/');
   const marketplace = page.getByRole('region', { name: 'Find and book a caregiver' });
   await expect(marketplace).toContainText('Test Caregiver');
-  await marketplace.getByRole('searchbox', { name: 'Caregiver or area' }).fill('Test Caregiver');
   await marketplace.getByRole('combobox', { name: 'Service' }).selectOption('e2e-care');
-  await marketplace.getByRole('button', { name: 'More filters' }).click();
   await marketplace.getByRole('textbox', { name: 'City or locality' }).fill('Hetauda');
+  await marketplace.getByRole('button', { name: 'More filters' }).click();
+  await marketplace.getByRole('searchbox', { name: 'Caregiver name or keyword' }).fill('Test Caregiver');
   await marketplace.getByRole('combobox', { name: 'Support type' }).selectOption('caregiver');
   await marketplace.getByRole('button', { name: /Find caregivers/ }).click();
   await expect(marketplace).toContainText('Test Caregiver');
@@ -118,4 +118,61 @@ test('Homepage catalog still expands and remains behind caregiver booking', asyn
   await expect(toggle).toHaveText('Show fewer services');
   await toggle.click();
   await expect(services).toHaveCount(6);
+});
+
+
+test('At 1366×768, a new visitor sees caregiver, price, and booking action without scrolling', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/');
+  const marketplace = page.getByRole('region', { name: 'Find and book a caregiver' });
+  const card = marketplace.locator('.caregiver-preview-card');
+  await expect(card).toHaveCount(1);
+  await expect(card).toContainText('Test Caregiver');
+  await expect(card).toContainText('Accepting requests');
+  await expect(card).toContainText('Verification not complete');
+  await expect(card).toContainText('NPR ');
+  const book = card.getByRole('button', { name: /Sign in to book/ });
+  await expect(book).toBeVisible();
+  const rect = await book.boundingBox();
+  expect(rect).toBeTruthy();
+  expect(rect.y + rect.height).toBeLessThan(768);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await capture(page, 'desktop-first-screen-1366x768');
+});
+
+test('On a 390px phone, essential care search and the booking action are reachable promptly', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto('/');
+  const marketplace = page.getByRole('region', { name: 'Find and book a caregiver' });
+  const card = marketplace.locator('.caregiver-preview-card');
+  await expect(card).toHaveCount(1);
+  await expect(marketplace.getByRole('combobox', { name: 'Service' })).toBeVisible();
+  await expect(marketplace.getByRole('textbox', { name: 'City or locality' })).toBeVisible();
+  await expect(marketplace.getByRole('button', { name: 'More filters' })).toBeVisible();
+  const booking = card.getByRole('button', { name: /Sign in to book/ });
+  await expect(booking).toBeVisible();
+  const position = await booking.boundingBox();
+  expect(position).toBeTruthy();
+  expect(position.y + position.height).toBeLessThan(1000);
+  await noOverflow(page, 390);
+  await capture(page, 'mobile-first-screen-390x900');
+});
+
+test('Quick service chips filter real server-side results instantly', async ({ page }) => {
+  const queries = [];
+  page.on('request', request => {
+    if (request.url().endsWith('/api/query') && request.postDataJSON()?.path === 'publicCaregivers') {
+      queries.push(request.postDataJSON());
+    }
+  });
+  await page.goto('/');
+  const shortcuts = page.getByRole('group', { name: 'Quick service filters' });
+  const first = shortcuts.locator('button').first();
+  await expect(first).toBeVisible();
+  await first.click();
+  await expect(first).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => queries.some(query => Boolean(query.search?.serviceId))).toBe(true);
+  await first.click();
+  await expect(first).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(() => queries.length).toBeGreaterThan(2);
 });
