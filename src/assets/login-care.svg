@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 340" fill="none">
   <defs>
     <linearGradient id="room" x1="300" y1="20" x2="300" y2="320" gradientUnits="userSpaceOnUse"><stop stop-color="#f1e6d2"/><stop offset="1" stop-color="#f8f0e3"/></linearGradient>
-    <linearGradient id="sofa" x1="280" y1="183" x2="280" y2="300" gradientUnits="userSpaceOnUse"><stop stop-color="#b6bf9f"/><stop offset="1" stop-color="#94a381"/></linearGradient>
+    <linearGradient id="sofa" x1="280" y1="183" x2="280" y2="300" gradientUnits="userSpaceOnUse"><stop stop-color="#F7DED4"/><stop offset="1" stop-color="#D5A66B"/></linearGradient>
   </defs>
   <!-- An original, local editorial illustration of a quiet moment at home. -->
   <path d="M72 294V145C72 67 156 24 282 26c133 2 235 35 242 144l-5 124Z" fill="url(#room)"/>

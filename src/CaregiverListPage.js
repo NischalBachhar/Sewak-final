@@ -2,12 +2,14 @@ import { apiRequest } from './apiClient';
 import ProfileImage from "./components/ProfileImage";
 import React, { useEffect, useRef, useState } from "react";
 import { collection, getDocs } from "./d1Client";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "./d1Client";
 
 import { hasVerifiedRating } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
+import AvailabilityBadge from "./components/AvailabilityBadge";
+import "./components/CaregiverPreview.css";
 
 const SHIFTS = ["morning", "day", "evening", "night"];
 
@@ -95,6 +97,7 @@ function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, req
                 compact
               />
             ) : null}
+            <AvailabilityBadge isAvailable={caregiver.isAvailable} />
           </div>
           <p className="browse-caregiver-card__location">
             {caregiver.location || "Location not listed"}
@@ -130,7 +133,7 @@ function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, req
         )}
       </div>
 
-      <div className="browse-assurance-row" aria-label="Profile checks">
+      <div className="browse-assurance-row" role="group" aria-label="Profile checks">
         {caregiver.backgroundChecked && <span className="browse-assurance-tag">Background checked</span>}
         {caregiver.verified && <span className="browse-assurance-tag">ID verified</span>}
         {caregiver.isCertified && <span className="browse-assurance-tag browse-assurance-tag--certified">Certified</span>}
@@ -169,6 +172,7 @@ function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, req
           className="browse-card-action"
           onClick={handleBookClick}
           disabled={caregiver.isSuspended || !caregiver.isApproved || !caregiver.isAvailable || !caregiver.servicesOffered?.length}
+          title={!caregiver.isAvailable ? "This caregiver is not currently accepting requests" : !caregiver.servicesOffered?.length ? "No currently bookable services" : undefined}
         >
           {requireLogin ? "Sign in to book" : "Book now"}
           <span aria-hidden="true">→</span>
@@ -485,6 +489,7 @@ export default function CaregiverListPage({
   variant = "default",
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [caregivers, setCaregivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -493,7 +498,11 @@ export default function CaregiverListPage({
   const [nextCursor, setNextCursor] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [serviceFilter, setServiceFilter] = useState("");
+  const [serviceFilter, setServiceFilter] = useState(() => new URLSearchParams(location.search).get("service") || "");
+  const [availabilityFilter, setAvailabilityFilter] = useState(() => {
+    const value = new URLSearchParams(location.search).get("availability");
+    return ["all", "unavailable"].includes(value) ? value : "accepting";
+  });
   const [workTypeFilter, setWorkTypeFilter] = useState(preselectedWorkType || "");
   const [shiftFilter, setShiftFilter] = useState(preselectedShift || "");
   const [locationFilter, setLocationFilter] = useState("");
@@ -572,8 +581,9 @@ export default function CaregiverListPage({
     };
   }, [filterSheetOpen]);
 
-  const searchKey = JSON.stringify({ text: searchTerm, category: userCategory, serviceId: serviceFilter, workType: workTypeFilter, shift: shiftFilter, location: locationFilter, minimumExperience: Number(minimumExperience), minimumRating: Number(minimumRating), verifiedOnly });
+  const searchKey = JSON.stringify({ text: searchTerm, category: userCategory, serviceId: serviceFilter, workType: workTypeFilter, shift: shiftFilter, location: locationFilter, minimumExperience: Number(minimumExperience), minimumRating: Number(minimumRating), verifiedOnly, availability: availabilityFilter });
   const lastSearch = useRef(searchKey);
+  const lastDeepLinkedService = useRef(new URLSearchParams(location.search).get("service"));
   useEffect(() => {
     let active = true;
     const changed = lastSearch.current !== searchKey;
@@ -611,10 +621,23 @@ export default function CaregiverListPage({
   });
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const requested = params.get("service");
+    const availability = params.get("availability");
+    setAvailabilityFilter(["all", "unavailable"].includes(availability) ? availability : "accepting");
+    if (!requested && lastDeepLinkedService.current) setServiceFilter("");
+    lastDeepLinkedService.current = requested;
+    if (requested && services.length) {
+      const valid = services.some((service) => service.id === requested);
+      setServiceFilter(valid ? requested : "");
+    }
+  }, [location.search, services]);
+
+  useEffect(() => {
     if (serviceFilter && services.length && !services.some(service => service.id === serviceFilter && (!userCategory || userCategory === 'both' || service.category === 'both' || (service.category === 'vendor' ? 'household' : service.category) === userCategory))) setServiceFilter('');
   }, [serviceFilter, services, userCategory]);
   const filtered = caregivers;
-  const pagination = <div className="browse-card-actions" aria-label="Caregiver pages">
+  const pagination = <div className="browse-card-actions" role="navigation" aria-label="Caregiver pages">
     {cursor && <button type="button" className="btn btn-outline" disabled={loading} onClick={() => setCursor(null)}>First page</button>}
     {nextCursor && <button type="button" className="btn btn-outline" disabled={loading} onClick={() => setCursor(nextCursor)}>Next page</button>}
   </div>;
@@ -688,6 +711,8 @@ export default function CaregiverListPage({
       shiftFilter && `${shiftFilter[0].toUpperCase()}${shiftFilter.slice(1)} shift`,
       locationFilter && `Near ${locationFilter}`,
       verifiedOnly && "Verified only",
+      availabilityFilter === "all" && "Including unavailable",
+      availabilityFilter === "unavailable" && "Not accepting requests",
       minimumExperience && `${minimumExperience}+ years experience`,
       minimumRating && `${minimumRating}+ verified rating`,
     ].filter(Boolean);
@@ -699,6 +724,11 @@ export default function CaregiverListPage({
       setShiftFilter("");
       setLocationFilter("");
       setVerifiedOnly(false);
+      setAvailabilityFilter("accepting");
+      const params = new URLSearchParams(location.search);
+      params.delete("service");
+      params.delete("availability");
+      navigate({ pathname: location.pathname, search: params.toString() ? `?${params}` : "" }, { replace: true });
       setMinimumExperience("");
       setMinimumRating("");
       onChangeUserCategory && onChangeUserCategory("");
@@ -721,7 +751,7 @@ export default function CaregiverListPage({
           <div>
             <p className="browse-list__eyebrow">Browse local profiles</p>
             <div className="browse-list__title-row">
-              <h2>Caregivers ready to help</h2>
+              <h2>{availabilityFilter === "all" ? "Care professionals" : availabilityFilter === "unavailable" ? "Caregivers not accepting requests" : "Caregivers accepting requests"}</h2>
               <span className="browse-result-count">
                 {total} {total === 1 ? "match" : "matches"}
               </span>
@@ -815,6 +845,14 @@ export default function CaregiverListPage({
             <summary>More filters <span aria-hidden="true">⌄</span></summary>
             <div className="browse-advanced-filters__grid">
             <div className="browse-filter-field">
+              <label htmlFor="browse-availability-filter">Request availability</label>
+              <select id="browse-availability-filter" value={availabilityFilter} onChange={(event) => setAvailabilityFilter(event.target.value)}>
+                <option value="accepting">Accepting requests only</option>
+                <option value="all">All eligible profiles</option>
+                <option value="unavailable">Not accepting requests</option>
+              </select>
+            </div>
+            <div className="browse-filter-field">
               <label htmlFor="browse-experience-filter">Experience</label>
               <select id="browse-experience-filter" value={minimumExperience} onChange={(event) => setMinimumExperience(event.target.value)}>
                 <option value="">Any experience</option>
@@ -879,7 +917,7 @@ export default function CaregiverListPage({
         {loading && <p role="status">Updating results?</p>}
         {filtered.length > 0 ? (
           <>
-            {featured.length > 0 && (
+            {featured.length > 0 && filtered.length > 1 && (
               <div className="browse-featured-callout">
                 <span className="browse-featured-callout__star" aria-hidden="true">★</span>
                 <div>
@@ -922,6 +960,7 @@ export default function CaregiverListPage({
               {workTypeFilter === 'parttime' && <label>Shift<select value={shiftFilter} onChange={event => { setShiftFilter(event.target.value); onChangeShift?.(event.target.value); }}><option value="">Any shift</option>{SHIFTS.map(shift => <option key={shift}>{shift}</option>)}</select></label>}
               <label>Service<select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}><option value="">Any service</option>{visibleServices.map((service) => <option key={service.id} value={service.id}>{service.label || service.serviceName}</option>)}</select></label>
               <label>Location<input value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} placeholder="City or area" /></label>
+              <label>Request availability<select value={availabilityFilter} onChange={event => setAvailabilityFilter(event.target.value)}><option value="accepting">Accepting requests only</option><option value="all">All eligible profiles</option><option value="unavailable">Not accepting requests</option></select></label>
               <label>Experience<select value={minimumExperience} onChange={(event) => setMinimumExperience(event.target.value)}><option value="">Any experience</option><option value="1">1+ year</option><option value="2">2+ years</option><option value="3">3+ years</option><option value="5">5+ years</option></select></label>
               <label>Verified rating<select value={minimumRating} onChange={(event) => setMinimumRating(event.target.value)}><option value="">Any verified rating</option>{[1,2,3,4,5].map(rating => <option key={rating} value={rating}>{rating.toFixed(1)}{rating === 5 ? " stars" : "+ stars"}</option>)}</select></label>
               <label className="browse-verified-filter"><input type="checkbox" checked={verifiedOnly} onChange={(event) => setVerifiedOnly(event.target.checked)} /> Verified by Sewak only</label>
