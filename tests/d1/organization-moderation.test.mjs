@@ -5,6 +5,15 @@ import { Repository } from '../../worker/src/repository.ts';
 
 const action = (env, uid, operation, json) => call(env, '/api/actions/' + operation, { uid, method: 'POST', json });
 
+test('legacy organization without an application or administrator display fields can be approved', async () => {
+  const env = environment();
+  await seed(env);
+  await put(env, 'organizations/org', { organizationId:'org', adminUid:'org', organizationName:'Legacy Care', isApproved:false });
+  const result = await action(env, 'admin', 'approveOrganizationAccount', {organizationId:'org'});
+  assert.equal(result.status,200,JSON.stringify(result.data));
+  assert.equal((await new Repository(env).data('organizations/org')).isApproved,true);
+});
+
 test('approval persists after reread, clears the application queue and denies repeated approval', async () => {
   const env = environment();
   await seed(env);
