@@ -25,6 +25,7 @@ export default function HomeCaregiverMarketplace() {
   const [catalogState, setCatalogState] = useState('loading');
   const [cursor, setCursor] = useState(null);
   const [retry, setRetry] = useState(0);
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [result, setResult] = useState({ status: 'loading', caregivers: [], nextCursor: null, total: 0, error: '' });
 
   useEffect(() => {
@@ -126,19 +127,25 @@ export default function HomeCaregiverMarketplace() {
               <option value={draft.serviceId}>Selected service</option>}
           </select>
         </label>
-        <label className="home-marketplace__field">
-          <span>City or locality</span>
-          <input type="text" name="location" value={draft.location} onChange={event => edit('location', event.target.value)}
-            maxLength={160} placeholder="e.g. Kathmandu" />
-        </label>
-        <label className="home-marketplace__field">
-          <span>Support type</span>
-          <select name="category" value={draft.category} onChange={event => edit('category', event.target.value)}>
-            <option value="">All support</option>
-            <option value="caregiver">Caregiver support</option>
-            <option value="household">Household help</option>
-          </select>
-        </label>
+        <button className="home-marketplace__filter-toggle" type="button" aria-expanded={moreFiltersOpen}
+          aria-controls="home-marketplace-extra-filters" onClick={() => setMoreFiltersOpen(value => !value)}>
+          {moreFiltersOpen ? 'Fewer filters' : 'More filters'}
+        </button>
+        <div id="home-marketplace-extra-filters" className={'home-marketplace__advanced-fields' + (moreFiltersOpen ? ' is-open' : '')}>
+          <label className="home-marketplace__field">
+            <span>City or locality</span>
+            <input type="text" name="location" value={draft.location} onChange={event => edit('location', event.target.value)}
+              maxLength={160} placeholder="e.g. Kathmandu" />
+          </label>
+          <label className="home-marketplace__field">
+            <span>Support type</span>
+            <select name="category" value={draft.category} onChange={event => edit('category', event.target.value)}>
+              <option value="">All support</option>
+              <option value="caregiver">Caregiver support</option>
+              <option value="household">Household help</option>
+            </select>
+          </label>
+        </div>
         <button className="home-marketplace__submit" type="submit">Find caregivers <span aria-hidden="true">→</span></button>
       </form>
       {catalogState === 'error' && <p className="home-marketplace__catalog-note" role="status">Service choices could not be loaded. You can still search by name, location, or category.</p>}
