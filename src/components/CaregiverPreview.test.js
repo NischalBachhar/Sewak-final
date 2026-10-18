@@ -5,6 +5,13 @@ import { apiRequest } from "../apiClient";
 import CaregiverPreview from "./CaregiverPreview";
 import AvailabilityBadge from "./AvailabilityBadge";
 
+// Match the existing logout test's supported router setup.
+jest.mock("react-router-dom", () => {
+  global.TextEncoder = require("util").TextEncoder;
+  global.TextDecoder = require("util").TextDecoder;
+  return jest.requireActual("react-router");
+});
+
 jest.mock("../apiClient", () => ({ apiRequest: jest.fn() }));
 jest.mock("./ProfileImage", () => ({ __esModule: true, default: ({ alt }) => <span>{alt}</span> }));
 
