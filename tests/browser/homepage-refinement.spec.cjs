@@ -105,7 +105,7 @@ for (const width of [320,375,430,768,1024,1366,1440,1920]) {
 
 test('Homepage refinement catalog states and keyboard actions',async({page})=>{
   let mode='loading'; await mockCatalog(page,()=>mode);
-  await page.goto('/');await expect(page.getByRole('status')).toContainText('Loading available services');
+  await page.goto('/');await expect(page.locator('.home-catalog-state[role="status"]')).toContainText('Loading available services');
   await page.keyboard.press('Tab');await expect(page.getByRole('link',{name:'Skip to content'})).toBeFocused();
   await page.keyboard.press('Enter');await expect(page).toHaveURL(/#main-content$/);
   mode='error';await page.reload();await expect(page.getByRole('alert')).toContainText('We couldn’t load services');
