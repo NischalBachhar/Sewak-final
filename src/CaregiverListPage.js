@@ -498,7 +498,7 @@ export default function CaregiverListPage({
   const [nextCursor, setNextCursor] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [serviceFilter, setServiceFilter] = useState("");
+  const [serviceFilter, setServiceFilter] = useState(() => new URLSearchParams(location.search).get("service") || "");
   const [availabilityFilter, setAvailabilityFilter] = useState(() => {
     const value = new URLSearchParams(location.search).get("availability");
     return ["all", "unavailable"].includes(value) ? value : "accepting";
@@ -914,7 +914,7 @@ export default function CaregiverListPage({
         {loading && <p role="status">Updating results?</p>}
         {filtered.length > 0 ? (
           <>
-            {featured.length > 0 && (
+            {featured.length > 0 && filtered.length > 1 && (
               <div className="browse-featured-callout">
                 <span className="browse-featured-callout__star" aria-hidden="true">★</span>
                 <div>
