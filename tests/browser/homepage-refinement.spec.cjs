@@ -63,6 +63,7 @@ test('Homepage service cards open same-page caregivers with that service selecte
 });
 
 test('Homepage filters genuine profiles without visiting another search page', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
   const queries = [];
   page.on('request', request => {
     if (request.url().endsWith('/api/query') && request.postDataJSON()?.path === 'publicCaregivers') queries.push(request.postDataJSON());
