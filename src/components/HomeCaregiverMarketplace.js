@@ -114,7 +114,12 @@ export default function HomeCaregiverMarketplace() {
   const chooseService = serviceId => {
     setDraft(previous => ({ ...previous, serviceId }));
     setCursor(null);
-    setFilters(previous => ({ ...previous, serviceId }));
+    setFilters(previous => {
+      const next = { ...previous };
+      if (serviceId) next.serviceId = serviceId;
+      else delete next.serviceId;
+      return next;
+    });
   };
 
   return (
@@ -164,7 +169,11 @@ export default function HomeCaregiverMarketplace() {
           aria-controls="home-marketplace-extra-filters" onClick={() => setMoreFiltersOpen(value => !value)}>
           {moreFiltersOpen ? 'Fewer filters' : 'More filters'}
         </button>
-        <button className="home-marketplace__submit" type="submit">Find caregivers <span aria-hidden="true">→</span></button>
+        <button className="home-marketplace__submit" type="submit" aria-label="Find caregivers">
+          <span className="home-marketplace__submit-full">Find caregivers</span>
+          <span className="home-marketplace__submit-short" aria-hidden="true">Find care</span>
+          <span aria-hidden="true">→</span>
+        </button>
       </form>
       {catalogState === 'error' && <p className="home-marketplace__catalog-note" role="status">Service choices could not be loaded. You can still search by name, location, or category.</p>}
 
