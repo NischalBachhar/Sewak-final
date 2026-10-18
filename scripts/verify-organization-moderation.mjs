@@ -29,6 +29,10 @@ const report={run,worker,version,startedAt:new Date().toISOString(),pass:false,f
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 async function snapshot(){const rows={};for(const table of new Set(Object.values(entities).map(e=>e.table))){const records=(await DB.prepare(`SELECT * FROM ${table} ORDER BY id`).all()).results;rows[table]=records.filter(row=>table!=='admin_audit_logs'||row.actor_uid!==admin.uid);}return hash(rows);}
 const before=await snapshot();let browser;
+report.originalApplicationHash=before;
+report.fixtures={adminUid:admin.uid,organizationIds:orgs.map(org=>org.uid)};
+mkdirSync('.local-tools/cloudflare-auth',{recursive:true});
+writeFileSync(`.local-tools/cloudflare-auth/organization-moderation-${run}.json`,JSON.stringify(report,null,2));
 async function put(name,id,data){const q=insertSQL(name,encodeRecord(name,id,data),'insert');await DB.prepare(q.sql).bind(...q.params).run();}
 try{
   await put('users',admin.uid,{uid:admin.uid,email:admin.email,name:'Synthetic moderation QA',role:'superadmin',profileComplete:true,isApproved:true,isSuspended:false,isBlacklisted:false});
@@ -57,7 +61,7 @@ finally{
     for(const org of orgs){
       assert.match(org.uid,/^usr_[0-9a-f-]{36}$/);assert.ok(org.name.endsWith(run));
       const row=await DB.prepare('SELECT organization_name FROM organizations WHERE id=?').bind(org.uid).first();
-      if(row){assert.equal(row.organization_name,org.name);await DB.prepare('DELETE FROM organization_applications WHERE id=? AND applicant_id=?').bind(org.uid,org.uid).run();await DB.prepare('DELETE FROM blacklist WHERE id=?').bind(org.uid).run();await DB.prepare('DELETE FROM organizations WHERE id=? AND admin_uid=?').bind(org.uid,org.uid).run();}
+      if(row){assert.equal(row.organization_name,org.name);await DB.prepare('DELETE FROM organization_applications WHERE id=? AND applicant_id=?').bind(org.uid,org.uid).run();await DB.prepare('DELETE FROM blacklist WHERE id=?').bind(org.uid).run();await DB.prepare('UPDATE users SET organization_id=NULL WHERE id=? AND email=? AND organization_id=?').bind(org.uid,org.email,org.uid).run();await DB.prepare('DELETE FROM organizations WHERE id=? AND admin_uid=?').bind(org.uid,org.uid).run();}
       await DB.prepare('DELETE FROM users WHERE id=? AND email=?').bind(org.uid,org.email).run();
       assert.equal(await DB.prepare('SELECT id FROM users WHERE id=?').bind(org.uid).first(),null);
     }

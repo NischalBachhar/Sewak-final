@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'scripts/verify-cloudflare-auth.mjs'
+      - 'scripts/verify-organization-moderation.mjs'
+      - 'scripts/organization-moderation-browser-qa.mjs'
       - 'scripts/diagnose-production-d1-readonly.mjs'
       - 'scripts/incident-recover-sewak-final.mjs'
       - 'scripts/incident-recovery-contract.mjs'
@@ -33,6 +35,8 @@ jobs:
           cache: npm
       - name: Verify Auth QA script syntax (no live Cloudflare calls)
         run: |
+          node --check scripts/verify-organization-moderation.mjs
+          node --check scripts/organization-moderation-browser-qa.mjs
           node --check scripts/verify-cloudflare-auth.mjs
           node --check scripts/incident-recover-sewak-final.mjs
       - name: Install exact dependencies
