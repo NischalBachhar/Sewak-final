@@ -583,6 +583,7 @@ export default function CaregiverListPage({
 
   const searchKey = JSON.stringify({ text: searchTerm, category: userCategory, serviceId: serviceFilter, workType: workTypeFilter, shift: shiftFilter, location: locationFilter, minimumExperience: Number(minimumExperience), minimumRating: Number(minimumRating), verifiedOnly, availability: availabilityFilter });
   const lastSearch = useRef(searchKey);
+  const lastDeepLinkedService = useRef(new URLSearchParams(location.search).get("service"));
   useEffect(() => {
     let active = true;
     const changed = lastSearch.current !== searchKey;
@@ -624,6 +625,8 @@ export default function CaregiverListPage({
     const requested = params.get("service");
     const availability = params.get("availability");
     setAvailabilityFilter(["all", "unavailable"].includes(availability) ? availability : "accepting");
+    if (!requested && lastDeepLinkedService.current) setServiceFilter("");
+    lastDeepLinkedService.current = requested;
     if (requested && services.length) {
       const valid = services.some((service) => service.id === requested);
       setServiceFilter(valid ? requested : "");
