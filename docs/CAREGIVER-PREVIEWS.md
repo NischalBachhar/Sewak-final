@@ -1,9 +1,10 @@
 # Caregiver previews and request availability
 
-This change is based on `feature/homepage-compact-refinement` (`74ecef5`), which
-includes the deployed Coral & Vanilla design and audited caregiver verification.
-The pull request is stacked on that branch (existing PR #32). The primary
-checkout's unrelated authentication and notification edits are preserved.
+The original feature was developed on the deployed homepage refinement. The
+production release applies it to current main (`639d7ed`) in an isolated
+worktree, preserving the newer organization moderation fixes. Integration
+[PR #38](https://github.com/NischalBachhar/Sewak-final/pull/38) remains open; the
+primary checkout's unrelated authentication and notification edits are preserved.
 
 ## Behavior and data boundaries
 
@@ -68,8 +69,8 @@ controls and Save Profile action; the authorized Worker update remains in place.
 
 ## Validation
 
-Validation uses synthetic accounts and local SQLite/D1 or actual workerd
-bindings. No production accounts or records are created or edited.
+Implementation validation uses synthetic accounts and local SQLite/D1 or actual
+workerd bindings. Authorized production verification is recorded separately below.
 
 - Frontend: `CI=true npm run test:unit -- --testMatch '**/*.test.js' --silent`.
   The explicit glob avoids CRA/Jest's mixed-slash path matching in this Windows
@@ -93,8 +94,10 @@ all four role layouts, the full booking/review lifecycle, verification evidence
 workflows and the new preview regressions. Results are summarized in
 `docs/design/caregiver-previews/validation.json`.
 
-No unresolved local test failures remain. GitHub CI and production behavior are
-separate validation stages; no post-deployment test is claimed.
+These counts describe the original feature checkout. The integrated production
+release passed 96 frontend, 135 D1/workerd and 86 Chrome browser tests, plus lint,
+Worker typecheck, production build, dry-run and credential/runtime scan. All five
+GitHub workflows passed for application commit `f9ee879`.
 
 ## Screenshots
 
@@ -107,9 +110,26 @@ customer/caregiver data:
 - `public-three-1440.png`, `public-three-390.png` show the bounded three-profile
   layout when more eligible server records exist.
 
-## Release boundary
+## Production release
 
-This work is for a separate branch and reviewable PR only. It has not been
-merged or deployed. No production D1 write, migration, secret change or release
-command is authorized or performed. Production verification of the new behavior
-must follow a separately approved deployment.
+Deployed with explicit user authorization on 2026-10-18 to
+https://sewak-final.nischalbachhar9.workers.dev, Worker version
+`ab3f87c0-dab2-44bf-b8f9-d89906fe88b4`, application commit `f9ee879`. No PR was merged.
+
+The unchanged release guard accepted fresh registration-based 54-check auth QA
+from the immediately preceding production release, matching baseline version
+`3aa352be-b9da-4b93-af90-5006cfcc5799`. Post-deploy auth passed 54 checks on the new
+version using disposable seeded fixtures. All three D1 databases passed integrity
+and foreign-key checks.
+
+Live smoke verified four published asset hashes, public routes at five widths,
+and customer previews at two widths (22 page/width combinations), session
+restoration, profile and booking-page navigation, no page errors or overflow, and
+cleanup with existing application records unchanged. No real booking was submitted.
+The first live customer smoke hit the existing registration throttle (HTTP 429);
+the follow-up seeded a disposable customer. No new independent post-deploy
+registration coverage is claimed, and no limiter was changed or cleared.
+
+No migrations, secrets, bindings, billing or schedule changes were made. Workers
+Free relied on the existing operator attestation because the billing API returned
+403. Sanitized evidence is in [CAREGIVER-PREVIEWS-RELEASE.json](CAREGIVER-PREVIEWS-RELEASE.json).
