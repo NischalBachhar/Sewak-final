@@ -1,6 +1,6 @@
 .org-dashboard-root {
   padding: 32px 20px 40px;
-  background: linear-gradient(180deg, #fcf5ea 0%, #fff9f0 100%);
+  background: linear-gradient(180deg, var(--brand-vanilla) 0%, var(--brand-white) 100%);
   min-height: 100vh;
   color: var(--theme-text);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -13,12 +13,12 @@
 }
 
 .org-dashboard-header {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: var(--brand-white);
+  border: 1px solid var(--brand-sand);
   border-radius: 18px;
   padding: 28px 28px 24px;
   margin-bottom: 24px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 24px 60px var(--color-shadow);
 }
 
 .org-dashboard-header h1 {
@@ -38,8 +38,8 @@
   background: var(--theme-surface);
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.05);
+  border: 1px solid var(--brand-sand);
+  box-shadow: 0 20px 40px var(--color-shadow);
 }
 
 .card h3,
@@ -81,12 +81,12 @@
 }
 
 .error-message {
-  background: rgba(220, 38, 38, 0.12);
+  background: var(--color-danger-soft);
   color: var(--theme-danger);
   border-radius: 6px;
   padding: 10px 12px;
   font-size: 13px;
-  border: 1px solid rgba(220, 38, 38, 0.35);
+  border: 1px solid var(--color-danger-soft);
   margin-bottom: 12px;
 }
 
@@ -100,7 +100,7 @@
 .choice-buttons button {
   min-width: 140px;
   border-radius: 9999px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid var(--brand-sand);
   background: var(--theme-surface);
   color: var(--theme-text);
   padding: 10px 18px;
@@ -110,7 +110,7 @@
 }
 
 .choice-buttons button:hover {
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--brand-vanilla);
 }
 
 .btn {
@@ -135,15 +135,15 @@
 }
 
 .btn-danger {
-  background: #dc2626;
-  color: #ffffff;
+  background: var(--color-danger);
+  color: var(--color-on-brand);
   border: none;
 }
 
 .btn-outline.btn-danger {
-  background: rgba(220, 38, 38, 0.12);
+  background: var(--color-danger-soft);
   color: var(--theme-danger);
-  border-color: rgba(220, 38, 38, 0.45);
+  border-color: var(--color-danger-soft);
 }
 
 .btn:disabled {
@@ -171,7 +171,7 @@
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid var(--brand-sand);
   background: var(--theme-surface);
   color: var(--theme-text) !important;
   font-size: 13px;
@@ -189,7 +189,7 @@
 .dropdown-select:focus {
   outline: none;
   border-color: var(--theme-help);
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 0 4px var(--color-shadow);
 }
 
 .dropdown-select {
@@ -197,8 +197,8 @@
   -webkit-appearance: none;
   -moz-appearance: none;
   background-color: var(--theme-surface);
-  background-image: linear-gradient(45deg, transparent 50%, rgba(148, 163, 184, 0.75) 50%),
-    linear-gradient(135deg, rgba(148, 163, 184, 0.75) 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, var(--brand-coral) 50%),
+    linear-gradient(135deg, var(--brand-coral) 50%, transparent 50%);
   background-position: calc(100% - 14px) center, calc(100% - 8px) center;
   background-repeat: no-repeat;
   background-size: 6px 6px;
@@ -211,10 +211,10 @@
   flex-direction: column;
   gap: 24px;
   background: var(--theme-surface);
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid var(--brand-sand);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 45px var(--color-shadow);
 }
 
 .profile-section .form {
@@ -238,17 +238,17 @@
 .profile-section .form .dropdown-select {
   background: var(--theme-surface);
   color: var(--theme-text) !important;
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid var(--brand-sand);
 }
 
 .profile-section .form input::placeholder,
 .profile-section .form textarea::placeholder {
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--brand-cocoa);
 }
 
 .profile-section .card {
   background: var(--theme-surface);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid var(--brand-sand);
 }
 
 .profile-section .btn-primary {
@@ -407,17 +407,17 @@
 }
 
 .badge-success {
-  background: rgba(22, 163, 74, 0.12);
+  background: var(--color-success-soft);
   color: var(--theme-positive);
 }
 
 .badge-warning {
-  background: rgba(245, 158, 11, 0.12);
+  background: var(--color-warning-soft);
   color: var(--theme-warning);
 }
 
 .badge-danger {
-  background: rgba(220, 38, 38, 0.12);
+  background: var(--color-danger-soft);
   color: var(--theme-danger);
 }
 
@@ -443,7 +443,7 @@
 .blacklist-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -456,20 +456,20 @@
   padding: 24px;
   max-width: 500px;
   width: 90%;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 40px var(--color-shadow);
   border: 1px solid var(--theme-border);
   max-height: 90vh;
   overflow-y: auto;
 }
 
 .warning-box {
-  background: rgba(245, 158, 11, 0.12);
+  background: var(--color-warning-soft);
   color: var(--theme-warning);
   padding: 12px;
   border-radius: 8px;
   font-size: 12px;
   margin-bottom: 16px;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid var(--color-warning-soft);
 }
 
 .modal-actions-row {
@@ -477,4 +477,68 @@
   gap: 8px;
   margin-top: 16px;
   flex-wrap: wrap;
+}
+
+/* Superadmin organization review controls */
+.org-review-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.org-review-badge--pending { background: #fff6e6; color: #9a5b00; border-color: #ffe2aa; }
+.org-review-badge--approved { background: #e9f8f0; color: #126a49; border-color: #c6ead9; }
+.org-review-badge--rejected,
+.org-review-badge--restricted { background: #fff0f0; color: #9f3434; border-color: #f6c9c9; }
+.org-review-badge--deleted { background: #f1f3f5; color: #51606b; border-color: #d9dfe4; }
+.org-review-action { border-radius: 8px; font-weight: 650; min-height: 34px; }
+.org-review-approve { background: #147855; color: #fff; }
+.org-review-reject { background: #fff5e7; color: #8d4b03; border: 1px solid #efc99e; }
+.org-review-edit { background: #edf6f8; color: #145f6b; border: 1px solid #cce2e6; }
+.org-review-restrict { background: #fff0f0; color: #a72e36; border: 1px solid #f2c4c7; }
+.org-review-delete { background: #ac2934; color: #fff; }
+.org-review-action:focus-visible { outline: 3px solid var(--theme-help); outline-offset: 2px; }
+.org-delete-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(16, 31, 45, .55);
+}
+.org-delete-dialog {
+  width: min(100%, 510px);
+  max-height: min(90vh, 660px);
+  overflow-y: auto;
+  background: #fff;
+  color: var(--theme-text);
+  border: 1px solid #dbe3e8;
+  border-radius: 18px;
+  padding: clamp(20px, 4vw, 32px);
+  box-shadow: 0 28px 70px rgba(11, 35, 49, .2);
+}
+.org-delete-dialog h3 { margin: 0 0 12px; font-size: 23px; }
+.org-delete-dialog p { line-height: 1.55; margin: 0 0 14px; }
+.org-delete-warning { font-weight: 650; color: #a72e36; }
+.org-delete-dialog label { display: block; font-size: 14px; margin: 20px 0 9px; }
+.org-delete-dialog input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #a7b7c4;
+  border-radius: 9px;
+  background: #fff;
+  color: #173044;
+  padding: 12px;
+  font: inherit;
+}
+.org-delete-dialog input:focus-visible { outline: 3px solid #b8dce3; outline-offset: 2px; }
+.org-delete-actions { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+@media (max-width: 480px) {
+  .org-delete-actions { flex-direction: column-reverse; }
+  .org-delete-actions .btn { width: 100%; }
 }

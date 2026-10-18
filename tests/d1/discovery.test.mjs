@@ -87,7 +87,15 @@ test('verified rating uses matching completed bookings, raw average and eligible
 test('every discovery criterion combines in SQL with accurate count and stable pagination',async()=>{
   const env=environment(); const data=await seed(env);
   await commit(env,'caregiver','vendors/caregiver',{servicesOffered:['catalog_elderly_care'],location:'  Tansen   Town '});
-  await commit(env,'admin','vendors/caregiver',{verified:true});
+  assert.equal((await commit(env,'admin','vendors/caregiver',{verified:true})).status,403);
+  assert.equal((await search(env,{verifiedOnly:true})).data.total,0);
+  // Discovery fixtures model five completed, independent review records.
+  for(const kind of ['identity','phone','training','background','references']) {
+    const id='discovery-'+kind,now=new Date().toISOString();
+    await env.DB.prepare('INSERT INTO verification_submissions(id,caregiver_id,kind,request_id,created_at,retain_until,consent_version) VALUES(?,?,?,?,?,?,?)').bind(id,'caregiver',kind,id,now,'2099-01-01','test').run();
+    await env.DB.prepare('INSERT INTO verification_decisions(id,caregiver_id,kind,submission_id,reviewer_id,decision,method,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(id,'caregiver',kind,id,'admin','verified','manual_test_fixture',now).run();
+    await env.DB.prepare('INSERT INTO verification_records(caregiver_id,kind,status,submission_id,verified_decision_id,updated_at,expires_at) VALUES(?,?,?,?,?,?,?)').bind('caregiver',kind,'verified',id,id,now,'2099-01-01').run();
+  }
   for(let i=0;i<28;i++) await put(env,'vendors/page_'+String(i).padStart(2,'0'),{...data['vendors/caregiver'],name:'Other Person',location:'Kathmandu',experience:0,workType:'full_time',servicesOffered:[]});
   const criteria={text:'test',category:'caregiver',serviceId:'catalog_elderly_care',workType:'parttime',shift:'morning',location:'tansen town',minimumExperience:2,verifiedOnly:true};
   for(const [key,value] of Object.entries(criteria)){const result=await search(env,{[key]:value});assert.equal(result.status,200,JSON.stringify(result.data));assert.ok(result.data.items.some(item=>item.id==='caregiver'),key);}

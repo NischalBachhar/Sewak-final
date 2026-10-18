@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { cloudflare } from './cloudflare-operator.mjs';
 const require = createRequire(new URL('../worker/package.json',import.meta.url));
-export async function openTarget({remote=false, mainId, mediaId, persist='.local-tools/d1-state'} = {}) {
+export async function openTarget({remote=false, mainId, mediaId, evidenceId, persist='.local-tools/d1-state'} = {}) {
   if (remote) {
     const account = process.env.CLOUDFLARE_ACCOUNT_ID;
     if (!account || !mainId || !mediaId) throw new Error('Remote import requires the selected account and BOTH D1 IDs.');
@@ -21,9 +21,9 @@ export async function openTarget({remote=false, mainId, mediaId, persist='.local
         return cloudflare(`/accounts/${account}/d1/database/${id}/query`,{method:'POST',json:{batch}});
       },
     });
-    return {DB:make(mainId),MEDIA_DB:make(mediaId),close:async()=>{}};
+    return {DB:make(mainId),MEDIA_DB:make(mediaId),...(evidenceId?{EVIDENCE_DB:make(evidenceId)}:{}),close:async()=>{}};
   }
   const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
-  const mf = new Miniflare(convertV4MiniflareOptions({name:'sewak-local',modules:true, script:'export default {fetch(){return new Response("Local migration harness")}}', compatibilityDate:'2026-09-01', d1Databases:{DB:'sewak-db',MEDIA_DB:'sewak-media'}, resourcePersistencePath:persist}));
-  return {DB:await mf.getD1Database('DB'),MEDIA_DB:await mf.getD1Database('MEDIA_DB'),close:()=>mf.dispose()};
+  const mf = new Miniflare(convertV4MiniflareOptions({name:'sewak-local',modules:true, script:'export default {fetch(){return new Response("Local migration harness")}}', compatibilityDate:'2026-09-01', d1Databases:{DB:'sewak-db',MEDIA_DB:'sewak-media',EVIDENCE_DB:'sewak-evidence'}, resourcePersistencePath:persist}));
+  return {DB:await mf.getD1Database('DB'),MEDIA_DB:await mf.getD1Database('MEDIA_DB'),EVIDENCE_DB:await mf.getD1Database('EVIDENCE_DB'),close:()=>mf.dispose()};
 }

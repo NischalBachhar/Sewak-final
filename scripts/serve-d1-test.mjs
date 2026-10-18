@@ -27,7 +27,18 @@ http.createServer(async(req,res)=>{
    if(req.headers['x-sewak-e2e-token']!==process.env.SEWAK_E2E_TOKEN){res.writeHead(403).end();return;}
    const command=JSON.parse(body);const {name,spec,key}=parseResource(command.path);const db=env.DB;
    let result;
-   if(command.op==='get'&&key){const saved=await new Repository(env).get(command.path);result={id:key,data:saved.data};}
+   if(command.op==='reviewed-verification'){
+    if(name!=='vendors'||!/^discovery-[0-9]+$/.test(key))throw new Error('Synthetic discovery fixtures only');
+    const now=new Date().toISOString();
+    for(const kind of ['identity','phone','training','background','references']) {
+     const id='fixture:'+key+':'+kind;
+     await db.prepare('INSERT OR IGNORE INTO verification_submissions(id,caregiver_id,kind,request_id,created_at,retain_until,consent_version) VALUES(?,?,?,?,?,?,?)').bind(id,key,kind,id,now,'2099-01-01','synthetic-browser-fixture').run();
+     await db.prepare('INSERT OR IGNORE INTO verification_decisions(id,caregiver_id,kind,submission_id,reviewer_id,decision,method,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(id,key,kind,id,'e2e-admin','verified','manual_synthetic_fixture',now).run();
+     await db.prepare('INSERT OR REPLACE INTO verification_records(caregiver_id,kind,status,submission_id,verified_decision_id,updated_at,expires_at) VALUES(?,?,?,?,?,?,?)').bind(key,kind,'verified',id,id,now,'2099-01-01').run();
+    }
+    result={ok:true};
+   }
+   else if(command.op==='get'&&key){const saved=await new Repository(env).get(command.path);result={id:key,data:saved.data};}
    else if(command.op==='get'){
     const columns=['id','version','fields_present','extra_json',...Object.values(spec.fields).map(f=>`"${f.column}"`)];
     const rows=await db.prepare(`SELECT ${columns.join(',')} FROM ${spec.table} ORDER BY id LIMIT ?`).bind(command.limit||1000).all();

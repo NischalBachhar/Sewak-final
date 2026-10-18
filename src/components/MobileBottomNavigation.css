@@ -15,9 +15,9 @@
     grid-template-columns: repeat(var(--mobile-navigation-items, 3), minmax(0, 1fr));
     min-height: 62px;
     padding-bottom: env(safe-area-inset-bottom);
-    border-top: 1px solid rgba(15,118,110,.16);
-    background: rgba(255,253,248,.98);
-    box-shadow: 0 -8px 20px rgba(17,24,39,.08);
+    border-top: 1px solid var(--brand-coral);
+    background: var(--brand-white);
+    box-shadow: 0 -8px 20px var(--color-shadow);
   }
   .mobile-bottom-navigation button {
     display: grid;
@@ -33,5 +33,5 @@
   .mobile-bottom-navigation button span { font-size: 18px; line-height: 1; }
   .mobile-bottom-navigation button small { font-size: 11px; font-weight: 700; }
   .mobile-bottom-navigation button.is-active { color: var(--theme-help); }
-  .mobile-bottom-navigation button:focus-visible { outline: 3px solid rgba(15,118,110,.4); outline-offset: -3px; }
+  .mobile-bottom-navigation button:focus-visible { outline: 3px solid var(--brand-coral); outline-offset: -3px; }
 }

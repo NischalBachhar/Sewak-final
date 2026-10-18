@@ -241,6 +241,12 @@ export const DEFAULT_CARE_JOURNEY_STAGES = Object.freeze([
 ]);
 
 export const VERIFICATION_STATES = Object.freeze({
+  not_submitted: {label: 'Not submitted', tone: 'not-verified'},
+  under_review: {label: 'Under review', tone: 'pending'},
+  more_information_required: {label: 'More information required', tone: 'pending'},
+  rejected: {label: 'Rejected', tone: 'not-verified'},
+  expired: {label: 'Expired', tone: 'not-verified'},
+  revoked: {label: 'Revoked', tone: 'not-verified'},
   verified: {
     label: "Verified",
     tone: "verified",
@@ -554,6 +560,7 @@ function normalizeVerificationState(state) {
       : state
   );
 
+  if (Object.hasOwn(VERIFICATION_STATES, normalized)) return normalized;
   if (
     ["verified", "approved", "complete", "completed", "confirmed"].includes(
       normalized

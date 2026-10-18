@@ -1,0 +1,18 @@
+.public-header { background: var(--brand-white); border-bottom: 1px solid var(--brand-sand); }
+.public-header__inner { max-width: var(--workspace-width); margin: auto; padding: 18px clamp(20px, 4vw, 64px); display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+.public-brand { display: flex; align-items: center; gap: 10px; color: var(--brand-coral-hover); text-decoration: none; flex-shrink: 0; }
+.public-brand img { object-fit: contain; border-radius: 50%; }
+.public-brand strong { display: block; font: bold 32px/1 var(--font-display); }
+.public-brand small { display: block; margin-top: 5px; color: var(--brand-cocoa); font-size: 11px; }
+.public-nav { display: flex; gap: clamp(16px, 2.5vw, 36px); align-items: center; }
+.public-nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--brand-ink); font-size: 14px; font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; }
+.public-nav a.active, .public-nav a:hover { color: var(--brand-coral); border-color: var(--brand-coral); }
+.public-header__actions { display: flex; gap: 10px; align-items: center; }
+.public-header__actions a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 10px 21px; border: 1px solid var(--brand-coral); border-radius: 10px; font-size: 14px; font-weight: 650; text-decoration: none; white-space: nowrap; }
+.public-login { color: var(--brand-coral); }
+.public-signup { color: var(--color-on-brand); background: var(--brand-coral); }
+.public-signup:hover { background: var(--brand-coral-hover); }
+.skip-link { position: fixed; top: 8px; left: 8px; z-index: 1200; transform: translateY(-200%); padding: 12px; background: var(--brand-white); color: var(--brand-coral); }
+.skip-link:focus { transform: none; }
+@media (max-width: 1000px) { .public-header__inner { flex-wrap: wrap; gap: 10px; padding: 14px 24px 0; } .public-nav { order: 3; width: 100%; justify-content: center; } }
+@media (max-width: 480px) { .public-header__inner { padding: 12px 16px 0; } .public-brand img { width: 34px; height: 34px; } .public-brand strong { font-size: 25px; } .public-brand small { display: none; } .public-header__actions { gap: 6px; } .public-header__actions a { padding: 8px 12px; font-size: 12px; } .public-nav { gap: 0; justify-content: space-between; } .public-nav a { font-size: 12px; } }

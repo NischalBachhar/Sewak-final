@@ -3,6 +3,7 @@ import {spawnSync} from 'node:child_process';
 import {assertFreeAccount,cloudflare} from './cloudflare-operator.mjs';
 import {assertDeploymentConfig,assertLiveBindings} from './deployment-policy.mjs';
 import {assertReleaseEvidence} from './release-evidence.mjs';
+import {assertVerificationReady} from './verification-release-readiness.mjs';
 const valueFlags=new Set(['--worker','--validation','--auth-qa']);
 const switches=new Set(['--cutover-maintenance','--free-plan-confirmed','--dry-run']);
 const seen=new Set();for(let i=2;i<process.argv.length;i++){const flag=process.argv[i];if(seen.has(flag))throw new Error('Duplicate deploy argument: '+flag);seen.add(flag);if(valueFlags.has(flag)){if(!process.argv[++i]||process.argv[i].startsWith('--'))throw new Error('Missing value for '+flag);}else if(!switches.has(flag))throw new Error('Unsupported deploy override: '+flag);}
@@ -28,6 +29,7 @@ if(config.includes('00000000-0000'))throw new Error('Provision both databases be
 if(JSON.parse(readFileSync('.local-tools/last-build.json','utf8')).authMode!=='cloudflare-production')throw new Error('Run npm run build:release. Never deploy the browser-test bundle.');
 if(/FIREBASE_|MIGRATION_ENABLED\s*=\s*"true"/.test(config))throw new Error('Firebase runtime configuration and migration endpoints must be absent.');
 if(!dryRun)await assertFreeAccount(account,{attested:process.argv.includes('--free-plan-confirmed')});
+if(!dryRun)await assertVerificationReady(worker,cloudflare);
 if(!dryRun&&worker==='sewak-final'&&(selectedWrites||cutoverMaintenance)){
  const reportPath=process.argv[process.argv.indexOf('--validation')+1];
  const validation=JSON.parse(readFileSync(reportPath,'utf8'));
@@ -41,10 +43,10 @@ const result=spawnSync(process.execPath,['worker/node_modules/wrangler/bin/wrang
 if(result.status!==0)process.exit(result.status??1);
 if(!dryRun){
  const root=`/accounts/${account}/workers/scripts/${worker}`;
- assertLiveBindings(worker,(await cloudflare(root+'/settings')).bindings,selectedWrites);
+ assertLiveBindings(worker,(await cloudflare(root+'/settings')).bindings,selectedWrites,{requireEvidence:true});
  const deployment=(await cloudflare(root+'/deployments')).deployments[0];
  if(deployment.versions.length!==1||deployment.versions[0].percentage!==100)throw new Error('Unexpected mixed deployment');
  const version=await cloudflare(root+'/versions/'+deployment.versions[0].version_id);
- assertLiveBindings(worker,version.resources.bindings,selectedWrites);
+ assertLiveBindings(worker,version.resources.bindings,selectedWrites,{requireEvidence:true});
  console.log(JSON.stringify({verified:true,worker,version:deployment.versions[0].version_id,writesEnabled:selectedWrites}));
 }

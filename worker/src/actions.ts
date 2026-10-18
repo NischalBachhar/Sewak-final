@@ -59,37 +59,54 @@ async function approve(repo: Repository, actor: Actor | null, operation: string,
   const user = requireAdmin(actor), applicationMode = operation === 'approveOrganizationApplication';
   onlyKeys(input, [applicationMode ? 'applicationId' : 'organizationId']);
   const id = textField(input[applicationMode ? 'applicationId' : 'organizationId'], 'Organization ID', 1, 128);
-  const application = applicationMode ? await repo.data(`organizationApplications/${id}`) : null;
-  if (applicationMode) requireThat(application && ['pending','approved'].includes(application.status) && application.applicantId === id, 'This application is not pending.');
+  const application = await repo.data(`organizationApplications/${id}`);
+  if (applicationMode) requireThat(application && application.status === 'pending' && application.applicantId === id, 'This application is not pending.', 409, 'failed-precondition');
   const org = await repo.data(`organizations/${id}`), profile = await repo.data(`users/${id}`);
   requireThat(active(profile) && (!org || active(org)), 'Blocked or missing accounts cannot be approved.');
+  requireThat(!org?.deletedAt && !['rejected','deleted'].includes(org?.reviewStatus), 'Blocked or deleted organizations cannot be approved.');
+  requireThat(org?.isApproved !== true, 'This organization is already approved.', 409, 'failed-precondition');
   requireThat(applicationMode ? ['user','orgadmin'].includes(profile!.role || 'user') : profile!.role === 'orgadmin' && org?.adminUid === id, 'The organization account is inconsistent.');
   const now = nowISO();
   const writes: Write[] = [
-    { path: `organizations/${id}`, data: { ...(org || {}), organizationId: id, adminUid: id, organizationName: org?.organizationName || application!.organizationName, adminName: org?.adminName || application!.applicantName, adminEmail: org?.adminEmail || application!.applicantEmail, ...(org ? {} : { businessPhone: application!.businessPhone || '', businessAddress: application!.businessAddress || '', businessCity: application!.businessCity || '', commissionRate: 15, createdAt: now }), role: 'orgadmin', isApproved: true, verified: true, approvedAt: now, approvedBy: user.uid, updatedAt: now } },
+    { path: `organizations/${id}`, data: { ...(org || {}), organizationId: id, adminUid: id, organizationName: org?.organizationName || application!.organizationName, adminName: org?.adminName || application?.applicantName || profile?.name || '', adminEmail: org?.adminEmail || application?.applicantEmail || profile?.email || '', ...(org ? {} : { businessPhone: application!.businessPhone || '', businessAddress: application!.businessAddress || '', businessCity: application!.businessCity || '', commissionRate: 15, createdAt: now }), role: 'orgadmin', isApproved: true, verified: true, approvedAt: now, approvedBy: user.uid, updatedAt: now } },
     { path: `users/${id}`, data: { ...profile!, uid: id, role: 'orgadmin', organizationId: id, organizationName: org?.organizationName || application!.organizationName, isApproved: true, verified: true, updatedAt: now } },
     audit(user, 'organization_approved', id),
   ];
-  if (applicationMode) writes.push({ path: `organizationApplications/${id}`, data: { ...application!, status: 'approved', approvedAt: now, approvedBy: user.uid } });
+  // Keep both review queues in sync whichever approval entry point was used.
+  if (application?.status === 'pending') writes.push({ path: `organizationApplications/${id}`, data: { ...application, status: 'approved', approvedAt: now, approvedBy: user.uid } });
   await repo.commit(writes);
   return { organizationId: id, approved: true };
 }
 
 async function blockAccount(repo: Repository, actor: Actor | null, input: Data) {
   const user = requireAdmin(actor);
-  onlyKeys(input,['targetType','targetId','reason','reportId']);
+  onlyKeys(input,['targetType','targetId','reason','reportId','disposition']);
   badInput(['organization','caregiver','customer'].includes(input.targetType), 'Invalid target type.');
   const id = textField(input.targetId,'Account ID',1,128), reason = textField(input.reason,'Reason',3,1000);
   requireThat(id !== user.uid, 'You cannot restrict your own administrator account.');
   const path = `${input.targetType === 'organization' ? 'organizations' : input.targetType === 'caregiver' ? 'vendors' : 'users'}/${id}`;
-  const target = await repo.data(path), profile = await repo.data(`users/${id}`);
-  requireThat(target && profile?.role !== 'superadmin', 'This target cannot be restricted.');
+  const target = await repo.data(path);
+  const profileUid = input.targetType === 'organization' ? (target?.adminUid || id) : id;
+  const profile = await repo.data(`users/${profileUid}`);
+  requireThat(target && profile?.role !== 'superadmin' && !target.deletedAt, 'This target cannot be restricted.');
+  if (input.targetType === 'organization' && profile) {
+    requireThat(profile.role === 'orgadmin' && (!profile.organizationId || profile.organizationId === id), 'The organization administrator is inconsistent.', 409, 'failed-precondition');
+  }
+  badInput(input.disposition === undefined || (input.targetType === 'organization' && ['rejected','blacklisted'].includes(input.disposition)), 'Invalid organization disposition.');
+  if (input.disposition === 'rejected') {
+    requireThat(target.isApproved !== true && !target.isSuspended && !target.isBlacklisted && !['rejected','deleted'].includes(target.reviewStatus), 'Only pending organizations can be rejected.', 409, 'failed-precondition');
+  }
   requireThat(input.targetType !== 'customer' || !profile?.role || profile.role === 'user', 'This target is not a customer.');
-  const now = nowISO(), block = { isSuspended: true, isBlacklisted: true, blacklistReason: reason, blacklistedAt: now, blacklistedBy: user.uid, updatedAt: now };
+  const now = nowISO(), block: Data = { isSuspended: true, isBlacklisted: true, blacklistReason: reason, blacklistedAt: now, blacklistedBy: user.uid, updatedAt: now };
+  if (input.targetType === 'organization') block['reviewStatus'] = input.disposition === 'rejected' ? 'rejected' : 'blacklisted';
   const byPath = new Map<string, Write>();
   byPath.set(path, { path, data: { ...target!, ...block, ...(input.targetType !== 'customer' ? { isApproved: false } : {}) } });
-  if (profile) byPath.set(`users/${id}`, { path: `users/${id}`, data: { ...profile, ...block, tokensValidAfter: Math.floor(Date.now()/1000) + 1 } });
-  const writes = [...byPath.values(), { path: `blacklist/${id}`, data: { userId: id, userType: input.targetType, reason, blacklistedBy: user.uid, createdAt: now } }, audit(user,'account_safety_action_applied',id,{ targetType: input.targetType })];
+  if (profile) byPath.set(`users/${profileUid}`, { path: `users/${profileUid}`, data: { ...profile, ...block, tokensValidAfter: Math.floor(Date.now()/1000) + 1 } });
+  const writes = [...byPath.values(), { path: `blacklist/${id}`, data: { userId: id, userType: input.targetType, reason, blacklistedBy: user.uid, createdAt: now } }, audit(user,'account_safety_action_applied',id,{ targetType: input.targetType, ...(input.disposition ? { disposition: input.disposition } : {}) })];
+  if (input.targetType === 'organization') {
+    const application = await repo.data(`organizationApplications/${id}`);
+    if (application?.status === 'pending') writes.push({ path: `organizationApplications/${id}`, data: { ...application, status: 'rejected', rejectedAt: now, rejectedBy: user.uid, rejectionReason: reason } });
+  }
   if (input.reportId) {
     requireThat(input.targetType === 'customer');
     const report = await repo.data(`blacklistReports/${input.reportId}`);
@@ -98,7 +115,7 @@ async function blockAccount(repo: Repository, actor: Actor | null, input: Data) 
     const receipt = await repo.data(`reportReceipts/${input.reportId}`);
     if (receipt) writes.push({ path: `reportReceipts/${input.reportId}`, data: { ...receipt, status: 'approved' } });
   }
-  const statements=[repo.env.DB.prepare('UPDATE cf_credentials SET disabled=1,credential_version=credential_version+1 WHERE user_id=?').bind(id),repo.env.DB.prepare('DELETE FROM cf_sessions WHERE user_id=?').bind(id)];
+  const statements=[repo.env.DB.prepare('UPDATE cf_credentials SET disabled=1,credential_version=credential_version+1 WHERE user_id=?').bind(profileUid),repo.env.DB.prepare('DELETE FROM cf_sessions WHERE user_id=?').bind(profileUid)];
   if(input.targetType==='organization'){
     statements.push(repo.env.DB.prepare('UPDATE cf_credentials SET disabled=1,credential_version=credential_version+1 WHERE user_id IN (SELECT id FROM caregivers WHERE organization_id=?)').bind(id));
     statements.push(repo.env.DB.prepare('DELETE FROM cf_sessions WHERE user_id IN (SELECT id FROM caregivers WHERE organization_id=?)').bind(id));
@@ -106,6 +123,39 @@ async function blockAccount(repo: Repository, actor: Actor | null, input: Data) 
   await repo.commit(writes,statements);
   return {targetId:id,authRevocationStatus:'complete',caregiverCascadeStatus:'complete',caregiverAuthRevocationDeferred:false,remaining:0};
 }
+// A safe administrative delete is a tombstone, never a cascade through care
+// sessions, bookings, reviews or audit records. It is intentionally irreversible
+// through the public API, and keeps credentials disabled.
+async function deleteOrganization(repo: Repository, actor: Actor | null, input: Data) {
+  const admin = requireAdmin(actor);
+  onlyKeys(input, ['organizationId','confirmation']);
+  const id = textField(input.organizationId, 'Organization ID', 1, 128);
+  const confirmation = textField(input.confirmation, 'Confirmation', 1, 160);
+  requireThat(id !== admin.uid, 'You cannot delete your own administrator account.');
+  const org = await repo.data(`organizations/${id}`);
+  const profileUid = org?.adminUid || id;
+  const profile = await repo.data(`users/${profileUid}`);
+  requireThat(org && (!profile || (profile.role === 'orgadmin' && (!profile.organizationId || profile.organizationId === id))), 'This organization cannot be deleted.', 409, 'failed-precondition');
+  requireThat(profileUid !== admin.uid, 'You cannot delete your own administrator account.');
+  requireThat(!org.deletedAt, 'This organization has already been deleted.', 409, 'failed-precondition');
+  requireThat(org.isApproved !== true && org.isSuspended === true && org.isBlacklisted === true, 'Restrict the organization before deleting it.', 409, 'failed-precondition');
+  requireThat(confirmation === org.organizationName, 'Type the exact organization name to confirm deletion.', 400, 'invalid-argument');
+  const now = nowISO();
+  const block = { isApproved: false, isSuspended: true, isBlacklisted: true, deletedAt: now, deletedBy: admin.uid, updatedAt: now };
+  await repo.commit([
+    { path: `organizations/${id}`, data: { ...org, ...block, reviewStatus: 'deleted' } },
+    ...(profile ? [{ path: `users/${profileUid}`, data: { ...profile, ...block, tokensValidAfter: Math.floor(Date.now()/1000) + 1 } }] : []),
+    audit(admin, 'organization_deleted', id, { organizationId: id, deletionMode: 'soft' }),
+  ], [
+    repo.env.DB.prepare('UPDATE cf_credentials SET disabled=1,credential_version=credential_version+1 WHERE user_id=?').bind(profileUid),
+    repo.env.DB.prepare('DELETE FROM cf_sessions WHERE user_id=?').bind(profileUid),
+    repo.env.DB.prepare('DELETE FROM cf_invitations WHERE user_id=? AND used_at IS NULL').bind(profileUid),
+    repo.env.DB.prepare('UPDATE cf_credentials SET disabled=1,credential_version=credential_version+1 WHERE user_id IN (SELECT id FROM caregivers WHERE organization_id=?)').bind(id),
+    repo.env.DB.prepare('DELETE FROM cf_sessions WHERE user_id IN (SELECT id FROM caregivers WHERE organization_id=?)').bind(id),
+  ]);
+  return { organizationId: id, deleted: true, deletionMode: 'soft' };
+}
+
 export async function processAuthOperations(_env: Env){return {remaining:0};}
 
 export async function runAction(repo: Repository, actor: Actor | null, operation: string, input: Data) {
@@ -122,6 +172,7 @@ export async function runAction(repo: Repository, actor: Actor | null, operation
   if (['provisionOrganizationAccount','provisionCaregiverAccount','provisionSuperAdminAccount'].includes(operation)) return provision(repo,actor,operation,input);
   if (['approveOrganizationAccount','approveOrganizationApplication'].includes(operation)) return approve(repo,actor,operation,input);
   if (operation === 'applyAccountSafetyAction') return blockAccount(repo,actor,input);
+  if (operation === 'deleteOrganizationAccount') return deleteOrganization(repo,actor,input);
   if (operation === 'processAccountOperations') { requireAdmin(actor); onlyKeys(input,[]); return processAuthOperations(repo.env); }
   if (operation === 'backfillPublicCaregivers' || operation === 'backfillPublicServices' || operation === 'backfillPublicReviews') {
     requireAdmin(actor); onlyKeys(input,[]); return { automatic: true, message: 'Public listings are derived from current approved records.' };

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CaregiverListPage from "./CaregiverListPage";
-import logoSewak from "./logoSewak.jpeg";
+import PublicHeader from "./components/PublicHeader";
 import "./BrowsePage.css";
 
 function BrowseGlyph({ type }) {
@@ -76,42 +76,14 @@ export default function BrowsePage() {
     if (value !== "parttime") setUserShift("");
   };
 
-  const scrollToResults = () => {
-    document
-      .getElementById("browse-caregiver-results")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   return (
-    <main className="browse-page">
+    <div className="browse-page">
+      <PublicHeader />
+      <main id="main-content">
       <div className="browse-page__glow browse-page__glow--top" aria-hidden="true" />
       <div className="browse-page__glow browse-page__glow--bottom" aria-hidden="true" />
 
-      <header className="browse-nav">
-        <button
-          type="button"
-          className="browse-brand"
-          onClick={() => navigate("/browse")}
-          aria-label="Sewak home"
-        >
-          <span className="browse-brand__mark">
-            <img src={logoSewak} alt="" />
-          </span>
-          <span>
-            <strong>Sewak</strong>
-            <small>Care, close to home</small>
-          </span>
-        </button>
 
-        <button
-          type="button"
-          className="browse-sign-in"
-          onClick={() => navigate("/auth")}
-        >
-          Sign in
-          <span aria-hidden="true">→</span>
-        </button>
-      </header>
 
       <section className="browse-hero" aria-labelledby="browse-hero-title">
         <div className="browse-hero__content">
@@ -126,53 +98,6 @@ export default function BrowsePage() {
             Explore local caregiver and household-help profiles, compare
             availability, and book when you&apos;re ready.
           </p>
-          <div className="browse-hero__actions">
-            <button type="button" className="browse-primary-action" onClick={scrollToResults}>
-              Explore caregivers
-              <span aria-hidden="true">→</span>
-            </button>
-            <button type="button" className="browse-secondary-action" onClick={() => navigate("/auth?mode=register")}>
-              Create an account
-            </button>
-          </div>
-          <div className="browse-trust-list" aria-label="How Sewak helps">
-            <span>Search profiles</span>
-            <span>Compare schedules</span>
-            <span>Book simply</span>
-          </div>
-        </div>
-
-        <div className="browse-hero__visual" aria-label="Care and household support">
-          <div className="browse-hero__orbit browse-hero__orbit--one" aria-hidden="true" />
-          <div className="browse-hero__orbit browse-hero__orbit--two" aria-hidden="true" />
-          <div className="browse-hero-card browse-hero-card--main">
-            <div className="browse-hero-card__icon browse-hero-card__icon--care">
-              <BrowseGlyph type="care" />
-            </div>
-            <div>
-              <strong>Support for every day</strong>
-              <span>Find a fit for your home</span>
-            </div>
-          </div>
-          <div className="browse-hero-card browse-hero-card--floating">
-            <div className="browse-hero-card__icon browse-hero-card__icon--home">
-              <BrowseGlyph type="home" />
-            </div>
-            <div>
-              <strong>Care &amp; home help</strong>
-              <span>One simple search</span>
-            </div>
-          </div>
-          <div className="browse-hero-art" aria-hidden="true">
-            <div className="browse-hero-art__sun" />
-            <div className="browse-hero-art__house">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="browse-hero-art__leaf browse-hero-art__leaf--left" />
-            <div className="browse-hero-art__leaf browse-hero-art__leaf--right" />
-          </div>
         </div>
       </section>
 
@@ -261,6 +186,7 @@ export default function BrowsePage() {
           requireLogin
         />
       </section>
-    </main>
+      </main>
+    </div>
   );
 }

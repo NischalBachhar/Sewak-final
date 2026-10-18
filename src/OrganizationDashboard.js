@@ -500,14 +500,13 @@ export default function OrganizationDashboard() {
           <OrganizationSectionHeader eyebrow="WORKFORCE" title="Team members" description="Manage caregivers and household workers in one organized workspace." action={<button type="button" className="org-primary-action" onClick={() => { setShowAddCaregiverModal(true); setError(""); }}><OrganizationIcon name="plus" size={18}/> Add team member</button>}/>
           <OrganizationTeamList caregivers={caregivers} orgBlacklist={orgBlacklist} services={[...services, ...sharedServices]} onEdit={setEditingCaregiver}/>
           {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={updated => { setCaregivers(items => items.map(item => item.id === updated.id ? updated : item)); setEditingCaregiver(null); setNotice("Caregiver profile saved."); }} />}
-          {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={updated => { setCaregivers(items => items.map(item => item.id === updated.id ? updated : item)); setEditingCaregiver(null); setNotice("Caregiver profile saved."); }} />}
           {/* Add Caregiver Modal */}
           {showAddCaregiverModal && (
             <AccessibleDialog onDismiss={() => setShowAddCaregiverModal(false)}
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(0,0,0,0.7)",
+                background: "var(--color-overlay)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -525,7 +524,7 @@ export default function OrganizationDashboard() {
                   maxWidth: "540px",
                   maxHeight: "85vh",
                   overflowY: "auto",
-                  boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+                  boxShadow: "var(--shadow-card)",
                   border: "1px solid var(--theme-text)",
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -933,7 +932,7 @@ export default function OrganizationDashboard() {
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(0,0,0,0.7)",
+                background: "var(--color-overlay)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -951,7 +950,7 @@ export default function OrganizationDashboard() {
                   maxWidth: "540px",
                   maxHeight: "85vh",
                   overflowY: "auto",
-                  boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+                  boxShadow: "var(--shadow-card)",
                   border: "1px solid var(--theme-text)",
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -1420,7 +1419,7 @@ export default function OrganizationDashboard() {
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(0,0,0,0.7)",
+                background: "var(--color-overlay)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1434,7 +1433,7 @@ export default function OrganizationDashboard() {
                   padding: 24,
                   maxWidth: 500,
                   width: "90%",
-                  boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
+                  boxShadow: "var(--shadow-card)",
                   border: "1px solid var(--theme-text)",
                   maxHeight: "90vh",
                   overflowY: "auto",

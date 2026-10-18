@@ -183,6 +183,7 @@ export default function AuthPage() {
           )}
         </div>
         {mode === "register" && <div className="signup-footer-note"><SignupIcon name="lock" />Care begins with a little trust.</div>}
+        <a className="auth-home-link" href="/">Back to Sewak home</a>
       </div>
     </div>
   );
