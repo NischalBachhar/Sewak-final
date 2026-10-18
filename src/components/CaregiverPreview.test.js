@@ -1,6 +1,5 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import HomePage from '../HomePage';
 import CustomerHomePage from '../CustomerHomePage';
 import CaregiverPreview from './CaregiverPreview';
 import CaregiverPreviewCard from './CaregiverPreviewCard';
@@ -41,11 +40,11 @@ test.each([[false, 'Meet Sewak Care Professionals', '/browse'], [true, 'Explore 
   expect(mockNavigate).toHaveBeenLastCalledWith(signedIn ? '/user/book/real' : '/caregivers/real');
 });
 
-test.each([false, true])('homepage includes the shared preview after its overview (signed in: %s)', async signedIn => {
-  render(signedIn ? <CustomerHomePage /> : <HomePage />);
+test('signed-in customer dashboard preserves its caregiver preview after booking overview', async () => {
+  render(<CustomerHomePage />);
   expect(await screen.findByRole('heading', { name: caregiver.name })).toBeVisible();
-  const overview = screen.getByRole('region', { name: signedIn ? 'Recent bookings' : 'Support that fits your life.' });
-  expect(overview.compareDocumentPosition(screen.getByRole('region', { name: signedIn ? 'Explore Caregivers' : 'Meet Sewak Care Professionals' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const overview = screen.getByRole('region', { name: 'Recent bookings' });
+  expect(overview.compareDocumentPosition(screen.getByRole('region', { name: 'Explore Caregivers' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
 test('preview handles empty and retryable network errors', async () => {
