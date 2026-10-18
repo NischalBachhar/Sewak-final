@@ -57,5 +57,8 @@ export async function verifyOrganizationModeration(page, {origin, names}) {
     await expect(card(name).getByRole('button',{name:'Delete organization',exact:true})).toHaveCount(0);
     await status.selectOption('all');
   }
-  return {approvalAndRejectionPersist:true,reviewButtonsRemoved:true,nameConfirmedDeletion:true,rejectedAndBlacklistedDeletion:true,countsCorrect:true,reloadVerified:true};
+  await page.goto(origin + '/superadmin/analytics');
+  await expect(page.getByText('Total Organizations',{exact:true}).locator('..').getByRole('heading')).toHaveText(String(baseline.all-2));
+  await expect(page.getByText('Approved Organizations',{exact:true}).locator('..').getByRole('heading')).toHaveText(String(baseline.approved+1));
+  return {approvalAndRejectionPersist:true,reviewButtonsRemoved:true,nameConfirmedDeletion:true,rejectedAndBlacklistedDeletion:true,countsCorrect:true,analyticsCountsCorrect:true,reloadVerified:true};
 }
