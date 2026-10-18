@@ -1,13 +1,13 @@
-import { apiRequest } from './apiClient';
+import { searchCaregivers, loadPublicCareServices, caregiverBookingReason } from './caregiverDiscovery';
+import CaregiverPreviewCard from './components/CaregiverPreviewCard';
+import RequestAvailability from './components/RequestAvailability';
 import ProfileImage from "./components/ProfileImage";
 import React, { useEffect, useRef, useState } from "react";
-import { collection, getDocs } from "./d1Client";
 import { useNavigate } from "react-router-dom";
-import { db } from "./d1Client";
 
 import { hasVerifiedRating } from "./bookingModel";
 import { formatNpr } from "./config/brand";
-import { SkeletonCard, VerificationBadge } from "./components/CareExperience";
+import { SkeletonCard } from "./components/CareExperience";
 
 const SHIFTS = ["morning", "day", "evening", "night"];
 
@@ -33,151 +33,6 @@ const normalizeServiceId = (s) =>
     .trim()
     .toLowerCase();
 
-function BrowseCaregiverCard({ caregiver, services, onSelect, onViewProfile, requireLogin }) {
-  const getInitials = (name) =>
-    (name || "C")
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase();
-
-  const getServiceLabel = (serviceId) => {
-    if (!serviceId) return "";
-    const normalizedId = normalizeServiceId(serviceId);
-    const match = (services || []).find(
-      (service) =>
-        normalizeServiceId(service.id) === normalizedId ||
-        normalizeServiceId(service.label) === normalizedId ||
-        normalizeServiceId(service.serviceName) === normalizedId,
-    );
-    return match?.label || match?.serviceName || getServiceNameFromVendorData(serviceId);
-  };
-
-  const serviceLabels = (caregiver.servicesOffered || [])
-    .map((service) => getServiceLabel(service))
-    .filter(Boolean);
-  const rating = hasVerifiedRating(caregiver) ? Number(caregiver.rating) : null;
-  const schedule =
-    caregiver.workType === "fulltime"
-      ? "Full time"
-      : caregiver.workType === "parttime"
-        ? "Part time"
-        : "—";
-
-  const handleBookClick = () => {
-    if (requireLogin) {
-      localStorage.setItem("pendingBookingCaregiverId", caregiver.id);
-      window.location.href = "/auth";
-      return;
-    }
-
-    onSelect && onSelect(caregiver);
-  };
-
-  return (
-    <article className="browse-caregiver-card">
-      <div className="browse-caregiver-card__top">
-        <div className="browse-caregiver-card__avatar">
-          {caregiver.profileImage ? (
-            <ProfileImage src={caregiver.profileImage} alt={caregiver.name || "Caregiver"} />
-          ) : (
-            getInitials(caregiver.name)
-          )}
-        </div>
-        <div className="browse-caregiver-card__identity">
-          <div className="browse-caregiver-card__name-row">
-            <h3 title={caregiver.name || "Caregiver"}>{caregiver.name || "Caregiver"}</h3>
-            {caregiver.verified ? (
-              <VerificationBadge
-                state="verified"
-                label="Verified"
-                description="Verified by Sewak based on the approved records shown in this profile."
-                compact
-              />
-            ) : null}
-          </div>
-          <p className="browse-caregiver-card__location">
-            {caregiver.location || "Location not listed"}
-          </p>
-          {caregiver.organizationName && (
-            <p className="browse-caregiver-card__organization">
-              {caregiver.organizationName}
-            </p>
-          )}
-          {rating === null && <p className="browse-rating__count">No verified reviews yet</p>}
-          {rating !== null && (
-            <div className="browse-rating" aria-label={`${rating.toFixed(1)} out of 5 stars`}>
-              <span className="browse-rating__star" aria-hidden="true">★</span>
-              <span>{rating.toFixed(1)}</span>
-              <span className="browse-rating__count">({caregiver.reviewCount || 0} verified reviews)</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="browse-caregiver-card__tags" aria-label="Services offered">
-        {serviceLabels.length > 0 ? (
-          <>
-            {serviceLabels.slice(0, 2).map((service) => (
-              <span className="browse-service-tag" key={service}>{service}</span>
-            ))}
-            {serviceLabels.length > 2 && (
-              <span className="browse-service-more">+{serviceLabels.length - 2} more</span>
-            )}
-          </>
-        ) : (
-          <span className="browse-service-tag">Services not specified</span>
-        )}
-      </div>
-
-      <div className="browse-assurance-row" role="group" aria-label="Profile checks">
-        {caregiver.backgroundChecked && <span className="browse-assurance-tag">Background checked</span>}
-        {caregiver.verified && <span className="browse-assurance-tag">ID verified</span>}
-        {caregiver.isCertified && <span className="browse-assurance-tag browse-assurance-tag--certified">Certified</span>}
-      </div>
-
-      <dl className="browse-caregiver-card__stats">
-        <div>
-          <dt>Years experience</dt>
-          <dd>{caregiver.experience ? `${caregiver.experience}+` : "—"}</dd>
-        </div>
-        <div>
-          <dt>Jobs completed</dt>
-          <dd>{typeof caregiver.jobsCompleted === "number" ? caregiver.jobsCompleted : "—"}</dd>
-        </div>
-        <div>
-          <dt>Schedule</dt>
-          <dd>{schedule}</dd>
-        </div>
-      </dl>
-
-      <div className="browse-caregiver-card__footer">
-        <div className={`browse-price${caregiver.hourlyRate ? "" : " browse-price--unlisted"}`}>
-          <small>{caregiver.hourlyRate ? "Starting at" : "Rate"}</small>
-          <strong>{Number.isFinite(caregiver.hourlyRate) && (caregiver.hourlyRate > 0 || caregiver.allowZeroRate) ? `${formatNpr(caregiver.hourlyRate)}/hour` : "Not configured"}</strong>
-        </div>
-        <div className="browse-card-actions">
-          <button
-            type="button"
-            className="browse-card-action browse-card-action--secondary"
-            onClick={() => onViewProfile?.(caregiver)}
-          >
-            View profile
-          </button>
-          <button
-          type="button"
-          className="browse-card-action"
-          onClick={handleBookClick}
-          disabled={caregiver.isSuspended || !caregiver.isApproved || !caregiver.isAvailable || !caregiver.servicesOffered?.length}
-        >
-          {requireLogin ? "Sign in to book" : "Book now"}
-          <span aria-hidden="true">→</span>
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
 
 function CaregiverCard({ caregiver, services, onSelect, onViewProfile, requireLogin, hasPaid }) {
   const getInitials = (name) =>
@@ -280,6 +135,7 @@ function CaregiverCard({ caregiver, services, onSelect, onViewProfile, requireLo
             </div>
           </div>
 
+          <RequestAvailability caregiver={caregiver} />
           <p style={{ margin: "4px 0", fontSize: 12, color: "var(--theme-help)" }}>
             📍 {caregiver.location || "Location not specified"}
           </p>
@@ -433,6 +289,7 @@ function CaregiverCard({ caregiver, services, onSelect, onViewProfile, requireLo
         )}
       </div>
 
+      {caregiverBookingReason(caregiver) && <p className="caregiver-booking-reason">{caregiverBookingReason(caregiver)}</p>}
       {/* Pricing */}
       {caregiver.hourlyRate && (
         <div className="price-chip">
@@ -452,7 +309,7 @@ function CaregiverCard({ caregiver, services, onSelect, onViewProfile, requireLo
         <button
           className="btn btn-primary btn-full"
           onClick={handleBookClick}
-          disabled={caregiver.isSuspended || !caregiver.isApproved || !caregiver.isAvailable || !caregiver.servicesOffered?.length}
+          disabled={Boolean(caregiverBookingReason(caregiver))}
         >
           📅 {requireLogin ? "Sign in to book" : "Book now"}
         </button>
@@ -581,7 +438,7 @@ export default function CaregiverListPage({
     const timer = setTimeout(async () => {
       setLoading(true); setError('');
       try {
-        const result = await apiRequest('/api/query', { method: 'POST', json: { path: 'publicCaregivers', search: JSON.parse(searchKey), limit: 12, ...(!changed && cursor ? { cursor } : {}) } });
+        const result = await searchCaregivers(JSON.parse(searchKey), { limit: 12, ...(!changed && cursor ? { cursor } : {}) });
         if (active) { setCaregivers(result.items.map(item => ({ id: item.id, ...item.data }))); setTotal(result.total); setNextCursor(result.nextCursor); }
       } catch (error) { if (active) setError(error.message || 'Caregiver profiles could not be loaded.'); }
       finally { if (active) setLoading(false); }
@@ -593,8 +450,7 @@ export default function CaregiverListPage({
   useEffect(() => {
     const loadServices = async () => {
       try {
-        const snap = await getDocs(collection(db, "publicServices"));
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const list = await loadPublicCareServices();
         setServices(list);
       } catch (err) {
         console.error("Error loading services:", { code: err?.code || "unknown" });
@@ -879,23 +735,14 @@ export default function CaregiverListPage({
         {loading && <p role="status">Updating results?</p>}
         {filtered.length > 0 ? (
           <>
-            {featured.length > 0 && (
-              <div className="browse-featured-callout">
-                <span className="browse-featured-callout__star" aria-hidden="true">★</span>
-                <div>
-                  <strong>Top-rated caregivers</strong>
-                  <span>Profiles rated 4.5 or higher appear first on this page.</span>
-                </div>
-              </div>
-            )}
-            <div className={"browse-caregiver-grid" + (filtered.length === 1 ? " browse-caregiver-grid--single" : "")}>
+            <div className={"browse-caregiver-grid" + (filtered.length === 1 ? " browse-caregiver-grid--single" : filtered.length === 2 ? " browse-caregiver-grid--pair" : "")}>
               {[...featured, ...regular].map((caregiver) => (
-                <BrowseCaregiverCard
+                <CaregiverPreviewCard
                   key={caregiver.id}
                   caregiver={caregiver}
                   services={services}
                   onSelect={onSelectCaregiver}
-                  onViewProfile={(profile) => navigate(`/caregivers/${profile.id}`)}
+                  onViewProfile={(profile) => navigate(`${requireLogin ? "" : "/user"}/caregivers/${encodeURIComponent(profile.id)}`)}
                   requireLogin={requireLogin}
                 />
               ))}

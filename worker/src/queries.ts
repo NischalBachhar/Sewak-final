@@ -22,7 +22,7 @@ function projection(name: string, id: string, data: Data, row: Data): Data {
     servicesOffered: JSON.parse(row.public_services || '[]'), organizationName: row.org_name || '', workType: (data.workType || '').replace('_',''), jobsCompleted: row.completed_jobs || 0,
     category: canonicalCategory(data.category), profileImage: mediaUrl(data.profile_image_id), profile_image_id: data.profile_image_id || null,
     isApproved: true, isSuspended: false, isBlacklisted: false, isOrganizationActive: true,
-    isAvailable: data.isAvailable === true, allowZeroRate: data.allowZeroRate === true,
+    isAvailable: data.isAvailable === true, availabilityConfirmed: typeof data.isAvailable === 'boolean', allowZeroRate: data.allowZeroRate === true,
     commissionRate: row.org_commission ?? 15, reviewCount: row.verified_count || 0, rating: row.verified_rating || 0 };
   if (name === 'publicServices') return { ...pick(data, ['label','serviceName','category','description','price','isActive','organizationId','organizationName','updatedAt']), serviceId: id, category: canonicalCategory(data.category), label: data.label || data.serviceName, isActive: true };
   return { ...pick(data, ['caregiverId','rating','comment','createdAt','isVerifiedReview']), reviewId: id, reviewerName: 'Verified customer' };

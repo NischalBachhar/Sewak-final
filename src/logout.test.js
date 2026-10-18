@@ -5,6 +5,9 @@ import App from './App';
 import { AuthProvider } from './AuthContext';
 import { auth, signIn } from './authClient';
 
+// Keep this auth regression focused on logout's own requests and feedback.
+jest.mock('./components/CaregiverPreview', () => () => null);
+
 // CRA's Jest resolver predates package exports; use the real core router.
 jest.mock('react-router-dom', () => {
   global.TextEncoder = require('util').TextEncoder;
