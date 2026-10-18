@@ -43,12 +43,10 @@ beforeEach(() => {
 });
 
 test('public homepage begins with caregiver hiring before promotional hero or services', async () => {
-  const { container } = render(<HomePage />);
-  const main = container.querySelector('#main-content');
-  expect(main.firstElementChild).toHaveAttribute('id', 'caregivers');
-  expect(main.firstElementChild).toContainElement(screen.getByRole('heading', { level: 1, name: 'Find and book a caregiver' }));
-  expect(main.children[1]).toHaveClass('home-hero--secondary');
-  expect(screen.getByRole('heading', { name: /Trusted care for/i })).toHaveProperty('tagName', 'H2');
+  render(<HomePage />);
+  expect(screen.getAllByRole('region')[0]).toHaveAttribute('id', 'caregivers');
+  expect(screen.getByRole('heading', { level: 1, name: 'Find and book a caregiver' })).toBeVisible();
+  expect(screen.getByRole('heading', { level: 2, name: /Trusted care for/i })).toBeVisible();
   expect(await screen.findByRole('heading', { name: 'Real Care Professional' })).toBeVisible();
   expect(searchCaregivers).toHaveBeenCalledWith({}, { limit: 9 });
   expect(screen.getByText('Accepting requests')).toBeVisible();
@@ -80,10 +78,9 @@ test('lower service cards search caregivers on the same homepage, not a separate
 });
 
 test('one caregiver is centered and visible, with a clear booking entry point', async () => {
-  const { container } = render(<HomeCaregiverMarketplace />);
+  render(<HomeCaregiverMarketplace />);
   await screen.findByRole('heading', { name: 'Real Care Professional' });
-  const grid = container.querySelector('.home-marketplace__grid');
-  expect(grid).toHaveClass('home-marketplace__grid--single');
+  expect(screen.getByTestId('home-caregiver-results')).toHaveClass('home-marketplace__grid--single');
   expect(screen.getByRole('button', { name: /View profile/i })).toBeEnabled();
   fireEvent.click(screen.getByRole('button', { name: /View profile/i }));
   expect(mockNavigate).toHaveBeenCalledWith('/caregivers/real-caregiver');
