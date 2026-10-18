@@ -169,7 +169,8 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
   const rating = verifiedReviewCount
     ? (verifiedReviews.reduce((sum, review) => sum + Number(review.rating), 0) / verifiedReviewCount).toFixed(1)
     : null;
-  const availability = caregiver.isAvailable === false ? "Currently unavailable" : "Available to discuss care";
+  const acceptingRequests = caregiver.isAvailable === true;
+  const availability = acceptingRequests ? "Accepting requests" : "Not accepting requests";
   const initials = (caregiver.name || "C")
     .split(" ")
     .map((part) => part[0])
@@ -203,7 +204,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
               {serviceLabels[0] || "Care support"}
               {caregiver.location ? ` · ${caregiver.location}` : ""}
             </p>
-            <p className={`caregiver-profile-availability${caregiver.isAvailable === false ? " is-unavailable" : ""}`}>
+            <p className={`caregiver-profile-availability${!acceptingRequests ? " is-unavailable" : ""}`}>
               <span aria-hidden="true" />
               {availability}
             </p>
@@ -227,7 +228,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
             className="caregiver-profile-book"
             type="button"
             onClick={handleBook}
-            disabled={caregiver.isAvailable === false}
+            disabled={!acceptingRequests}
           >
             {signedIn ? "Book caregiver" : "Sign in to book"}
           </button>
@@ -303,7 +304,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
           <CaregiverStats
             stats={[
               { id: "location", label: "Location", value: caregiver.location || "Not listed" },
-              { id: "availability", label: "Availability", value: caregiver.isAvailable === false ? "Unavailable" : "Available" },
+              { id: "availability", label: "Request status", value: availability },
             ]}
           />
           <section className="caregiver-profile-section caregiver-profile-section--pricing">
@@ -320,7 +321,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
 
       <div className="caregiver-profile-sticky-book" aria-label="Book this caregiver">
         <span>{formatNpr(caregiver.hourlyRate)}/hr</span>
-        <button type="button" onClick={handleBook} disabled={caregiver.isAvailable === false}>
+        <button type="button" onClick={handleBook} disabled={!acceptingRequests}>
           {signedIn ? "Book now" : "Sign in to book"}
         </button>
       </div>

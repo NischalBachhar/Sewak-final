@@ -934,11 +934,14 @@
 
 .browse-caregiver-card__name-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 7px;
 }
 
 .browse-caregiver-card__name-row h3 {
+  flex-shrink: 0;
+  max-width: 100%;
   overflow: hidden;
   margin: 0;
   color: var(--browse-ink);

@@ -46,6 +46,7 @@ for(const width of [320,360,375,390,414,430,768,1024,1440]) test(`discovery filt
   if(mobile) await scope.getByRole('button',{name:'Clear all',exact:true}).click();
   else await page.getByRole('button',{name:'Clear all',exact:true}).click();
   await expect(page.getByRole('searchbox')).toHaveValue('');
+  if(!mobile && await scope.locator('details').getAttribute('open')===null) await scope.locator('summary').filter({hasText:'More filters'}).click();
   await expect(scope.getByRole('combobox',{name:'Verified rating',exact:true})).toHaveValue('');
   await expect(scope.getByLabel('Verified by Sewak only',{exact:true})).not.toBeChecked();
 });
