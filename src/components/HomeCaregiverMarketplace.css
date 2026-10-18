@@ -1,0 +1,209 @@
+/* Homepage purpose: hire caregivers first, marketing and information second. */
+.home-marketplace {
+  max-width: var(--workspace-width);
+  margin-inline: auto;
+  padding: 27px clamp(20px,4vw,64px) 36px;
+  scroll-margin-top: 16px;
+  background: var(--brand-vanilla);
+  color: var(--brand-ink);
+}
+.home-marketplace__intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 17px;
+}
+.home-marketplace__eyebrow {
+  margin: 0 0 6px;
+  color: var(--brand-coral-hover);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .14em;
+}
+.home-marketplace__intro h1 {
+  font: 650 clamp(29px,3vw,41px)/1.14 Arial,Helvetica,sans-serif;
+  letter-spacing: -.045em;
+  margin: 0 0 8px;
+}
+.home-marketplace__intro p:last-child {
+  font-size: 14px;
+  color: var(--brand-cocoa);
+  margin: 0;
+  line-height: 1.5;
+}
+.home-marketplace__advanced {
+  flex: 0 0 auto;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--brand-coral-hover);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.home-marketplace__search {
+  display: grid;
+  grid-template-columns: minmax(170px,1.4fr) repeat(3,minmax(135px,1fr)) minmax(142px,auto);
+  align-items: end;
+  gap: 12px;
+  padding: 16px;
+  background: var(--brand-white);
+  border: 1px solid var(--brand-sand);
+  border-radius: 18px;
+  box-shadow: 0 5px 20px var(--color-shadow);
+}
+.home-marketplace__field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.home-marketplace__field > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-ink);
+}
+.home-marketplace__field input,
+.home-marketplace__field select {
+  width: 100%;
+  min-height: 46px;
+  padding: 9px 12px;
+  color: var(--brand-ink);
+  border: 1px solid var(--color-input-border);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  background: var(--brand-white);
+}
+.home-marketplace__field input::placeholder { color: var(--brand-cocoa); opacity: 1; }
+.home-marketplace__submit,
+.home-marketplace__more {
+  min-height: 46px;
+  padding: 10px 16px;
+  border: 1px solid var(--brand-coral);
+  border-radius: 10px;
+  background: var(--brand-coral);
+  color: var(--color-on-brand);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.home-marketplace__submit { display: inline-flex; justify-content: center; align-items: center; gap: 10px; white-space: nowrap; }
+.home-marketplace__submit:hover, .home-marketplace__more:hover { background: var(--brand-coral-hover); }
+.home-marketplace__results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 24px;
+  margin-bottom: 10px;
+}
+.home-marketplace__results-head h2 {
+  margin: 0 0 3px;
+  font: 700 clamp(19px,2vw,24px)/1.3 Arial,Helvetica,sans-serif;
+}
+.home-marketplace__results-head p { margin: 0; color: var(--brand-cocoa); font-size: 13px; }
+.home-marketplace__clear,
+.home-marketplace__state button {
+  min-height: 44px;
+  color: var(--brand-coral-hover);
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  border: 1px solid var(--brand-sand);
+  border-radius: 9px;
+  background: var(--brand-white);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.home-marketplace__availability-note {
+  color: var(--brand-cocoa);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 15px;
+}
+.home-marketplace__grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  align-items: stretch;
+  gap: 16px;
+}
+.home-marketplace__grid--single {
+  grid-template-columns: minmax(0,680px);
+  justify-content: center;
+}
+.home-marketplace__grid:has(> :nth-child(2):last-child) {
+  grid-template-columns: repeat(2,minmax(0, min(100%, 580px)));
+  justify-content: center;
+}
+.home-marketplace .caregiver-preview-card {
+  padding: 21px;
+  border: 1px solid var(--brand-sand);
+  border-radius: 17px;
+  background: var(--brand-white);
+  box-shadow: 0 5px 19px var(--color-shadow);
+}
+.home-marketplace .caregiver-preview-card:hover,
+.home-marketplace .caregiver-preview-card:focus-within {
+  border-color: var(--brand-coral);
+}
+.home-marketplace .browse-caregiver-card__avatar {
+  width: 69px;
+  height: 69px;
+  border-radius: 15px;
+  border-color: var(--brand-sand);
+}
+.home-marketplace .browse-caregiver-card__identity h3 { font-size: 17px; }
+.home-marketplace .browse-caregiver-card__tags { margin-block: 16px; }
+.home-marketplace .browse-price strong { font-size: 17px; }
+.home-marketplace .browse-price small { font-size: 12px; }
+.home-marketplace .browse-card-action {
+  min-height: 46px;
+  font-size: 13px;
+}
+.home-marketplace .browse-card-action:not(.browse-card-action--secondary) {
+  background: var(--brand-coral);
+}
+.home-marketplace__state {
+  background: var(--brand-white);
+  padding: 24px;
+  border: 1px dashed var(--brand-sand);
+  border-radius: 16px;
+  color: var(--brand-cocoa);
+  font-size: 14px;
+}
+.home-marketplace__state p { margin: 0 0 10px; }
+.home-marketplace__catalog-note { margin: 10px 0 0; color: var(--brand-cocoa); font-size: 12px; }
+.home-marketplace__footer-actions { display: flex; justify-content: center; margin-top: 20px; }
+.home-marketplace__more { background: var(--brand-white); color: var(--brand-coral-hover); }
+.home-marketplace__more:hover { color: var(--color-on-brand); }
+.home-marketplace__paging-state { color: var(--brand-cocoa); font-size: 13px; text-align: center; margin: 16px 0; }
+
+@media (max-width: 1120px) {
+  .home-marketplace__search { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .home-marketplace__field--name { grid-column: span 2; }
+  .home-marketplace__submit { grid-column: span 2; }
+  .home-marketplace__grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 720px) {
+  .home-marketplace { padding-block: 22px 30px; }
+  .home-marketplace__intro { display: block; }
+  .home-marketplace__advanced { min-height: 36px; }
+  .home-marketplace__search { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; padding: 13px; }
+  .home-marketplace__field--name { grid-column: span 2; }
+  .home-marketplace__submit { grid-column: span 2; }
+  .home-marketplace__results-head { padding-top: 20px; }
+  .home-marketplace__grid,
+  .home-marketplace__grid--single,
+  .home-marketplace__grid:has(> :nth-child(2):last-child) { grid-template-columns: minmax(0,1fr); }
+  .home-marketplace .caregiver-preview-card { padding: 18px; }
+}
+@media (max-width: 430px) {
+  .home-marketplace__search { grid-template-columns: minmax(0,1fr); }
+  .home-marketplace__field--name,
+  .home-marketplace__submit { grid-column: auto; }
+  .home-marketplace__results-head { align-items: flex-start; }
+  .home-marketplace__field input,
+  .home-marketplace__field select { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-marketplace .caregiver-preview-card { transition: none; }
+}
