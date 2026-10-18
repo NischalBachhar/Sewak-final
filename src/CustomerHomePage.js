@@ -8,6 +8,7 @@ import { ErrorState, SkeletonCard, StatusBadge } from "./components/CareExperien
 import ProfileImage from "./components/ProfileImage";
 import { LoginIcon } from "./components/LoginExperience";
 import { WorkspaceIcon } from "./components/WorkspaceShell";
+import CaregiverPreview from "./components/CaregiverPreview";
 
 const bookingDateTime = (booking) => {
   const dateMatch = String(booking?.date || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -109,6 +110,8 @@ export default function CustomerHomePage() {
           <div><p>Completed care value</p><strong className="customer-summary__currency">{formatNpr(completedValue, "NPR 0")}</strong><small>Booking value, not payments</small></div>
         </div>
       </section>
+
+      <CaregiverPreview audience="customer" />
 
       <div className="customer-home__grid">
         <section className="customer-panel customer-panel--next" aria-labelledby="customer-next-care">

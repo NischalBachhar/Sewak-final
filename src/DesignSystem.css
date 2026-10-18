@@ -67,6 +67,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--brand-coral); 
 .browse-primary-action, .browse-card-action { background: var(--brand-coral); box-shadow: none; }
 .browse-primary-action:hover, .browse-card-action:hover { background: var(--brand-coral-hover); }
 .browse-caregiver-card { box-shadow: var(--shadow-card); }
+/* One real match should be centered rather than stranded on the left. */
+.browse-caregiver-grid--single,
+.customer-discovery-shell .browse-caregiver-grid--single { grid-template-columns: minmax(0, 740px); justify-content: center; }
+@media (max-width: 700px) { .browse-caregiver-grid--single, .customer-discovery-shell .browse-caregiver-grid--single { grid-template-columns: minmax(0, 1fr); } }
 .browse-caregiver-card__stats { background: var(--brand-vanilla); }
 .auth-shell--login { background: var(--brand-vanilla); }
 .auth-shell--signup { background: var(--brand-vanilla); }

@@ -68,6 +68,38 @@ test('catalog migration is rerunnable and preserves records and actual assignmen
   assert.deepEqual(env.DB.database.prepare('PRAGMA foreign_key_check').all(),[]);
 });
 
+test('request availability is explicit while private and restricted profiles stay hidden', async () => {
+  const env = environment();
+  const records = await seed(env);
+  const base = records['vendors/caregiver'];
+
+  const initial = await search(env, {});
+  assert.equal(initial.data.total, 1);
+  assert.equal(initial.data.items[0].data.isAvailable, true);
+
+  await put(env, 'vendors/caregiver', { ...base, isAvailable: false });
+  await put(env, 'vendors/restricted-unapproved', { ...base, uid: 'restricted-unapproved', isApproved: false });
+  await put(env, 'vendors/restricted-suspended', { ...base, uid: 'restricted-suspended', isSuspended: true });
+  await put(env, 'vendors/restricted-blacklisted', { ...base, uid: 'restricted-blacklisted', isBlacklisted: true });
+
+  assert.equal((await search(env, {})).data.total, 0);
+  const accepting = await search(env, { availability: 'accepting' });
+  assert.equal(accepting.data.total, 0);
+  const all = await search(env, { availability: 'all' });
+  assert.equal(all.status, 200);
+  assert.deepEqual(all.data.items.map((item) => item.id), ['caregiver']);
+  assert.equal(all.data.items[0].data.isAvailable, false);
+  assert.equal(all.data.items[0].data.isApproved, true);
+  assert.equal(all.data.items[0].data.email, undefined);
+  assert.equal(all.data.items[0].data.phone, undefined);
+  const unavailable = await search(env, { availability: 'unavailable' });
+  assert.equal(unavailable.data.total, 1);
+  assert.equal(unavailable.data.items[0].id, 'caregiver');
+  for (const value of ['any', '', true, 1, null]) {
+    assert.equal((await search(env, { availability: value })).status, 400);
+  }
+});
+
 test('verified rating uses matching completed bookings, raw average and eligible review counts',async()=>{
   const env=environment(); const data=await seed(env);
   for(const [id,rating,hidden,status,customer,verified] of [['one',5,false,'completed','customer',true],['two',3,false,'completed','customer',true],['hidden',1,true,'completed','customer',true],['pending',5,false,'pending','customer',true],['mismatch',5,false,'completed','other',true],['unverified',5,false,'completed','customer',false]]){
