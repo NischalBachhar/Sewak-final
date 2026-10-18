@@ -4,6 +4,13 @@ import { MemoryRouter } from "react-router-dom";
 import HomePage from "./HomePage";
 import { loadServiceOptions } from "./components/ServiceSelector";
 
+// Jest in CRA predates the react-router-dom v7 export map; use the core router.
+jest.mock("react-router-dom", () => {
+  global.TextEncoder = require("util").TextEncoder;
+  global.TextDecoder = require("util").TextDecoder;
+  return jest.requireActual("react-router");
+});
+
 jest.mock("./components/PublicHeader", () => ({ __esModule: true, default: () => null }));
 jest.mock("./components/CaregiverPreview", () => ({ __esModule: true, default: () => <section aria-label="Caregiver preview" /> }));
 jest.mock("./components/ServiceSelector", () => ({ loadServiceOptions: jest.fn() }));
