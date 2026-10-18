@@ -20,6 +20,7 @@ for (const width of [320, 375, 430, 768, 1024, 1366, 1920]) {
     const errors=[]; page.on('pageerror', error => errors.push(error.message));
     await page.goto('/');
     await expect(page.getByRole('heading',{name:'Trusted care for every stage of life.'})).toBeVisible();
+    await page.locator('.home-hero').scrollIntoViewIfNeeded();
     await expect(page.locator('.home-hero__visual img')).toHaveJSProperty('complete',true);
     expect(await page.locator('.home-hero__visual img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
     await expect(page.locator('.home-service').first()).toBeVisible();
