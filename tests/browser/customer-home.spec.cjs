@@ -6,6 +6,11 @@ test.beforeAll(async()=>{
  for(let i=0;i<8;i++) await db.doc(`vendors/discovery-${90+i}`).set({name:`Home Person ${i}`,location:'Pokhara',category:i===6?'household':'caregiver',workType:'parttime',shifts:['morning'],servicesOffered:[i===6?'catalog_housekeeping':'catalog_elderly_care'],hourlyRate:100+i*100,isApproved:true,isAvailable:i!==7,isSuspended:false,isBlacklisted:false});
  await seedReviewedVerification('discovery-90');
 });
+test.afterAll(async()=>{
+ // Other browser suites share the loopback D1 fixture server. Retire only
+ // this suite's profiles so their marketplace counts remain independent.
+ for(let i=0;i<8;i++) await db.doc(`vendors/discovery-${90+i}`).update({isApproved:false});
+});
 async function login(page){await page.goto('/auth');await page.getByLabel('Email',{exact:true}).fill('e2e-customer@example.test');await page.getByLabel('Password',{exact:true}).fill('Local-test-only-123!');await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).not.toHaveURL(/\/auth/);await page.goto('/user/home');await expect(page.locator('.home-caregiver').first()).toBeVisible();}
 for(const width of [1440,768,375]) test(`customer marketplace first screen ${width}`,async({page},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
