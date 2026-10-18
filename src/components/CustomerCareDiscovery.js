@@ -5,7 +5,8 @@ import { formatNpr } from "../config/brand";
 import { hasVerifiedRating } from "../bookingModel";
 import { SkeletonCard, VerificationBadge } from "./CareExperience";
 import ProfileImage from "./ProfileImage";
-import AvailabilityBadge from "./AvailabilityBadge";
+import RequestAvailability from "./RequestAvailability";
+import { caregiverBookingReason } from "../caregiverDiscovery";
 import "./CaregiverPreview.css";
 const defaults = {
   category: "",
@@ -97,10 +98,12 @@ export default function CustomerCareDiscovery() {
       const {
         min,
         max,
+        availability,
         ...search
       } = JSON.parse(key);
       if (min !== "" && max !== "" && Number(min) > Number(max)) return;
       const priceFilter = min !== "" || max !== "";
+      const localFilter = priceFilter || availability !== "accepting";
       try {
         let page,
           next = cursor,
@@ -110,8 +113,8 @@ export default function CustomerCareDiscovery() {
             method: "POST",
             json: {
               path: "publicCaregivers",
-              search,
-              limit: priceFilter ? 50 : 6,
+              ...(availability === "accepting" ? { search } : availability === "unavailable" ? { filters: [{ field: "isAvailable", op: "==", value: false }] } : {}),
+              limit: localFilter ? 50 : 6,
               ...(next ? {
                 cursor: next
               } : {})
@@ -126,13 +129,19 @@ export default function CustomerCareDiscovery() {
         // Hourly ranges are a presentation filter. Scan every matching page
         // before filtering so a later-page caregiver is never silently omitted.
         // Other filters and eligibility remain authoritative in the Worker.
-        } while (priceFilter && next);
+        } while (localFilter && next);
+        if (availability !== "accepting") items = items.filter(person =>
+          (!search.category || person.category === "both" || (person.category === "vendor" ? "household" : person.category) === search.category) &&
+          (!search.location || String(person.location || "").toLowerCase().includes(search.location.trim().toLowerCase())) &&
+          (!search.serviceId || person.servicesOffered?.includes(search.serviceId)) &&
+          (!search.verifiedOnly || (person.verificationSource === "audited_v1" && person.verified === true))
+        );
         if (priceFilter) items = items.filter(person => configuredRate(person) && (min === "" || person.hourlyRate >= Number(min)) && (max === "" || person.hourlyRate <= Number(max)));
         setResult({
           loading: false,
           error: "",
           items,
-          total: priceFilter ? items.length : page.total,
+          total: localFilter ? items.length : page.total,
           nextCursor: next
         });
       } catch {
@@ -164,12 +173,12 @@ export default function CustomerCareDiscovery() {
       {!invalidPrice && (result.loading ? <div className="home-caregiver-grid" aria-busy="true">{[0, 1, 2].map(id => <SkeletonCard key={id} variant="caregiver" label="Loading caregiver profile" />)}</div> : result.error ? <div className="home-discovery-state" role="alert"><p>{result.error}</p><button type="button" className="customer-action customer-action--outline" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : !result.items.length ? <div className="home-discovery-state"><h2>No caregivers match your filters</h2><p>Try another location, service or price range.</p><button type="button" className="customer-action customer-action--outline" onClick={reset}>Reset filters</button></div> : <>
         <div className="home-caregiver-grid">{result.items.slice(0, shown).map(person => {
           const verified = person.verificationSource === "audited_v1" && person.verified === true;
-          const bookable = person.isApproved === true && person.isAvailable === true && person.isOrganizationActive === true && !person.isSuspended && !person.isBlacklisted && person.servicesOffered?.length > 0 && configuredRate(person);
+          const bookable = !caregiverBookingReason(person);
           const labels = (person.servicesOffered || []).map(id => services.find(service => service.id === id)).filter(Boolean).map(service => service.label || service.serviceName).filter(Boolean);
           return <article className="home-caregiver" key={person.id}>
             <div className="home-caregiver-identity"><ProfileImage className="home-caregiver-photo" src={person.profileImage || ""} alt={person.name || "Caregiver"} fallback={<span className="home-caregiver-photo home-caregiver-initial">{String(person.name || "C").charAt(0)}</span>} /><div><h2>{person.name || "Caregiver"}</h2><p>{person.location || "Location not listed"}</p></div></div>
             <p className="home-caregiver-category">{person.category === "both" ? "Caregiver & household help" : ["vendor", "household"].includes(person.category) ? "Household help" : "Caregiver support"}{person.organizationName ? ` · ${person.organizationName}` : " · Independent"}</p>
-            <div className="home-caregiver-checks"><VerificationBadge state={verified ? "verified" : "not_verified"} label={verified ? "Verified by Sewak" : "Verification not complete"} compact /><AvailabilityBadge isAvailable={person.isAvailable} /></div>
+            <div className="home-caregiver-checks"><VerificationBadge state={verified ? "verified" : "not_verified"} label={verified ? "Verified by Sewak" : "Verification not complete"} compact /><RequestAvailability caregiver={person} /></div>
             <p className="home-caregiver-services">{labels.slice(0, 2).join(" · ") || "See profile for service details"}{labels.length > 2 ? ` +${labels.length - 2} more` : ""}</p>
             <p className="home-caregiver-rating">{hasVerifiedRating(person) ? `${Number(person.rating).toFixed(1)} · ${person.reviewCount} verified reviews` : "No verified reviews yet"}</p>
             <div className="home-caregiver-rate"><small>Starting rate</small><strong>{configuredRate(person) ? <>{formatNpr(person.hourlyRate)}<small> / hour</small></> : "Rate not configured"}</strong></div>

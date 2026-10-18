@@ -1,3 +1,4 @@
+import { requestAvailability, caregiverBookingReason } from './caregiverDiscovery';
 import ProfileImage from "./components/ProfileImage";
 import React, { useEffect, useMemo, useState } from "react";
 import { collection, doc, getDoc, getDocs, query, where } from "./d1Client";
@@ -133,7 +134,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
   );
 
   const handleBook = () => {
-    if (!caregiver) return;
+    if (!caregiver || caregiverBookingReason(caregiver)) return;
     if (!signedIn) {
       localStorage.setItem("pendingBookingCaregiverId", caregiver.id);
       navigate("/auth");
@@ -169,8 +170,9 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
   const rating = verifiedReviewCount
     ? (verifiedReviews.reduce((sum, review) => sum + Number(review.rating), 0) / verifiedReviewCount).toFixed(1)
     : null;
-  const acceptingRequests = caregiver.isAvailable === true;
-  const availability = acceptingRequests ? "Accepting requests" : "Not accepting requests";
+  const availabilityStatus = requestAvailability(caregiver);
+  const availability = availabilityStatus.label;
+  const bookingReason = caregiverBookingReason(caregiver);
   const initials = (caregiver.name || "C")
     .split(" ")
     .map((part) => part[0])
@@ -204,7 +206,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
               {serviceLabels[0] || "Care support"}
               {caregiver.location ? ` · ${caregiver.location}` : ""}
             </p>
-            <p className={`caregiver-profile-availability${!acceptingRequests ? " is-unavailable" : ""}`}>
+            <p className={`caregiver-profile-availability${availabilityStatus.state !== 'accepting' ? " is-unavailable" : ""}`}>
               <span aria-hidden="true" />
               {availability}
             </p>
@@ -228,13 +230,15 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
             className="caregiver-profile-book"
             type="button"
             onClick={handleBook}
-            disabled={!acceptingRequests}
+            disabled={Boolean(bookingReason)}
+            aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}
           >
             {signedIn ? "Book caregiver" : "Sign in to book"}
           </button>
         </div>
       </section>
 
+      {bookingReason && <p id="caregiver-booking-reason" className="caregiver-booking-reason" role="status">{bookingReason}</p>}
       <section className="caregiver-profile-grid">
         <div className="caregiver-profile-stack">
           <section className="caregiver-profile-section" aria-labelledby="about-heading">
@@ -304,7 +308,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
           <CaregiverStats
             stats={[
               { id: "location", label: "Location", value: caregiver.location || "Not listed" },
-              { id: "availability", label: "Request status", value: availability },
+              { id: "availability", label: "Availability", value: availability },
             ]}
           />
           <section className="caregiver-profile-section caregiver-profile-section--pricing">
@@ -321,7 +325,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
 
       <div className="caregiver-profile-sticky-book" aria-label="Book this caregiver">
         <span>{formatNpr(caregiver.hourlyRate)}/hr</span>
-        <button type="button" onClick={handleBook} disabled={!acceptingRequests}>
+        <button type="button" onClick={handleBook} disabled={Boolean(bookingReason)} aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}>
           {signedIn ? "Book now" : "Sign in to book"}
         </button>
       </div>

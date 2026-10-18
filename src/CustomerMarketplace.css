@@ -52,3 +52,10 @@
 @media (max-width: 1000px) { .home-filters { grid-template-columns: 1fr 1fr; } .home-caregiver-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 600px) { .home-caregiver-grid, .home-activity-grid { grid-template-columns: minmax(0,1fr); } .home-filters { padding: 10px; gap: 10px; } .home-filter-extras { gap: 6px 12px; } .home-filter-extras > label:first-child { width: 100%; } .home-filter-extras > label:first-child select { flex: 1; } .home-filter-extras button { margin-left: 0; } .home-caregiver { padding: 15px; } .home-activity-grid { gap: 0; } }
 
+.home-caregiver .request-availability { margin-top: 0; }
+.home-caregiver .caregiver-preview__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.home-caregiver .caregiver-preview__profile, .home-caregiver .caregiver-preview__book { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 14px; border-radius: 10px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; flex: 1; white-space: nowrap; }
+.home-caregiver .caregiver-preview__profile { color: var(--brand-coral-hover); background: var(--brand-white); border: 1px solid var(--brand-sand); }
+.home-caregiver .caregiver-preview__book { color: #fff; background: var(--brand-coral); border: 1px solid var(--brand-coral); }
+.home-caregiver .caregiver-preview__book:hover { background: var(--brand-coral-hover); }
+.home-caregiver .caregiver-preview__book:disabled { background: var(--brand-sand); border-color: var(--brand-sand); color: var(--brand-cocoa); cursor: not-allowed; white-space: normal; }

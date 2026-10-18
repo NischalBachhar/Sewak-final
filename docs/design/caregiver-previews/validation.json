@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-18",
+  "branch": "feature/caregiver-previews-availability",
+  "base": "74ecef5",
+  "frontend": {
+    "suites": 17,
+    "passed": 89
+  },
+  "d1Worker": {
+    "passed": 128,
+    "actualWorkerd": true
+  },
+  "workerTypecheck": "passed",
+  "frontendLint": "passed",
+  "diffCheck": "passed",
+  "optimizedFrontendBuild": "passed",
+  "browser": {
+    "engine": "Chrome",
+    "passed": 85,
+    "failed": 0,
+    "skipped": 0,
+    "durationMs": 261644.449
+  },
+  "homepageLayout": [
+    {
+      "width": 320,
+      "documentHeight": 5088,
+      "overflow": false
+    },
+    {
+      "width": 375,
+      "documentHeight": 4844,
+      "overflow": false
+    },
+    {
+      "width": 430,
+      "documentHeight": 4715,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "documentHeight": 3301,
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "documentHeight": 2583,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "documentHeight": 2684,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "documentHeight": 2721,
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "documentHeight": 2759,
+      "overflow": false
+    }
+  ],
+  "screenshots": [
+    "customer-1440.png",
+    "customer-320.png",
+    "customer-390.png",
+    "customer-768.png",
+    "find-care-pair-1440.png",
+    "find-care-single-1440.png",
+    "public-1440.png",
+    "public-320.png",
+    "public-390.png",
+    "public-768.png",
+    "public-three-1440.png",
+    "public-three-390.png"
+  ],
+  "fixtures": "isolated local synthetic records only",
+  "merged": false,
+  "deployed": false,
+  "productionWrites": false,
+  "migrations": false,
+  "newDependencies": false
+}

@@ -1,98 +1,121 @@
-import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { apiRequest } from "../apiClient";
-import CaregiverPreview from "./CaregiverPreview";
-import AvailabilityBadge from "./AvailabilityBadge";
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import HomePage from '../HomePage';
+import CustomerHomePage from '../CustomerHomePage';
+import CaregiverPreview from './CaregiverPreview';
+import CaregiverPreviewCard from './CaregiverPreviewCard';
+import { loadPublicCareServices, searchCaregivers, requestAvailability, caregiverBookingReason } from '../caregiverDiscovery';
+import { apiRequest } from '../apiClient';
 
-// Match the existing logout test's supported router setup.
-jest.mock("react-router-dom", () => {
-  global.TextEncoder = require("util").TextEncoder;
-  global.TextDecoder = require("util").TextDecoder;
-  return jest.requireActual("react-router");
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate, useLocation: () => ({ hash: '' }), Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a> }));
+jest.mock('../AuthContext', () => ({ useAuth: () => ({ user: { uid: 'customer' }, userDoc: { name: 'Customer' } }) }));
+jest.mock('../useCustomerBookings', () => () => ({ bookings: [], loading: false }));
+jest.mock('../apiClient', () => ({ apiRequest: jest.fn() }));
+jest.mock('./PublicHeader', () => () => null);
+jest.mock('./ServiceSelector', () => ({ loadServiceOptions: () => Promise.resolve([]) }));
+
+jest.mock('../caregiverDiscovery', () => ({
+  ...jest.requireActual('../caregiverDiscovery'),
+  loadPublicCareServices: jest.fn(), searchCaregivers: jest.fn(),
+}));
+jest.mock('./ProfileImage', () => ({ __esModule: true, default: ({ alt }) => <span>{alt}</span> }));
+const caregiver = { id: 'real', name: 'Care Professional', location: 'Hetauda', isApproved: true, isSuspended: false, isBlacklisted: false, isOrganizationActive: true, isAvailable: true, hourlyRate: 500, servicesOffered: ['care'], workType: 'fulltime' };
+const services = [{ id: 'care', label: 'Elderly Care' }];
+beforeEach(() => { jest.clearAllMocks(); loadPublicCareServices.mockResolvedValue(services); searchCaregivers.mockResolvedValue({ items: [{ id: caregiver.id, data: caregiver }] }); });
+const preview = signedIn => render(<CaregiverPreview signedIn={signedIn} />);
+
+test.each([[false, 'Meet Sewak Care Professionals', '/browse'], [true, 'Explore Caregivers', '/user']])('preview uses the bounded public search and existing navigation (signed in: %s)', async (signedIn, title, route) => {
+  preview(signedIn);
+  expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent('Loading caregiver profiles');
+  expect(await screen.findByRole('heading', { name: caregiver.name })).toBeInTheDocument();
+  expect(searchCaregivers).toHaveBeenCalledWith({}, { limit: 3 });
+  expect(screen.getByRole('link', { name: /View All/ })).toHaveAttribute('href', route);
+  expect(screen.getByText('Elderly Care')).toBeInTheDocument();
+  expect(screen.getByText('Accepting requests')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: signedIn ? /Book now/ : /Sign in to book/ })).toBeEnabled();
+  fireEvent.click(screen.getByRole('button', { name: /View profile/i }));
+  expect(mockNavigate).toHaveBeenCalledWith(`${signedIn ? '/user' : ''}/caregivers/real`);
+  if (signedIn) {
+    fireEvent.click(screen.getByRole('button', { name: /Book now/ }));
+  }
+  expect(mockNavigate).toHaveBeenLastCalledWith(signedIn ? '/user/book/real' : '/caregivers/real');
 });
 
-jest.mock("../apiClient", () => ({ apiRequest: jest.fn() }));
-jest.mock("./ProfileImage", () => ({ __esModule: true, default: ({ alt }) => <span>{alt}</span> }));
-
-const profile = {
-  name: "Care Partner",
-  location: "Lalitpur",
-  isApproved: true,
-  isAvailable: true,
-  servicesOffered: ["service-care"],
-  hourlyRate: 350,
-  reviewCount: 2,
-  rating: 5,
-};
-const services = { items: [{ id: "service-care", data: { label: "Child Care / Babysitting" } }] };
-const caregivers = (profiles) => ({ items: profiles.map(([id, data]) => ({ id, data })) });
-
-beforeEach(() => { apiRequest.mockReset(); window.localStorage.clear(); });
-
-test("request status badge describes the availability toggle, not instant free slots", () => {
-  const { rerender } = render(<AvailabilityBadge isAvailable={true} />);
-  expect(screen.getByText("Accepting requests")).toBeTruthy();
-  expect(screen.getByText(/dates require confirmation/)).toBeTruthy();
-  rerender(<AvailabilityBadge isAvailable={false} />);
-  expect(screen.getByText("Not accepting requests")).toBeTruthy();
+test('public homepage includes the shared preview after its overview', async () => {
+  render(<HomePage />);
+  expect(await screen.findByRole('heading', { name: caregiver.name })).toBeVisible();
+  const overview = screen.getByRole('region', { name: 'Support that fits your life.' });
+  expect(overview.compareDocumentPosition(screen.getByRole('region', { name: 'Meet Sewak Care Professionals' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
-test("public homepage preview loads genuine eligible profiles using public queries", async () => {
-  apiRequest.mockImplementation((_url, options) => Promise.resolve(
-    options.json.path === "publicCaregivers"
-      ? caregivers([["care-a", profile], ["care-unavailable", { ...profile, isAvailable: false }]])
-      : services,
-  ));
-  render(<MemoryRouter><CaregiverPreview audience="guest" /></MemoryRouter>);
-  expect(await screen.findByRole("heading", { name: "Care Partner" })).toBeTruthy();
-  expect(screen.getByText("Child Care / Babysitting")).toBeTruthy();
-  expect(screen.getByText("Accepting requests")).toBeTruthy();
-  expect(screen.getByText(/2 verified reviews/)).toBeTruthy();
-  expect(screen.getByRole("link", { name: "View profile" }).getAttribute("href")).toBe("/caregivers/care-a");
-  expect(screen.getByRole("link", { name: /View all caregivers/ }).getAttribute("href")).toBe("/browse");
-  expect(screen.getAllByRole("heading", { name: "Care Partner" })).toHaveLength(1);
-  expect(apiRequest).toHaveBeenCalledWith("/api/query", expect.objectContaining({
-    json: expect.objectContaining({ path: "publicCaregivers", search: { availability: "accepting" } }),
-  }));
+test('customer homepage shows caregiver discovery before booking activity', async () => {
+  apiRequest.mockImplementation((_path, { json }) => Promise.resolve({ items: json.path === 'publicCaregivers' ? [{ id: caregiver.id, data: caregiver }] : services.map(service => ({ id: service.id, data: service })), total: 1 }));
+  render(<CustomerHomePage />);
+  expect(await screen.findByRole('heading', { name: caregiver.name })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Find & Book Care' })).toBeVisible();
+  expect(screen.getAllByRole('region')).toEqual([
+    screen.getByRole('region', { name: 'Find caregivers' }),
+    screen.getByRole('region', { name: 'Your booking activity' }),
+  ]);
 });
 
-test("signed-in customer preview routes directly to the existing care request", async () => {
-  apiRequest.mockImplementation((_url, options) => Promise.resolve(
-    options.json.path === "publicCaregivers" ? caregivers([["care-a", profile]]) : services,
-  ));
-  render(<MemoryRouter initialEntries={["/user/home"]}>
-    <Routes>
-      <Route path="/user/home" element={<CaregiverPreview audience="customer" />} />
-      <Route path="/user/book/:id" element={<p>Existing booking route</p>} />
-    </Routes>
-  </MemoryRouter>);
-  fireEvent.click(await screen.findByRole("button", { name: /Request care/ }));
-  expect(screen.getByText("Existing booking route")).toBeTruthy();
+test('preview handles empty and retryable network errors', async () => {
+  searchCaregivers.mockRejectedValueOnce(new Error('Network failure'));
+  preview(false);
+  expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t load caregiver profiles');
+  searchCaregivers.mockResolvedValueOnce({ items: [] });
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByText(/No care professionals are accepting requests/)).toBeInTheDocument();
+  expect(searchCaregivers).toHaveBeenCalledTimes(2);
 });
 
-test("preview shows an honest empty state instead of inventing providers", async () => {
-  apiRequest.mockImplementation((_url, options) => Promise.resolve(
-    options.json.path === "publicCaregivers" ? caregivers([["care-a", { ...profile, isAvailable: false }]]) : services,
-  ));
-  render(<MemoryRouter><CaregiverPreview audience="guest" /></MemoryRouter>);
-  expect(await screen.findByText(/No caregivers are currently accepting requests/)).toBeTruthy();
-  expect(screen.getByRole("link", { name: /Explore caregiver profiles/ }).getAttribute("href")).toBe("/browse?availability=all");
-  expect(screen.queryByRole("button", { name: /Sign in to book/ })).toBeNull();
+test.each([
+  [true, 'Accepting requests'], [false, 'Not accepting requests'], [null, 'Availability not confirmed'], [undefined, 'Availability not confirmed'],
+])('availability %s is independent of full-time work', (isAvailable, label) => {
+  const data = { ...caregiver, isAvailable };
+  expect(requestAvailability(data).label).toBe(label);
+  expect(Boolean(caregiverBookingReason(data))).toBe(isAvailable !== true);
 });
 
-test("failed preview requests show retry, not fake caregiver cards", async () => {
-  apiRequest.mockImplementation((_url, options) =>
-    options.json.path === "publicCaregivers"
-      ? Promise.reject(new Error("offline"))
-      : Promise.resolve(services),
-  );
-  render(<MemoryRouter><CaregiverPreview /></MemoryRouter>);
-  expect(await screen.findByText("Caregiver profiles could not be loaded.")).toBeTruthy();
-  expect(screen.getByRole("status")).toBeTruthy();
-  apiRequest.mockImplementation((_url, options) => Promise.resolve(
-    options.json.path === "publicCaregivers" ? caregivers([["care-a", profile]]) : services,
-  ));
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-  expect(await screen.findByRole("heading", { name: "Care Partner" })).toBeTruthy();
+test.each(['isSuspended', 'isBlacklisted'])('restricted status %s never claims accepting requests', field => {
+  expect(requestAvailability({ ...caregiver, [field]: true }).state).toBe('unknown');
+});
+
+test('a server projection with unconfirmed availability keeps the existing false boolean and shows unknown', () => {
+  expect(requestAvailability({ ...caregiver, isAvailable: false, availabilityConfirmed: false }).label).toBe('Availability not confirmed');
+  expect(caregiverBookingReason({ ...caregiver, isAvailable: false, availabilityConfirmed: false })).toMatch(/must be confirmed/);
+});
+
+test('disabled booking explains availability; ratings require eligible review count; legacy verification is not trusted', () => {
+  const onSelect = jest.fn();
+  const { rerender } = render(<CaregiverPreviewCard caregiver={{ ...caregiver, isAvailable: false, rating: 5, reviewCount: 0, verified: true }} services={services} onSelect={onSelect} />);
+  const book = screen.getByRole('button', { name: /Book now/ });
+  expect(book).toBeDisabled();
+  expect(book).toHaveAccessibleDescription('This professional is not accepting booking requests.');
+  fireEvent.click(book); expect(onSelect).not.toHaveBeenCalled();
+  expect(screen.getByText('No verified reviews yet')).toBeInTheDocument();
+  expect(screen.queryByText('Verified', { exact: true })).not.toBeInTheDocument();
+  expect(screen.getByText('Verification not complete')).toBeInTheDocument();
+  rerender(<CaregiverPreviewCard caregiver={{ ...caregiver, rating: 4, reviewCount: 2, verificationSource: 'audited_v1', verified: true }} services={services} onSelect={onSelect} />);
+  expect(screen.getByText('(2 verified reviews)')).toBeInTheDocument();
+  expect(screen.getByText('Verified', { exact: true })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /Book now/ }));
+  expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: caregiver.id }));
+});
+
+test('missing services or an unconfigured rate prevent booking', () => {
+  expect(caregiverBookingReason({ ...caregiver, servicesOffered: [] })).toMatch(/services/);
+  expect(caregiverBookingReason({ ...caregiver, hourlyRate: null })).toMatch(/rate/);
+  expect(caregiverBookingReason({ ...caregiver, hourlyRate: 0 })).toMatch(/rate/);
+  expect(caregiverBookingReason({ ...caregiver, hourlyRate: 0, allowZeroRate: true })).toBe('');
+});
+
+test('unmount ignores a late response', async () => {
+  let resolve;
+  searchCaregivers.mockImplementation(() => new Promise(done => { resolve = done; }));
+  const { unmount } = preview(false); unmount();
+  resolve({ items: [] });
+  await waitFor(() => expect(searchCaregivers).toHaveBeenCalledTimes(1));
 });

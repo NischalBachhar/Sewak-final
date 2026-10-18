@@ -22,7 +22,7 @@ function projection(name: string, id: string, data: Data, row: Data): Data {
     servicesOffered: JSON.parse(row.public_services || '[]'), organizationName: row.org_name || '', workType: (data.workType || '').replace('_',''), jobsCompleted: row.completed_jobs || 0,
     category: canonicalCategory(data.category), profileImage: mediaUrl(data.profile_image_id), profile_image_id: data.profile_image_id || null,
     isApproved: true, isSuspended: false, isBlacklisted: false, isOrganizationActive: true,
-    isAvailable: data.isAvailable === true, allowZeroRate: data.allowZeroRate === true,
+    isAvailable: data.isAvailable === true, availabilityConfirmed: typeof data.isAvailable === 'boolean', allowZeroRate: data.allowZeroRate === true,
     commissionRate: row.org_commission ?? 15, reviewCount: row.verified_count || 0, rating: row.verified_rating || 0 };
   if (name === 'publicServices') return { ...pick(data, ['label','serviceName','category','description','price','isActive','organizationId','organizationName','updatedAt']), serviceId: id, category: canonicalCategory(data.category), label: data.label || data.serviceName, isActive: true };
   return { ...pick(data, ['caregiverId','rating','comment','createdAt','isVerifiedReview']), reviewId: id, reviewerName: 'Verified customer' };
@@ -96,15 +96,9 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
   }
   if (input.search !== undefined) {
     badInput(name === 'publicCaregivers' && !single && input.search && typeof input.search === 'object' && !Array.isArray(input.search), 'Unsupported search.');
+    conditions.push('t.is_available=1');
     const search = input.search;
-    onlyKeys(search, ['text','category','serviceId','workType','shift','location','minimumExperience','minimumRating','verifiedOnly','availability']);
-    // Existing searches remain "accepting requests" only. Explicit opt-in
-    // exposes only otherwise eligible approved profiles with availability off;
-    // safety/organization exclusions above cannot be bypassed.
-    const availability = search.availability === undefined ? 'accepting' : search.availability;
-    badInput(['accepting','all','unavailable'].includes(availability), 'Invalid availability filter.');
-    if (availability === 'accepting') conditions.push('t.is_available=1');
-    if (availability === 'unavailable') conditions.push('COALESCE(t.is_available,0)=0');
+    onlyKeys(search, ['text','category','serviceId','workType','shift','location','minimumExperience','minimumRating','verifiedOnly']);
     const add = (sql: string, ...values: any[]) => { conditions.push(sql); params.push(...values); };
     for (const key of ['text','location','serviceId','category','workType','shift']) if (search[key] !== undefined) badInput(typeof search[key] === 'string' && search[key].length <= 160, 'Invalid search text.');
     // Search only public city/area, never private customer or organization address.
