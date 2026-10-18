@@ -87,7 +87,7 @@ export default function CaregiverPreview({ audience = "guest" }) {
       {result.loading ? (
         <div className="caregiver-preview__loading" role="status">Finding care professionals…</div>
       ) : result.error ? (
-        <div className="caregiver-preview__empty" role="alert">
+        <div className="caregiver-preview__empty" role="status">
           <p>{result.error}</p>
           <button type="button" onClick={() => setRetry((value) => value + 1)}>Try again</button>
         </div>
