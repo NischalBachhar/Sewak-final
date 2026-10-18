@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import PublicHeader from './components/PublicHeader';
+import CaregiverPreview from './components/CaregiverPreview';
 import { LoginIcon } from './components/LoginExperience';
 import { loadServiceOptions } from './components/ServiceSelector';
 import './HomePage.css';
@@ -35,6 +36,7 @@ export default function HomePage() {
         </div>
         <figure className="home-hero__visual"><img src="/images/care-for-every-generation.webp" width="1536" height="1024" fetchPriority="high" alt="Illustration of Nepali caregivers supporting a child, older family members and an adult wheelchair user, with household help at home." /><figcaption>Care, closer to home.</figcaption></figure>
       </section>
+      <CaregiverPreview audience="guest" />
       <div className="home-values" aria-label="Care with Sewak">
         {[['heart', 'Every generation', 'Support for children, adults and older people.'], ['home', 'Everyday help', 'Care and household support in one place.'], ['shield', 'Informed choices', 'Review profile and verification details.'], ['clock', 'Your care, together', 'Keep track of requests and care updates.']].map(([icon, title, copy]) => <div key={title}><span className="home-icon"><LoginIcon name={icon} /></span><div><strong>{title}</strong><p>{copy}</p></div></div>)}
       </div>
@@ -43,7 +45,7 @@ export default function HomePage() {
         {state === 'loading' && <p className="home-catalog-state" role="status">Loading available services…</p>}
         {state === 'error' && <div className="home-catalog-state" role="alert"><p>We couldn’t load services right now.</p><button className="home-button home-button--outline" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>}
         {state === 'ready' && !services.length && <p className="home-catalog-state">There are no published services to show yet. Please check back soon.</p>}
-        <div id="home-service-list" className="home-services">{(showAllServices ? services : services.slice(0, 6)).map(service => <article key={service.id} className="home-service"><span className="home-icon"><LoginIcon name={service.category === 'household' ? 'home' : 'heart'} /></span><p className="home-service__category">{service.category === 'household' ? 'Household support' : service.category === 'both' ? 'Care & household support' : 'Caregiver support'}</p><h3>{service.label || service.serviceName}</h3><Link to="/browse" aria-label={`Find care for ${service.label || service.serviceName}`}>Explore caregivers <span aria-hidden="true">→</span></Link></article>)}</div>
+        <div id="home-service-list" className="home-services">{(showAllServices ? services : services.slice(0, 6)).map(service => <article key={service.id} className="home-service"><span className="home-icon"><LoginIcon name={service.category === 'household' ? 'home' : 'heart'} /></span><p className="home-service__category">{service.category === 'household' ? 'Household support' : service.category === 'both' ? 'Care & household support' : 'Caregiver support'}</p><h3>{service.label || service.serviceName}</h3><Link to={`/browse?service=${encodeURIComponent(service.id)}`} aria-label={`Find care for ${service.label || service.serviceName}`}>Explore caregivers <span aria-hidden="true">→</span></Link></article>)}</div>
         {services.length > 6 && <button className="home-button home-button--outline home-services-toggle" aria-expanded={showAllServices} aria-controls="home-service-list" onClick={() => setShowAllServices(value => !value)}>{showAllServices ? 'Show fewer services' : `View all ${services.length} services`}</button>}
       </section>
       <section id="how-it-works" className="home-how home-section" aria-labelledby="how-title">
