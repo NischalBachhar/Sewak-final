@@ -52,12 +52,16 @@ test('public homepage begins with caregiver hiring before promotional hero or se
   expect(screen.getByText('Accepting requests')).toBeVisible();
   expect(screen.getByText('NPR 300/hour')).toBeVisible();
   expect(screen.getByRole('button', { name: /Sign in to book/ })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'More filters' })).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.getByRole('combobox', { name: 'Service' })).toBeVisible();
+  expect(screen.getByRole('textbox', { name: 'City or locality' })).toBeVisible();
 });
 
 test('homepage searches real caregivers by category, service, location and name', async () => {
   render(<HomeCaregiverMarketplace />);
   await screen.findByRole('heading', { name: 'Real Care Professional' });
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Caregiver or area' }), { target: { value: 'Real' } });
+  fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Caregiver name or keyword' }), { target: { value: 'Real' } });
   fireEvent.change(screen.getByRole('combobox', { name: 'Service' }), { target: { value: 'care' } });
   fireEvent.change(screen.getByRole('textbox', { name: 'City or locality' }), { target: { value: 'Lalitpur' } });
   fireEvent.change(screen.getByRole('combobox', { name: 'Support type' }), { target: { value: 'caregiver' } });
@@ -109,4 +113,32 @@ test('failed public lookup provides a retryable error', async () => {
   expect(await screen.findByText('Caregiver profiles could not be loaded. Please retry.')).toBeVisible();
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByRole('heading', { name: 'Real Care Professional' })).toBeVisible();
+});
+
+
+test('real service shortcuts filter immediately without inventing caregiver availability', async () => {
+  loadPublicCareServices.mockResolvedValueOnce([
+    { id: 'care', label: 'Elderly Care', category: 'caregiver' },
+    { id: 'child', label: 'Child Care / Babysitting', category: 'caregiver' },
+  ]);
+  render(<HomeCaregiverMarketplace />);
+  await screen.findByRole('heading', { name: 'Real Care Professional' });
+  const quickCare = await screen.findByRole('button', { name: 'Elderly Care' });
+  expect(quickCare).toHaveAttribute('aria-pressed', 'false');
+  fireEvent.click(quickCare);
+  await waitFor(() => expect(searchCaregivers).toHaveBeenLastCalledWith({ serviceId: 'care' }, { limit: 9 }));
+  expect(quickCare).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.click(quickCare);
+  await waitFor(() => expect(searchCaregivers).toHaveBeenLastCalledWith({}, { limit: 9 }));
+  expect(quickCare).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('mobile search keeps support category and keyword behind the optional filters button', async () => {
+  render(<HomeCaregiverMarketplace />);
+  const toggle = screen.getByRole('button', { name: 'More filters' });
+  expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  fireEvent.click(toggle);
+  expect(screen.getByRole('button', { name: 'Fewer filters' })).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.getByRole('searchbox', { name: 'Caregiver name or keyword' })).toBeInTheDocument();
+  expect(screen.getByRole('combobox', { name: 'Support type' })).toBeInTheDocument();
 });
