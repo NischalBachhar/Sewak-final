@@ -1,0 +1,309 @@
+{
+  "applicationCommit": "74ecef50db9c8c70c152532ddc9b70b903e8f52e",
+  "worker": "sewak-final",
+  "origin": "https://sewak-final.nischalbachhar9.workers.dev",
+  "version": "ddd7dda0-434c-4632-b7f5-902bea576f53",
+  "authorization": "Owner approved commit, push, deployment and controlled synthetic QA with verified cleanup; confirmed Workers Free.",
+  "preDeployment": {
+    "pass": true,
+    "version": "a0062dfe-9c2e-42fa-aa5a-c4ea3215e878",
+    "fixtureSetup": "registration-api",
+    "checks": 54,
+    "completedAt": "2026-10-18T04:23:34.499Z",
+    "cleanupVerified": true,
+    "applicationRecordsUnchanged": true,
+    "browser": {
+      "realCookieLogin": true,
+      "sessionRestored": true,
+      "privateProfile": true,
+      "firebaseRequests": 0,
+      "firebaseNetworkBlocked": true,
+      "httpOnly": true
+    }
+  },
+  "postDeploymentFullRun": {
+    "pass": false,
+    "version": "ddd7dda0-434c-4632-b7f5-902bea576f53",
+    "fixtureSetup": "operator-seeded-no-registration-coverage",
+    "checks": 50,
+    "completedAt": "2026-10-18T04:34:35.756Z",
+    "cleanupVerified": true,
+    "applicationRecordsUnchanged": true,
+    "browser": {
+      "realCookieLogin": true,
+      "sessionRestored": true,
+      "privateProfile": true,
+      "firebaseRequests": 0,
+      "firebaseNetworkBlocked": true,
+      "httpOnly": true
+    },
+    "failure": {
+      "name": "AssertionError",
+      "message": "failed login 10: HTTP 503 unavailable — The service is temporarily unavailable. Please retry later.\n\n503 !== 401\n"
+    }
+  },
+  "postDeploymentSupplement": {
+    "pass": true,
+    "version": "ddd7dda0-434c-4632-b7f5-902bea576f53",
+    "checks": 16,
+    "completedAt": "2026-10-18T04:36:51.483Z",
+    "cleanupVerified": true,
+    "applicationRecordsUnchanged": true
+  },
+  "postDeploymentCoverage": "The full run passed 49 checks, then stopped on an HTTP 503 at failed login 10. A bounded 16-check supplemental run passed the repeated failed-login sequence and remaining rate-limit, revocation and health checks. The original full run remains failed; it was not changed or represented as a pass.",
+  "registrationCoverage": "Real registration API coverage passed before deployment. Post-deployment checks used disposable operator-seeded identities to respect registration limits. They do not independently cover registration.",
+  "remainingIssue": "One intermittent authentication HTTP 503 was observed during the full post-deployment run. Targeted repetition passed, but its cause was not established and it is not claimed permanently fixed.",
+  "initialQaAttempt": {
+    "checksPassed": true,
+    "cleanupGuardPassed": false,
+    "reason": "A separate account safety action by a pre-existing administrator occurred during the first QA snapshot window. It was preserved. The next full pre-deploy run passed unchanged-record and cleanup guards."
+  },
+  "data": {
+    "pass": true,
+    "version": "ddd7dda0-434c-4632-b7f5-902bea576f53",
+    "checkedAt": "2026-10-18T04:37:42.028Z",
+    "health": {
+      "healthy": true,
+      "writesEnabled": true,
+      "auth": "cloudflare-d1"
+    },
+    "checks": {
+      "DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      },
+      "MEDIA_DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      },
+      "EVIDENCE_DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      }
+    }
+  },
+  "publicBrowser": {
+    "checkedAt": "2026-10-18T04:25:08.010Z",
+    "pass": true,
+    "worker": "sewak-final",
+    "version": "ddd7dda0-434c-4632-b7f5-902bea576f53",
+    "health": {
+      "healthy": true,
+      "writesEnabled": true,
+      "auth": "cloudflare-d1"
+    },
+    "assets": [
+      {
+        "path": "/index.html",
+        "sha256": "7cfcec752cf8011abeba3b749283450d8d436018ec58b49ffa58023ce733c33e"
+      },
+      {
+        "path": "/images/care-for-every-generation.webp",
+        "sha256": "5a971123645505f6d16c18e534b610d9a2ac5a0bcf64e2115cd3c98900f9a5e2"
+      },
+      {
+        "path": "/static/js/main.3bbe6d46.js",
+        "sha256": "9dcd725d3e3bb8d34b4922067ed027953d270bf958b1df35bf055d64806ea89b"
+      },
+      {
+        "path": "/static/css/main.5445dcb5.css",
+        "sha256": "d9200ce20de92a32aa599c4d4c5d159842f58233df4c6d839eb9a37b47ccc544"
+      }
+    ],
+    "checks": [
+      {
+        "route": "/",
+        "width": 320,
+        "overflow": false,
+        "catalogCount": 16,
+        "documentHeight": 4435
+      },
+      {
+        "route": "/browse",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 320,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 375,
+        "overflow": false,
+        "catalogCount": 16,
+        "documentHeight": 4166
+      },
+      {
+        "route": "/browse",
+        "width": 375,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 375,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 375,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 430,
+        "overflow": false,
+        "catalogCount": 16,
+        "documentHeight": 4066
+      },
+      {
+        "route": "/browse",
+        "width": 430,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 430,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 430,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 768,
+        "overflow": false,
+        "catalogCount": 16,
+        "documentHeight": 2878
+      },
+      {
+        "route": "/browse",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 1024,
+        "overflow": false,
+        "catalogCount": 16,
+        "documentHeight": 2446
+      },
+      {
+        "route": "/browse",
+        "width": 1024,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 1024,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 1024,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 1366,
+        "overflow": false,
+        "catalogCount": 16,
+        "documentHeight": 2518
+      },
+      {
+        "route": "/browse",
+        "width": 1366,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 1366,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 1366,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 1440,
+        "overflow": false,
+        "catalogCount": 16,
+        "documentHeight": 2552
+      },
+      {
+        "route": "/browse",
+        "width": 1440,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 1440,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 1440,
+        "overflow": false
+      },
+      {
+        "route": "/",
+        "width": 1920,
+        "overflow": false,
+        "catalogCount": 16,
+        "documentHeight": 2611
+      },
+      {
+        "route": "/browse",
+        "width": 1920,
+        "overflow": false
+      },
+      {
+        "route": "/auth",
+        "width": 1920,
+        "overflow": false
+      },
+      {
+        "route": "/auth?mode=register",
+        "width": 1920,
+        "overflow": false
+      }
+    ],
+    "pageErrors": 0
+  },
+  "workerBundleSHA256": "79ec718fe31283c7bf51250b4eb0092fa11fc4a067d0068066f00fa5b2d6821a",
+  "workerCodeMatchesPreviousRelease": true,
+  "backendChanged": false,
+  "migrationsApplied": false,
+  "secretsChanged": false,
+  "writeSettingsChanged": false,
+  "rateLimiterResetOrWeakened": false,
+  "qaCredentialsCommitted": false,
+  "pullRequestMerged": false,
+  "applicationCi": {
+    "commit": "74ecef50db9c8c70c152532ddc9b70b903e8f52e",
+    "authRegression": "pass on retry; original dialog lifecycle failure also passed locally",
+    "signedInVisualQa": "pass",
+    "webUi": "pass"
+  },
+  "pullRequest": "https://github.com/NischalBachhar/Sewak-final/pull/32"
+}
