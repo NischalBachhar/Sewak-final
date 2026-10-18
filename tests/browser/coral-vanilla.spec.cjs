@@ -75,7 +75,7 @@ test('Homepage keyboard skip link and customer workspace use available width',as
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#main-content$/);
   await signIn(page,'customer'); await page.goto('/user/home');
-  const dashboard=page.getByRole('main',{name:'Customer dashboard'});
+  const dashboard=page.getByRole('main',{name:'Customer homepage'});
   await expect(dashboard).toBeVisible();
   const box=await dashboard.boundingBox();
   expect(box.width).toBeGreaterThanOrEqual(1500); expect(box.width).toBeLessThanOrEqual(1600);
