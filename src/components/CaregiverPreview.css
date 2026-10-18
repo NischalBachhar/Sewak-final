@@ -17,6 +17,7 @@
 .caregiver-preview__identity h3 { margin: 0 0 4px; font-size: 17px; overflow-wrap: anywhere; }
 .caregiver-preview__identity > p { margin: 0 0 8px; color: var(--brand-cocoa); font-size: 13px; }
 .caregiver-availability { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 5px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; line-height: 1.3; }
+.caregiver-availability__detail { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .caregiver-availability__dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .caregiver-availability--accepting { color: var(--color-success); background: var(--color-success-soft); }
 .caregiver-availability--unavailable { color: var(--brand-cocoa); background: var(--brand-vanilla); border: 1px solid var(--brand-sand); }
