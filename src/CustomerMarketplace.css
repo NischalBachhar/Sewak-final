@@ -1,0 +1,54 @@
+﻿.customer-marketplace { gap: 20px; }
+.home-marketplace-heading h1 { margin: 0 0 7px; font-size: clamp(24px,3vw,32px); letter-spacing: -.035em; line-height: 1.15; }
+.home-marketplace-heading p { margin: 0; color: var(--brand-cocoa); font-size: 14px; line-height: 1.5; }
+.home-filters { display: grid; grid-template-columns: 1fr 1.2fr 1.2fr 1fr; gap: 12px; padding: 16px; border-radius: 14px; background: var(--brand-vanilla); }
+.home-filters label { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 12px; font-weight: 650; }
+.dashboard-shell .home-filters input:not([type=checkbox]), .dashboard-shell .home-filters select { width: 100%; min-width: 0; min-height: 42px; margin: 0; padding: 9px 10px; border: 1px solid var(--brand-sand); border-radius: 8px; background: var(--brand-white); color: var(--brand-ink); font: inherit; font-size: 13px; box-sizing: border-box; }
+.home-price { display: flex; gap: 5px; align-items: center; min-width: 0; border: 0; padding: 0; margin: 0; }
+.home-price legend { font-size: 12px; font-weight: 650; padding: 0 0 6px; }
+.home-filter-extras { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; }
+.home-filter-extras > label:first-child { flex-direction: row; align-items: center; }
+.home-filter-extras > label:first-child select { width: auto; }
+.home-filter-extras .home-verified { flex-direction: row; align-items: center; gap: 8px; min-height: 36px; }
+.home-verified input { accent-color: var(--brand-coral-hover); width: 17px; height: 17px; }
+.home-filter-extras button { margin-left: auto; min-height: 36px; }
+.home-results-heading, .home-activity-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+.home-results-heading { margin: 12px 0; font-size: 13px; }
+.home-results-heading p { margin: 0; color: var(--brand-cocoa); }
+.home-results-heading a, .home-activity-heading a { color: var(--brand-coral-hover); font-weight: 700; text-decoration: none; padding: 8px 0; }
+.home-caregiver-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.home-caregiver { min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 18px; background: var(--brand-white); border: 1px solid var(--brand-sand); border-radius: 14px; box-shadow: 0 3px 12px var(--color-shadow); }
+.home-caregiver-identity { display: flex; align-items: center; gap: 12px; }
+.home-caregiver-identity > div { min-width: 0; }
+.home-caregiver-photo { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 12px; object-fit: cover; }
+.home-caregiver-initial { display: grid; place-items: center; background: var(--brand-blush); color: var(--brand-coral-hover); font-weight: 750; font-size: 20px; }
+.home-caregiver h2 { margin: 0 0 4px; font-size: 17px; overflow-wrap: anywhere; }
+.home-caregiver p { margin: 0; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.home-caregiver-identity p, .home-caregiver-category, .home-caregiver-rating { color: var(--brand-cocoa); }
+.home-caregiver-checks { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 7px; }
+.home-caregiver-services { font-weight: 600; }
+.home-caregiver-rate { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--brand-sand); display: flex; flex-wrap: wrap; gap: 5px 10px; align-items: baseline; justify-content: space-between; }
+.home-caregiver-rate > small { color: var(--brand-cocoa); font-size: 11px; }
+.home-caregiver-rate strong { font-size: 17px; }
+.home-caregiver-rate strong small { font-size: 12px; font-weight: 400; }
+.home-caregiver button:disabled { background: var(--brand-sand); border-color: var(--brand-sand); color: var(--brand-cocoa); cursor: not-allowed; white-space: normal; }
+.home-request-note { margin: 12px 0 0; color: var(--brand-cocoa); font-size: 12px; line-height: 1.5; }
+.home-pagination { display: flex; gap: 10px; margin-top: 12px; }
+.home-pagination:empty { display: none; }
+.home-discovery-state { padding: 22px 0; }
+.home-discovery-state h2 { font-size: 19px; }
+.home-booking-activity { border-top: 1px solid var(--brand-sand); padding-top: 20px; }
+.home-activity-heading h2 { font-size: 19px; margin: 0; }
+.home-activity-heading a { font-size: 13px; }
+.home-activity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.home-activity-grid h3 { font-size: 14px; margin: 18px 0 10px; }
+.home-activity-grid p { font-size: 13px; color: var(--brand-cocoa); line-height: 1.6; }
+.home-booking-row { display: flex; gap: 12px; justify-content: space-between; padding: 12px 0; color: inherit; text-decoration: none; border-top: 1px solid var(--brand-sand); }
+.home-booking-row span { min-width: 0; }
+.home-booking-row strong, .home-booking-row small { display: block; overflow-wrap: anywhere; }
+.home-booking-row strong { font-size: 13px; }
+.home-booking-row small { color: var(--brand-cocoa); font-size: 12px; line-height: 1.6; }
+.customer-marketplace a:hover { text-decoration: underline; }
+@media (max-width: 1000px) { .home-filters { grid-template-columns: 1fr 1fr; } .home-caregiver-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 600px) { .home-caregiver-grid, .home-activity-grid { grid-template-columns: minmax(0,1fr); } .home-filters { padding: 10px; gap: 10px; } .home-filter-extras { gap: 6px 12px; } .home-filter-extras > label:first-child { width: 100%; } .home-filter-extras > label:first-child select { flex: 1; } .home-filter-extras button { margin-left: 0; } .home-caregiver { padding: 15px; } .home-activity-grid { gap: 0; } }
+

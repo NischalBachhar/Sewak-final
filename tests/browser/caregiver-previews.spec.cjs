@@ -29,8 +29,8 @@ for(const width of [375,1366]) test(`Homepage caregiver previews preserve profil
   await page.getByRole('button',{name:'Sign in',exact:true}).click();
   await page.waitForURL(url=>url.pathname!=='/auth');
   await page.goto('/user/home');
-  const customer=page.locator('.caregiver-preview');
+  const customer=page.locator('.home-discovery');
   await expect(customer.getByRole('heading',{name:'Test Caregiver',exact:true})).toBeVisible();
-  await customer.getByRole('button',{name:'Request care'}).click();
+  await customer.getByRole('link',{name:'Book Now',exact:true}).click();
   await expect(page).toHaveURL(/\/user\/book\/e2e-caregiver$/);
 });
