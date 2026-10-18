@@ -2,7 +2,11 @@
   "width": 1366,
   "viewportHeight": 1000,
   "catalogCount": 18,
-  "heroSHA256": "936b7199364607614d9b8b6d309f189e9e28e752cd7397d63ce5b000c9138142",
+  "rendering": {
+    "platform": "win32",
+    "browserVersion": "155.0.8059.80"
+  },
+  "heroSHA256": "68d8e1c193166f57ced096d34426dd6b17a69b2f19cf4037a0d96d83b4bcaa7d",
   "collapsed": {
     "document": 2518,
     "belowHero": 1898.328125,

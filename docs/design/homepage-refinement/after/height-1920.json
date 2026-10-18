@@ -2,6 +2,10 @@
   "width": 1920,
   "viewportHeight": 1000,
   "catalogCount": 18,
+  "rendering": {
+    "platform": "win32",
+    "browserVersion": "155.0.8059.80"
+  },
   "heroSHA256": "5b3e28441f14ca103c5dcdcf2291c7b26bfdbf1dcf3d47cf8d29777ec53713b9",
   "collapsed": {
     "document": 2611,

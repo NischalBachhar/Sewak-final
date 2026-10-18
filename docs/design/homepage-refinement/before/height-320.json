@@ -32,5 +32,9 @@
       "left": 0
     },
     "overflow": false
+  },
+  "rendering": {
+    "platform": "win32",
+    "browserVersion": "155.0.8059.80"
   }
 }

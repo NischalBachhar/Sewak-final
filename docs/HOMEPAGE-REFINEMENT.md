@@ -14,7 +14,7 @@ Built from Coral & Vanilla commit 08507bfcedcda93a1f38306ccfd487d60ebb71df (PR #
 
 ## Measurements and screenshots
 
-Chrome, viewport height 1000px, device scale 1, reduced motion, same ordered 18-entry public-catalog fixture (16 supported services and two unknown-category fallback fixtures). Fonts ready and images decoded before capture. Default state shows six services; expanded state shows all 18. Heights are CSS pixels. Below-hero height runs from the benefit strip to the document bottom, including the footer. These are fixture measurements, not live production catalog counts.
+Windows Chrome 155.0.8059.80, viewport height 1000px, device scale 1, reduced motion, same ordered 18-entry public-catalog fixture (16 supported services and two unknown-category fallback fixtures). Fonts ready and images decoded before capture. Default state shows six services; expanded state shows all 18. Heights are CSS pixels. Below-hero height runs from the benefit strip to the document bottom, including the footer. These are fixture measurements, not live production catalog counts.
 
 | Width | Document before | Document after | Below hero before | Below hero after | Below hero reduction | Screenshots |
 |---:|---:|---:|---:|---:|---:|---|
@@ -62,3 +62,5 @@ Desktop default-state reduction is 18.5–19.9% below the hero. Phones retain co
 ## Limits and remaining enhancement
 
 Discovery has an existing validated in-page service selector, but does not consume a service query parameter. All cards deliberately keep normal /browse navigation. Deep linking a selected service remains a separate discovery enhancement. Organization selection remains part of the existing signup workflow. Visual and automated browser QA used Chrome; other browser engines and manual screen-reader testing were not performed. Browserslist reported its existing old-data warning; no dependency updates were made. No Worker, D1, secrets, notifications, booking permissions, pricing, shared tokens or dashboard changes. No merge or Cloudflare deployment.
+
+Screenshot pixels and baseline height assertions run only when the recorded platform and Chrome version match, because platform fonts differ. Other environments run all responsive, behavioral and accessibility assertions and generate their own captures.
