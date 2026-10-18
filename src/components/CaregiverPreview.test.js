@@ -1,6 +1,5 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import HomePage from '../HomePage';
 import CustomerHomePage from '../CustomerHomePage';
 import CaregiverPreview from './CaregiverPreview';
 import CaregiverPreviewCard from './CaregiverPreviewCard';
@@ -41,13 +40,6 @@ test.each([[false, 'Meet Sewak Care Professionals', '/browse'], [true, 'Explore 
     fireEvent.click(screen.getByRole('button', { name: /Book now/ }));
   }
   expect(mockNavigate).toHaveBeenLastCalledWith(signedIn ? '/user/book/real' : '/caregivers/real');
-});
-
-test('public homepage includes the shared preview after its overview', async () => {
-  render(<HomePage />);
-  expect(await screen.findByRole('heading', { name: caregiver.name })).toBeVisible();
-  const overview = screen.getByRole('region', { name: 'Support that fits your life.' });
-  expect(overview.compareDocumentPosition(screen.getByRole('region', { name: 'Meet Sewak Care Professionals' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
 test('customer homepage shows caregiver discovery before booking activity', async () => {

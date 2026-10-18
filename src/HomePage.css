@@ -2,9 +2,9 @@
 .home-page p { line-height: 1.7; }
 .home-hero { max-width: var(--workspace-width); margin: auto; padding: 54px clamp(20px,4vw,64px) 44px; display: grid; grid-template-columns: 1fr 1.14fr; gap: 30px; align-items: center; }
 .home-eyebrow { color: var(--brand-coral-hover); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .17em; margin: 0 0 18px; }
-.home-hero h1 { font: 500 clamp(42px,4.5vw,72px)/1.05 var(--font-display); letter-spacing: -.045em; max-width: 650px; margin: 0 0 25px; }
+.home-hero h2 { font: 500 clamp(42px,4.5vw,72px)/1.05 var(--font-display); letter-spacing: -.045em; max-width: 650px; margin: 0 0 25px; }
 .home-page em { font-style: normal; color: var(--brand-coral); }
-.home-hero h1 em { display: block; }
+.home-hero h2 em { display: block; }
 .home-lead { color: var(--brand-cocoa); font-size: clamp(15px,1.3vw,18px); max-width: 540px; margin: 0 0 28px; }
 .home-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .home-button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 50px; padding: 12px 23px; border: 1px solid var(--brand-coral); border-radius: 10px; background: var(--brand-coral); color: var(--color-on-brand); font: inherit; font-size: 14px; font-weight: 650; line-height: 1.4; text-decoration: none; cursor: pointer; transition: background-color 180ms ease; }
@@ -70,7 +70,24 @@
 .home-footer nav a { display: flex; align-items: center; min-height: 44px; color: var(--brand-cocoa); font-size: 12px; }
 @media (max-width: 1000px) { .home-hero { grid-template-columns: 1fr 1fr; gap: 20px; } .home-values { grid-template-columns: repeat(2,minmax(0,1fr)); } .home-confidence { gap: 30px; } .home-join { border-radius: 0; } }
 @media (max-width: 760px) { .home-page { --home-section-space: 40px; } .home-hero { grid-template-columns: 1fr; padding-top: 36px; } .home-hero__copy { max-width: 570px; } .home-hero__visual img { max-height: 420px; border-top-left-radius: 60px; } .home-section-heading { display: block; } .home-section-heading > p { max-width: 100%; } .home-steps, .home-confidence { grid-template-columns: 1fr; gap: 28px; } .home-steps li > span { margin-bottom: 14px; } .home-steps li:not(:last-child)::after { display: none; } .home-confidence__cards article { padding-block: 18px; } .home-join { flex-direction: column; align-items: flex-start; gap: 20px; } .home-join .home-actions { width: 100%; } .home-footer nav { margin-left: 0; } }
-@media (max-width: 420px) { .home-hero h1 { font-size: 43px; } .home-values { gap: 16px 12px; } .home-values > div { gap: 8px; } .home-values strong { font-size: 13px; } .home-actions { width: 100%; } .home-actions .home-button { flex: 1 0 auto; } .home-hero__visual figcaption { font-size: 15px; } }
+@media (max-width: 420px) { .home-hero h2 { font-size: 43px; } .home-values { gap: 16px 12px; } .home-values > div { gap: 8px; } .home-values strong { font-size: 13px; } .home-actions { width: 100%; } .home-actions .home-button { flex: 1 0 auto; } .home-hero__visual figcaption { font-size: 15px; } }
 @media (max-width: 900px) { .home-services { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 480px) { .home-services { grid-template-columns: 1fr; } .home-service { padding: 20px; } .home-service h3 { font-size: 16px; } }
 @media (prefers-reduced-motion: reduce) { .home-service { transition: none; } }
+
+/* The caregiver marketplace above is the homepage, this is now secondary context. */
+.home-hero--secondary {
+  margin-block: 0;
+  padding-block: 30px;
+  grid-template-columns: minmax(0,1fr) minmax(300px,.8fr);
+  border-top: 1px solid var(--brand-sand);
+}
+.home-hero--secondary h2 { font-size: clamp(31px,3.6vw,47px); max-width: 540px; margin-bottom: 15px; }
+.home-hero--secondary .home-lead { margin-bottom: 16px; font-size: 14px; }
+.home-hero--secondary .home-hero__note { margin-top: 12px; }
+.home-hero--secondary .home-hero__visual img { max-height: 260px; border-top-left-radius: 55px; }
+.home-hero--secondary .home-hero__visual figcaption { font-size: 13px; padding: 7px 11px; }
+@media (max-width: 760px) {
+  .home-hero--secondary { grid-template-columns: 1fr; padding-block: 24px; }
+  .home-hero--secondary .home-hero__visual img { max-height: 240px; }
+}
