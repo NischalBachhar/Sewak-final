@@ -1,18 +1,26 @@
 const {test,expect}=require('./test.cjs');
 const {seed}=require('./seed.cjs');
 test.beforeAll(async()=>{await seed();});
-for(const width of [375,1366]) test(`caregiver previews preserve profile and booking navigation at ${width}px`,async({page},info)=>{
+for(const width of [375,1366]) test(`Homepage caregiver previews preserve profile and booking navigation at ${width}px`,async({page},info)=>{
   await page.setViewportSize({width,height:900});
   await page.goto('/');
   const preview=page.locator('.caregiver-preview');
   await expect(preview.getByRole('heading',{name:'Test Caregiver',exact:true})).toBeVisible();
-  await expect(preview.getByText('Accepting requests',{exact:true})).toBeVisible();
+  await expect(preview.locator('.caregiver-availability--accepting').first()).toBeVisible();
   await expect(preview.getByText('General care support',{exact:true})).toBeVisible();
   await expect(page.locator('.home-service .home-icon svg').first()).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   await page.screenshot({path:info.outputPath(`previews-${width}.png`),fullPage:true});
   await preview.getByRole('link',{name:'View profile',exact:true}).click();
   await expect(page).toHaveURL(/\/caregivers\/e2e-caregiver$/);
+  await page.goto('/');
+  await page.locator('.home-service').first().waitFor();
+  const serviceLink=page.locator('.home-service a').first();
+  const serviceId=new URL(await serviceLink.getAttribute('href'),'http://127.0.0.1:4173').searchParams.get('service');
+  await serviceLink.click();
+  await expect(page).toHaveURL(new RegExp(`service=${serviceId}`));
+  if(width<=640) await page.getByRole('button',{name:/^Filters/}).click();
+  await expect(page.getByRole('combobox',{name:'Service',exact:true})).toHaveValue(serviceId);
   await page.goto('/');
   await page.locator('.caregiver-preview').getByRole('button',{name:'Sign in to book'}).click();
   await expect(page).toHaveURL(/\/auth$/);
@@ -25,9 +33,4 @@ for(const width of [375,1366]) test(`caregiver previews preserve profile and boo
   await expect(customer.getByRole('heading',{name:'Test Caregiver',exact:true})).toBeVisible();
   await customer.getByRole('button',{name:'Request care'}).click();
   await expect(page).toHaveURL(/\/user\/book\/e2e-caregiver$/);
-  await page.goto('/');
-  await page.locator('.home-service a[href*="service=e2e-care"]').click();
-  await expect(page).toHaveURL(/service=e2e-care/);
-  const filter=page.locator('select').filter({has:page.locator('option[value="e2e-care"]')});
-  await expect(filter.first()).toHaveValue('e2e-care');
 });
