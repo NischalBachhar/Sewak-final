@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { apiRequest } from "../apiClient";
 import CaregiverPreview from "./CaregiverPreview";
@@ -94,5 +94,5 @@ test("failed preview requests show retry, not fake caregiver cards", async () =>
     options.json.path === "publicCaregivers" ? caregivers([["care-a", profile]]) : services,
   ));
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-  await waitFor(() => expect(screen.getByRole("heading", { name: "Care Partner" })).toBeTruthy());
+  expect(await screen.findByRole("heading", { name: "Care Partner" })).toBeTruthy();
 });
