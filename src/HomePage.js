@@ -22,7 +22,7 @@ export default function HomePage() {
     return () => { active = false; };
   }, [attempt]);
   useEffect(() => {
-    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: 'start' });
   }, [hash, state]);
   return <div className="home-page">
     <PublicHeader />
