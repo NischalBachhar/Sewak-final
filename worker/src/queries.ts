@@ -101,7 +101,7 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
     // Existing searches remain "accepting requests" only. Explicit opt-in
     // exposes only otherwise eligible approved profiles with availability off;
     // safety/organization exclusions above cannot be bypassed.
-    const availability = search.availability ?? 'accepting';
+    const availability = search.availability === undefined ? 'accepting' : search.availability;
     badInput(['accepting','all','unavailable'].includes(availability), 'Invalid availability filter.');
     if (availability === 'accepting') conditions.push('t.is_available=1');
     if (availability === 'unavailable') conditions.push('COALESCE(t.is_available,0)=0');
