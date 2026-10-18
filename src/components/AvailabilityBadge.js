@@ -9,10 +9,10 @@ export default function AvailabilityBadge({ isAvailable }) {
   return (
     <span
       className={`caregiver-availability ${accepting ? "caregiver-availability--accepting" : "caregiver-availability--unavailable"}`}
-      aria-label={accepting ? "Accepting booking requests; dates require confirmation" : "Not accepting booking requests"}
     >
       <span className="caregiver-availability__dot" aria-hidden="true" />
       {accepting ? "Accepting requests" : "Not accepting requests"}
+      {accepting && <span className="caregiver-availability__detail">; dates require confirmation</span>}
     </span>
   );
 }
