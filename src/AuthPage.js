@@ -56,7 +56,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState(auth.currentUser?.email || "");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(sessionStorage.getItem("sewak.registrationRole") || "user");
+  const [selectedRole, setSelectedRole] = useState(() => sessionStorage.getItem("sewak.registrationRole") || (params.get("role") === "orgadmin" ? "orgadmin" : "user"));
   const [organization, setOrganization] = useState({});
   const [organizationName, setOrganizationName] = useState("");
   const [loading, setLoading] = useState(false);
