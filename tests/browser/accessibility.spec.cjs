@@ -21,6 +21,7 @@ for(const [label,route,role,ready] of [
   ['admin','/superadmin/overview','admin','.sewak-workspace'],
   ['admin caregivers','/superadmin/caregivers','admin','.sewak-workspace'],
   ['admin organizations','/superadmin/organizations','admin','.sewak-workspace'],
+  ['admin reports','/superadmin/blacklist','admin','.sewak-workspace'],
   ['caregiver verification','/caregiver?tab=verification','caregiver','.verification-card'],
   ['admin verification','/superadmin/verification','admin','.verification-filters'],
 ]) for(const width of [375,1366]) test(`Accessibility: ${label} at ${width}px`,async({page},info)=>{
