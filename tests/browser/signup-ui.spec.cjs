@@ -83,7 +83,11 @@ for (const width of [320, 360, 375, 390, 414, 430, 768, 1024, 1440]) {
     // reduced motion instead of waiting for removed legacy elements.
     for (const selector of ['.sewak2-signup-image img', '.signup-brand', '.signup-trust']) {
       const element = page.locator(selector);
-      await expect(element).toBeVisible();
+      if (selector === '.signup-trust' && width <= 760) {
+        await expect(element).toBeHidden(); // Deliberately compact mobile signup.
+      } else {
+        await expect(element).toBeVisible();
+      }
       expect(await element.evaluate(el => getComputedStyle(el).animationName)).toBe('none');
     }
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
