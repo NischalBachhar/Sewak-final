@@ -1,6 +1,5 @@
 import React from "react";
 import logo from "../assets/sewak-care-mark.svg";
-import careIllustration from "../assets/login-care.svg";
 
 // Small, local line icons keep the sign-in page independent of an icon package.
 export function LoginIcon({ name }) {
@@ -24,11 +23,11 @@ export default function LoginExperience() {
       <div className="login-brand"><img src={logo} alt="" width="44" height="44" /><span>Sewak<span className="login-brand-caption">Care, closer to home.</span></span></div>
       <div className="login-intro">
         <p className="login-eyebrow">A helping hand. A little peace of mind.</p>
-        <h1 id="login-experience-title">Trusted care, when<br className="login-desktop-break" /> your family needs it.</h1>
-        <p className="login-description">Reconnect with care for children, adults, elderly family members and your home.</p>
+        <h1 id="login-experience-title">Good care starts with <span>great people.</span></h1>
+        <p className="login-description">Welcome back. Your caregivers, bookings and conversations are just a sign-in away.</p>
       </div>
       <div className="login-visual">
-        <img className="login-care-illustration" src={careIllustration} width="600" height="340" alt="A caregiver sharing a warm moment with an older woman and a child at home." />
+        <img className="login-care-illustration" src="https://images.unsplash.com/photo-1765896387387-0538bc9f997e?auto=format&fit=crop&w=900&q=80" width="900" height="600" alt="Nurse sharing a smile with an older adult in a care setting" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = "/images/care-for-every-generation.webp"; }} />
         <div className="login-visual-note"><span><LoginIcon name="heart" /></span><div>Care that feels like home<small>For every generation.</small></div></div>
       </div>
       <ul className="login-trust" aria-label="The Sewak care experience">
