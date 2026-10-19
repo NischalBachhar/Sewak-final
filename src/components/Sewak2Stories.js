@@ -10,7 +10,7 @@ const moments = [
     heading: 'Support that feels human.',
     description: 'Find local help for older parents and loved ones, on a schedule that suits your family.',
     href: '/browse?category=caregiver',
-    image: 'https://images.unsplash.com/photo-1773227055624-07b515ba87c5?auto=format&fit=crop&w=1000&q=80',
+    image: '/images/sewak2-senior-care.webp',
     alt: 'Caregiver supporting an older woman with a walking frame',
   },
   {
@@ -18,7 +18,7 @@ const moments = [
     heading: 'A little help. More family time.',
     description: 'Explore childcare and family support from real Sewak profiles, all in one place.',
     href: '/browse?category=caregiver',
-    image: 'https://images.unsplash.com/photo-1758598738003-3c2ea5c8b166?auto=format&fit=crop&w=1000&q=80',
+    image: '/images/sewak2-family-care.webp',
     alt: 'Mother reading a storybook with her daughter at home',
   },
   {
@@ -26,7 +26,7 @@ const moments = [
     heading: 'Life works better together.',
     description: 'From household help to flexible care, compare services, schedules and real rates.',
     href: '/browse?category=household',
-    image: 'https://images.unsplash.com/photo-1765896387387-0538bc9f997e?auto=format&fit=crop&w=1000&q=80',
+    image: '/images/sewak2-care-team.webp',
     alt: 'Nurse smiling with an older adult in an indoor care setting',
   },
 ];

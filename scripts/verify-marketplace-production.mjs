@@ -1,8 +1,10 @@
-// Authorized live QA: unpublished, run-owned identities only. Never books a real provider.
+// Authorized live QA: run-owned identities only. Never books a real provider.
 import assert from 'node:assert/strict';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {chromium} from '@playwright/test';
+import axe from 'axe-core';
+import {verifyVerificationViews} from './verification-browser-qa.mjs';
 import {openTarget} from './d1-target.mjs';
 import {cloudflare} from './cloudflare-operator.mjs';
 import {SEWAK_ACCOUNT,targets,assertLiveBindings} from './deployment-policy.mjs';
@@ -26,14 +28,17 @@ const {DB}=target,run=randomUUID(),gmail=controlledQaGmail(process.env.SEWAK_QA_
 const password=randomBytes(32).toString('base64url')+'!Aa9';
 const users=['user','caregiver','orgadmin','superadmin'].map(role=>({role,uid:'usr_'+randomUUID(),email:syntheticQaEmail({role,run,gmailBase:gmail})}));
 const [customer,caregiver,org,admin]=users,bookingId='qa_'+run;
-const report={worker,version,run,startedAt:new Date().toISOString(),pass:false,checks:[],widths:[320,390,768,1440,1920],fixtureSetup:'unpublished-identities-and-closed-booking'};
+const report={worker,version,run,startedAt:new Date().toISOString(),pass:false,checks:[],widths:[320,390,768,1024,1440,1920],fixtureSetup:'run-owned-identities-and-bookings'};
+const lifecycleIds=[];
 const dir='.local-tools/cloudflare-auth/marketplace-'+run;
 mkdirSync(dir,{recursive:true});
 const tables=(await DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).results.map(r=>r.name).filter(name=>!name.startsWith('_')&&!name.startsWith('sqlite_')&&!['d1_migrations','cf_sessions','cf_auth_limits'].includes(name)).sort();
 const hash=data=>createHash('sha256').update(JSON.stringify(data)).digest('hex');
 async function snapshot(){const result={};for(const table of tables){assert.match(table,/^[a-z_][a-z0-9_]*$/);try{result[table]=hash((await DB.prepare('SELECT * FROM '+table+' ORDER BY rowid').all()).results);}catch(error){throw new Error('Application snapshot '+table+': '+error.message);}}return result;}
 const before=await snapshot();let browser;
-async function put(name,id,data){const q=insertSQL(name,encodeRecord(name,id,data),'insert');await DB.prepare(q.sql).bind(...q.params).run();}
+report.fixtures={userIds:users.map(user=>user.uid),closedBookingId:bookingId,lifecycleIds};
+writeFileSync(dir+'/report.json',JSON.stringify(report,null,2));
+async function put(name,id,data,mode='insert'){const q=insertSQL(name,encodeRecord(name,id,data),mode);await DB.prepare(q.sql).bind(...q.params).run();}
 async function request(path,user,json,expected=200){
  const response=await fetch(origin+path,{method:json?'POST':'GET',headers:{...(user?{Authorization:'Bearer '+user.token}:{}),...(json?{'Content-Type':'application/json'}:{})},...(json?{body:JSON.stringify(json)}:{}),signal:AbortSignal.timeout(45000)});
  const data=await response.json();report.checks.push({path,status:response.status});
@@ -76,24 +81,85 @@ try{
  await request('/api/admin/accounts',admin);await request('/api/admin/audit',admin);
  await request('/api/admin/accounts',customer,undefined,403);
  await request('/api/care-notifications',null,undefined,401);
+ // Briefly expose an explicitly named synthetic fixture only while exercising
+ // genuine booking authorization. Never send a request to a real provider.
+ const services=await request('/api/query',null,{path:'publicServices',limit:50});
+ const service=services.items.find(s=>!s.data.organizationId&&['caregiver','both'].includes(s.data.category));
+ assert.ok(service,'An existing active non-medical global service is required');
+ const professional={uid:caregiver.uid,name:'Synthetic QA - not a care provider',isApproved:true,isAvailable:true,isSuspended:false,isBlacklisted:false,isIndependent:true,category:'caregiver',workType:'parttime',shifts:['morning'],servicesOffered:[service.id],hourlyRate:0,allowZeroRate:true,location:'Synthetic QA only'};
+ try{
+  await put('vendors',caregiver.uid,professional,'upsert');
+  await DB.prepare('INSERT OR IGNORE INTO caregiver_services(caregiver_id,service_id) VALUES(?,?)').bind(caregiver.uid,service.id).run();
+  assert.equal((await request('/api/records/publicCaregivers/'+caregiver.uid,null)).items.length,1);
+  const timestamp={__op:'serverTimestamp'};
+  const create=async(time)=>{
+   const id=customer.uid+'_'+randomUUID();lifecycleIds.push(id);writeFileSync(dir+'/report.json',JSON.stringify(report,null,2));
+   const data={schemaVersion:2,requestFingerprint:hash(run+id),requestedTimeWindows:[],scheduleAt:new Date('2090-01-01T'+time+':00+05:45').toISOString(),commissionRate:15,userId:customer.uid,userName:'Synthetic QA customer',userPhone:'+9779800000000',userEmail:customer.email,address:'Synthetic QA address',city:'Hetauda',date:'2090-01-01',time,durationHours:1,recurrence:'one_time',careRecipient:'Synthetic QA recipient',careNeeds:'Synthetic QA only',serviceId:service.id,serviceLabel:service.data.label||service.data.serviceName,caregiverId:caregiver.uid,vendorId:caregiver.uid,organizationId:'',organizationName:'',caregiverName:professional.name,caregiverLocation:professional.location,caregiverWorkType:'parttime',caregiverShifts:['morning'],caregiverCategory:'caregiver',status:'pending',hourlyRate:0,totalAmount:0,platformCommission:0,vendorEarnings:0,paymentMethod:'cash',paymentStatus:'pending',amountDue:0,createdAt:timestamp};
+   await request('/api/commit',customer,{writes:[{path:'bookings/'+id,kind:'set',data}],preconditions:[]});return id;
+  };
+  const update=async(id,status)=>request('/api/commit',caregiver,{writes:[{path:'bookings/'+id,kind:'update',data:{status,updatedAt:timestamp}}],preconditions:[]});
+  const accepted=await create('10:00');await update(accepted,'accepted');
+  assert.equal((await request('/api/records/bookings/'+accepted,customer)).items[0].data.status,'accepted');
+  const declined=await create('12:00');await update(declined,'cancelled');
+  assert.equal((await request('/api/records/bookings/'+declined,customer)).items[0].data.status,'cancelled');
+  report.bookingLifecycle={realApiCreation:true,caregiverAcceptance:true,caregiverDecline:true,realProviderContacted:false,charged:false};
+ }finally{
+  await put('vendors',caregiver.uid,{...professional,isApproved:false,isAvailable:false},'upsert');
+  assert.equal((await request('/api/records/publicCaregivers/'+caregiver.uid,null)).items.length,0);
+ }
  browser=await chromium.launch({channel:'chrome',headless:true});
  const page=await browser.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
  page.setDefaultTimeout(45000);
- for(const width of report.widths){
-  await page.setViewportSize({width,height:900});await page.goto(origin+'/');
-  await page.locator('main h1').waitFor();
-  await page.waitForLoadState('networkidle');
-  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Public overflow at '+width);
-  await page.screenshot({path:dir+'/public-'+width+'.png',fullPage:true,animations:'disabled'});
+ const views=[];
+ async function inspect(p,label,width){
+  await p.locator('main h1').first().waitFor();await p.waitForLoadState('networkidle');
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),label+' overflow at '+width);
+  if(width===320||width===1440){
+   await p.evaluate(axe.source);
+   const violations=await p.evaluate(async()=> (await window.axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
+   assert.deepEqual(violations,[],label+' accessibility at '+width);
+  }
+  for(const photo of await p.locator('img[src*="sewak2-"]').all())await photo.scrollIntoViewIfNeeded();
+  await p.waitForFunction(()=>[...document.querySelectorAll('img[src*="sewak2-"]')].every(img=>img.complete&&img.naturalWidth>0));
+  const photos=await p.locator('img[src*="sewak2-"]').evaluateAll(images=>images.map(img=>({src:img.getAttribute('src'),loaded:img.complete&&img.naturalWidth>0})));
+  assert.ok(photos.every(img=>img.loaded),label+' photographic assets');
+  await p.screenshot({path:dir+'/'+label+'-'+width+'.png',fullPage:true,animations:'disabled'});
+  views.push({label,width,photographs:photos.length});
  }
+ await page.emulateMedia({reducedMotion:'reduce'});
+ for(const width of report.widths){
+  await page.setViewportSize({width,height:900});
+  for(const [label,path] of [['public','/'],['browse','/browse'],['login','/auth'],['signup','/auth?mode=register']]){
+   await page.goto(origin+path);await inspect(page,label,width);
+  }
+ }
+ await page.emulateMedia({reducedMotion:'no-preference'});await page.goto(origin+'/');
+ const video=page.locator('video').first();await video.waitFor();
+ await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+ await page.getByRole('button',{name:'Pause background video',exact:true}).first().click();assert.equal(await video.evaluate(v=>v.paused),true);
+ await page.getByRole('button',{name:'Play background video',exact:true}).first().click();
+ await page.waitForFunction(()=>document.querySelector('video')?.paused===false);
+ await page.emulateMedia({reducedMotion:'reduce'});await video.waitFor({state:'detached'});
+ report.media={...report.media,liveActionVideo:true,pauseResume:true,reducedMotion:true,sameOrigin:true};
  const roles=[];
- for(const [u,path] of [[customer,'/user/inbox'],[caregiver,'/caregiver/notifications'],[org,'/organization/notifications'],[admin,'/superadmin/accounts']]){
+ for(const [u,paths] of [[customer,['/user/home','/user','/user/mybookings','/user/inbox','/user/notifications']],[caregiver,['/caregiver','/caregiver/jobs','/caregiver/inbox','/caregiver/notifications']],[org,['/organization','/organization?tab=caregivers','/organization?tab=bookings','/organization/notifications']],[admin,['/superadmin','/superadmin/caregivers','/superadmin/organizations','/superadmin/accounts']]]){
   const context=await browser.newContext();const rolePage=await context.newPage();rolePage.setDefaultTimeout(45000);
+  rolePage.on('pageerror',error=>errors.push(error.message));await rolePage.emulateMedia({reducedMotion:'reduce'});
   await rolePage.goto(origin+'/auth');await rolePage.getByLabel('Email',{exact:true}).fill(u.email);await rolePage.getByLabel('Password',{exact:true}).fill(password);await rolePage.getByRole('button',{name:'Sign in',exact:true}).click();await rolePage.waitForURL(url=>url.pathname!=='/auth');
-  for(const width of report.widths){await rolePage.setViewportSize({width,height:900});await rolePage.goto(origin+path);await rolePage.locator('main h1').first().waitFor();await rolePage.waitForLoadState('networkidle');assert.ok(await rolePage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),u.role+' overflow at '+width);await rolePage.screenshot({path:dir+'/'+u.role+'-'+width+'.png',fullPage:true,animations:'disabled'});}
+  for(const width of report.widths){await rolePage.setViewportSize({width,height:900});for(const [index,path]of paths.entries()){await rolePage.goto(origin+path);await inspect(rolePage,u.role+'-'+index,width);}}
+  for(const width of [390,1440]){
+   await rolePage.setViewportSize({width,height:900});await rolePage.emulateMedia({reducedMotion:'no-preference'});await rolePage.goto(origin+paths[0]);
+   await rolePage.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+   await rolePage.getByRole('button',{name:'Pause background video',exact:true}).first().click();
+   assert.equal(await rolePage.locator('video').first().evaluate(v=>v.paused),true);
+   await rolePage.emulateMedia({reducedMotion:'reduce'});await rolePage.locator('video').waitFor({state:'detached'});
+  }
+  await rolePage.getByRole('button',{name:/Account menu for/}).click();await rolePage.getByRole('button',{name:/Logout/}).click();await rolePage.getByRole('button',{name:/Account menu for/}).waitFor({state:'hidden'});
   roles.push(u.role);await context.close();
  }
- assert.deepEqual(errors,[]);report.browser={publicWidths:report.widths,authenticatedRoles:roles,overflow:false,pageErrors:0};
+ report.verificationBrowser=await verifyVerificationViews(browser,{origin,worker,accounts:[{role:'caregiver',email:caregiver.email,password},{role:'admin',email:admin.email,password}]});
+ assert.deepEqual(errors,[]);report.browser={publicWidths:report.widths,authenticatedRoles:roles,overflow:false,pageErrors:0,views,axeWidths:[320,1440]};
+ const finalDeployment=(await cloudflare(root+'/deployments')).deployments[0];assert.equal(finalDeployment.versions[0].version_id,version,'Production changed during QA');
  report.checksPassed=true;
 }catch(error){report.failure={name:error.name,message:error.message};}
 finally{
@@ -103,6 +169,8 @@ finally{
   await DB.prepare('DELETE FROM care_messages WHERE context_id=? AND customer_id=? AND caregiver_id=?').bind(bookingId,customer.uid,caregiver.uid).run();
   for(const u of users){for(const [table,column] of [['care_notifications','recipient_id'],['care_notification_preferences','user_id'],['care_membership_preferences','user_id']])await DB.prepare('DELETE FROM '+table+' WHERE '+column+'=?').bind(u.uid).run();}
   await DB.prepare('DELETE FROM bookings WHERE id=? AND user_id=? AND caregiver_id=?').bind(bookingId,customer.uid,caregiver.uid).run();
+  for(const id of lifecycleIds)await DB.prepare('DELETE FROM bookings WHERE id=? AND user_id=? AND caregiver_id=?').bind(id,customer.uid,caregiver.uid).run();
+  await DB.prepare('DELETE FROM caregiver_services WHERE caregiver_id=?').bind(caregiver.uid).run();
   await DB.prepare('DELETE FROM caregivers WHERE id=?').bind(caregiver.uid).run();
   await DB.prepare('DELETE FROM organizations WHERE id=? AND admin_uid=?').bind(org.uid,org.uid).run();
   for(const u of users)await DB.batch([DB.prepare('DELETE FROM cf_sessions WHERE user_id=?').bind(u.uid),DB.prepare('DELETE FROM cf_credentials WHERE user_id=? AND email=?').bind(u.uid,u.email),DB.prepare('DELETE FROM users WHERE id=? AND email=?').bind(u.uid,u.email)]);

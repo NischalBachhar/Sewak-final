@@ -4,7 +4,7 @@ This branch intentionally does NOT copy Care.com's code, photos, recordings, tra
 
 ## Photographs (public illustrative imagery, NOT Sewak providers)
 
-The following third-party photographs are used via resized `images.unsplash.com` URLs and were individually checked as **free to use under the Unsplash License** on 19 October 2026:
+The following third-party photographs are bundled as optimized same-origin WebP assets and were individually checked as **free to use under the Unsplash License** on 19 October 2026:
 
 1. **Caregiver supporting older woman with walker** — Age Cymru, https://unsplash.com/photos/caregiver-assists-elderly-woman-with-walker-2obyM4zYt3Y
    - Image source: https://images.unsplash.com/photo-1773227055624-07b515ba87c5
@@ -16,19 +16,19 @@ The following third-party photographs are used via resized `images.unsplash.com`
    - Image source: https://images.unsplash.com/photo-1765896387387-0538bc9f997e
    - Used in login, organization/admin hero and household-support story.
 
-Unsplash License: https://unsplash.com/license . These photos are contextual illustrations, not real caregiver profiles or endorsements of Sewak. Check license, model releases and third-party hosting terms during production media QA. They are not hosted by Sewak; this branch's CSP narrowly allows `images.unsplash.com`. For a durable release, download permitted optimized renditions, store in `public/images/`, replace external URLs and narrow CSP back to self. On failure, CareHeroMedia and auth components use Sewak's local illustration; photographic story cards have a tinted placeholder.
+Unsplash License: https://unsplash.com/license . These photos are contextual illustrations, not real caregiver profiles or endorsements of Sewak. The source pages and free-use licenses were checked again for this release. Optimized renditions are stored in `public/images/sewak2-senior-care.webp` (79,364 bytes), `sewak2-family-care.webp` (156,900 bytes), and `sewak2-care-team.webp` (57,238 bytes). All photo components use these same-origin assets; the CSP permits images only from self, blob and data. Existing local illustration fallbacks remain available.
 
-## Live-action video status
+## Self-hosted live-action video
 
-The existing six-second illustrated MP4 at `public/videos/sewak-care-hero.mp4` is **not** live-action footage. No Care.com reference recording was copied.
+The earlier six-second illustrated MP4 has been replaced by the licensed nine-second live-action clip below. No Care.com reference recording was copied.
 
-A provisional free-to-use **nine-second live-action caregiving clip** by Kampus Production from Pexels is now configured as the default video source for `CareHeroMedia` (public and all four signed-in roles) with a photographic fallback:
+The free-to-use nine-second caregiving clip by Kampus Production from Pexels is optimized and bundled for public and all four signed-in roles, with photographic/static fallbacks.
 
 - Source: https://www.pexels.com/video/a-woman-taking-good-care-of-an-elderly-lady-7517384/
 - License: https://www.pexels.com/license/ (reviewed 2026-10-19). The subjects in the clip are actors/stock contributors, **not real Sewak caregivers or endorsers**.
 - Preferred preview stream URL: https://videos.pexels.com/video-files/7517384/7517384-hd_1920_1080_25fps.mp4
 
-**Still a release blocker:** This preview URL has not been validated end-to-end in browsers. Cloudflare production must not rely on an unverified third-party video hotlink. Review the file/rights, download a permitted resolution, compress/trim it, self-host on Cloudflare static assets, switch to `/videos/sewak-care-hero.mp4`, and remove the temporary external `media-src` allowlist before production deployment. Confirm desktop/mobile playback, poster, play/pause, reduced-motion settings, load speed and data use. An explicit `REACT_APP_SEWAK_HERO_VIDEO_URL` overrides the preview source.
+The source page and Pexels license were rechecked on 19 October 2026. The downloaded 1080p source was converted to a muted H.264/yuv420p, 960x540, 24 fps, fast-start MP4 at `public/videos/sewak-care-hero.mp4` (396,633 bytes). The default component, browser-test build and production build all use the self-hosted asset. The temporary external media allowlist is removed; `media-src` is self only. Playback, pause/resume, reduced motion, failed-media fallback and responsive/accessibility checks are required in local and live QA. `REACT_APP_SEWAK_HERO_VIDEO_URL` remains an explicit build override.
 
 
 ## Release gates
@@ -39,4 +39,4 @@ A provisional free-to-use **nine-second live-action caregiving clip** by Kampus 
 - Check width 320/390/768/1024/1440/1920, tap targets, labels, focus, reduced-motion, slow network, and image/video fallback.
 - Review Cloudflare CSP and external media reliability. Do not merge/deploy before these conditions are satisfied.
 
-This is the FIRST visual implementation pass, NOT a completed Care.com-equivalent rebuild. Remaining work includes deeper role-by-role page/component replacements, media hosting and end-to-end signed-in QA.
+The merged Sewak 2.0 design is retained. See the production release report for version-matched local and live validation results and operational limits.

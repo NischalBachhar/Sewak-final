@@ -38,11 +38,13 @@ export default function CareNotificationsPage() {
   async function saveReminders(event){
     const enabled=event.target.checked;
     if(busy)return;
+    const previous=reminders;
+    setReminders(enabled);
     setBusy('preferences');setError('');setNotice('');
     try{
       await apiRequest('/api/care-notifications',{method:'POST',json:{action:'preferences',bookingReminders:enabled}});
       setReminders(enabled);setNotice('Reminder preference saved.');
-    }catch(err){setError(err.message);}finally{setBusy('');}
+    }catch(err){setReminders(previous);setError(err.message);}finally{setBusy('');}
   }
   const visibleItems = filter === 'unread' ? items.filter(item=>!item.readAt) : items;
   const home=userRole==='caregiver'?'/caregiver':userRole==='orgadmin'?'/organization':userRole==='superadmin'?'/superadmin':'/user/home';

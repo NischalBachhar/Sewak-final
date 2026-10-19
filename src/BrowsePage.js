@@ -104,7 +104,7 @@ export default function BrowsePage() {
           <a className="sewak2-browse-cta" href="#browse-caregiver-results">See caregivers <span aria-hidden="true">↗</span></a>
         </div>
         <div className="sewak2-browse-photo">
-          <img src="https://images.unsplash.com/photo-1758598738003-3c2ea5c8b166?auto=format&fit=crop&w=1000&q=80" width="1000" height="750" alt="Mother and daughter enjoying a story together at home"
+          <img src="/images/sewak2-family-care.webp" width="1000" height="750" alt="Mother and daughter enjoying a story together at home"
             onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = "/images/care-for-every-generation.webp"; }} />
         </div>
       </section>
