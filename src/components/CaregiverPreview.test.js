@@ -46,10 +46,10 @@ test('customer homepage shows caregiver discovery before booking activity', asyn
   apiRequest.mockImplementation((_path, { json }) => Promise.resolve({ items: json.path === 'publicCaregivers' ? [{ id: caregiver.id, data: caregiver }] : services.map(service => ({ id: service.id, data: service })), total: 1 }));
   render(<CustomerHomePage />);
   expect(await screen.findByRole('heading', { name: caregiver.name })).toBeVisible();
-  expect(screen.getByRole('heading', { name: 'Find & Book Care' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Find care for the people who matter.' })).toBeVisible();
   expect(screen.getAllByRole('region')).toEqual([
     screen.getByRole('region', { name: 'Find caregivers' }),
-    screen.getByRole('region', { name: 'Your booking activity' }),
+    screen.getByRole('region', { name: 'Your care & requests' }),
   ]);
 });
 
