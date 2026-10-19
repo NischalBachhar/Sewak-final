@@ -1,0 +1,26 @@
+.sewak2-hub{width:100%;margin:0 auto 28px;--hub-accent:#d8f7a0;--hub-bg:#eff9e1;color:#173c32}
+.sewak2-hub--caregiver{--hub-accent:#ffdea9;--hub-bg:#fff6e9}
+.sewak2-hub--organization{--hub-accent:#fac8e1;--hub-bg:#fff0f4}
+.sewak2-hub--admin{--hub-accent:#dcd5fb;--hub-bg:#efedff}
+.sewak2-hub__head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:15px;padding:clamp(20px,3vw,30px);border-radius:24px;background:var(--hub-bg)}
+.sewak2-hub__eyebrow{margin:0 0 7px!important;font-size:10px!important;font-weight:900!important;letter-spacing:.16em!important;color:#386452!important}
+.sewak2-hub__head h2{margin:0 0 9px!important;font:850 clamp(26px,3vw,37px)/1.15 "Avenir Next","Segoe UI",Arial,sans-serif!important;letter-spacing:-.045em}
+.sewak2-hub__head p:last-child{margin:0;font-size:13px;line-height:1.5;color:#52655d;max-width:640px}
+.sewak2-hub__flower{display:grid;place-items:center;flex:0 0 64px;width:64px;height:64px;border-radius:22px;font-size:42px;background:var(--hub-accent);color:#103f35}
+.sewak2-hub__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.sewak2-hub__card{display:flex;flex-direction:column;align-items:flex-start;min-width:0;min-height:238px;border:1px solid #e5e8e0;border-radius:22px;background:#fff;padding:22px;text-align:left;color:#183b30;cursor:pointer;box-shadow:0 8px 22px rgb(20 49 36 / 5%);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.sewak2-hub__card:hover,.sewak2-hub__card:focus-visible{transform:translateY(-4px);border-color:#b4d7aa;box-shadow:0 18px 32px rgb(20 49 36 / 11%)}
+.sewak2-hub__top{display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:17px}
+.sewak2-hub__icon{display:grid;place-items:center;width:49px;height:49px;background:var(--hub-accent);color:#154739;border-radius:16px}
+.sewak2-hub__number{font-size:11px;color:#85918b;font-weight:800}
+.sewak2-hub__tag{color:#3b785e;font-weight:850;font-size:10px;letter-spacing:.1em;margin-bottom:6px}
+.sewak2-hub__card strong{font:850 clamp(18px,2vw,23px)/1.2 "Avenir Next","Segoe UI",Arial,sans-serif;letter-spacing:-.04em;margin-bottom:8px}
+.sewak2-hub__detail{color:#627168;font-size:13px;line-height:1.55}
+.sewak2-hub__go{display:inline-flex;gap:9px;align-items:center;margin-top:auto;padding-top:15px;font-size:12px;font-weight:900;color:#0b5846}
+.sewak2-hub__metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:0 0 15px}
+.sewak2-hub__metrics div{padding:14px 18px;border:1px solid #e5e8df;background:#fff;border-radius:15px}
+.sewak2-hub__metrics dt{font-size:12px;color:#64756a}
+.sewak2-hub__metrics dd{font-size:24px;line-height:1.2;font-weight:850;color:#193f34;margin:6px 0 0}
+@media(max-width:740px){.sewak2-hub__grid{grid-template-columns:1fr}.sewak2-hub__card{min-height:0;padding:18px}.sewak2-hub__flower{width:47px;height:47px;flex-basis:47px;font-size:29px}.sewak2-hub__head{padding:20px}.sewak2-hub__head h2{font-size:26px}}
+@media(min-width:741px) and (max-width:1024px){.sewak2-hub__grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sewak2-hub__card:last-child{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){.sewak2-hub__card{transition:none}.sewak2-hub__card:hover,.sewak2-hub__card:focus-visible{transform:none}}
