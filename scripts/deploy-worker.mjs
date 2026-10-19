@@ -4,6 +4,7 @@ import {assertFreeAccount,cloudflare} from './cloudflare-operator.mjs';
 import {assertDeploymentConfig,assertLiveBindings} from './deployment-policy.mjs';
 import {assertReleaseEvidence} from './release-evidence.mjs';
 import {assertVerificationReady} from './verification-release-readiness.mjs';
+import {assertMarketplaceReady} from './marketplace-release-readiness.mjs';
 const valueFlags=new Set(['--worker','--validation','--auth-qa']);
 const switches=new Set(['--cutover-maintenance','--free-plan-confirmed','--dry-run']);
 const seen=new Set();for(let i=2;i<process.argv.length;i++){const flag=process.argv[i];if(seen.has(flag))throw new Error('Duplicate deploy argument: '+flag);seen.add(flag);if(valueFlags.has(flag)){if(!process.argv[++i]||process.argv[i].startsWith('--'))throw new Error('Missing value for '+flag);}else if(!switches.has(flag))throw new Error('Unsupported deploy override: '+flag);}
@@ -30,6 +31,7 @@ if(JSON.parse(readFileSync('.local-tools/last-build.json','utf8')).authMode!=='c
 if(/FIREBASE_|MIGRATION_ENABLED\s*=\s*"true"/.test(config))throw new Error('Firebase runtime configuration and migration endpoints must be absent.');
 if(!dryRun)await assertFreeAccount(account,{attested:process.argv.includes('--free-plan-confirmed')});
 if(!dryRun)await assertVerificationReady(worker,cloudflare);
+if(!dryRun)await assertMarketplaceReady(worker,cloudflare);
 if(!dryRun&&worker==='sewak-final'&&(selectedWrites||cutoverMaintenance)){
  const reportPath=process.argv[process.argv.indexOf('--validation')+1];
  const validation=JSON.parse(readFileSync(reportPath,'utf8'));
@@ -38,6 +40,8 @@ if(!dryRun&&worker==='sewak-final'&&(selectedWrites||cutoverMaintenance)){
  const qaPath=process.argv[process.argv.indexOf('--auth-qa')+1];
  const qa=JSON.parse(readFileSync(qaPath,'utf8'));
  assertReleaseEvidence({validation,qa,writesEnabled:selectedWrites});
+ const current=(await cloudflare(`/accounts/${account}/workers/scripts/${worker}/deployments`)).deployments[0];
+ if(current.versions.length!==1||current.versions[0].percentage!==100||current.versions[0].version_id!==validation.version)throw new Error('Production changed since QA. Refresh validation and authentication evidence.');
 }
 const result=spawnSync(process.execPath,['worker/node_modules/wrangler/bin/wrangler.js','deploy','--config',configFile,...(dryRun?['--dry-run','--outdir','.local-tools/cloudflare-auth-release']:[])],{stdio:'inherit',env:{...process.env,WRANGLER_SEND_METRICS:'false',SEWAK_REVIEWED_TARGET:worker}});
 if(result.status!==0)process.exit(result.status??1);

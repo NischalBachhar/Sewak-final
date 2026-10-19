@@ -27,6 +27,7 @@ import { SkeletonCard } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
 import WorkspaceShell from "./components/WorkspaceShell";
 import CareWeekPreview from "./components/CareWeekPreview";
+import { kathmanduDate } from "./bookingValidation";
 
 const SHIFT_OPTIONS = ["morning", "day", "night"];
 const CAREGIVER_TABS = ["home", "jobs", "schedule", "profile", "earnings", "verification"];
@@ -34,10 +35,7 @@ const CAREGIVER_TABS = ["home", "jobs", "schedule", "profile", "earnings", "veri
 const localDateKey = (value = new Date()) => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return kathmanduDate(date);
 };
 
 const bookingScheduleDate = (booking) => {
@@ -57,7 +55,7 @@ const bookingScheduleDate = (booking) => {
     if (meridiem === "am" && hour === 12) hour = 0;
   }
 
-  const scheduled = new Date(Number(year), Number(month) - 1, Number(day), hour, minute);
+  const scheduled = new Date(`${year}-${month}-${day}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00+05:45`);
   return Number.isNaN(scheduled.getTime()) ? null : scheduled;
 };
 
@@ -331,7 +329,7 @@ export default function CaregiverDashboardPage() {
     .filter((booking) => ["accepted", "in_progress", "pending"].includes(booking.status))
     .filter((booking) => {
       const scheduled = bookingScheduleDate(booking);
-      return !scheduled || scheduled.getTime() >= new Date().setHours(0, 0, 0, 0);
+      return !scheduled || scheduled.getTime() >= new Date(todayKey+'T00:00:00+05:45').getTime();
     })
     .sort((first, second) => bookingSortTime(first) - bookingSortTime(second));
   const nextJob = upcomingJobs[0] || null;

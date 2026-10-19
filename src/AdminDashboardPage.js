@@ -1,4 +1,5 @@
 import { VerificationManagement } from './components/VerificationWorkspace';
+import AdminOperationsPanel from './components/AdminOperationsPanel';
 import { saveService, retireService } from "./servicePublishing";
 import AccessibleDialog from "./components/AccessibleDialog";
 import WorkspaceShell from "./components/WorkspaceShell";
@@ -36,6 +37,8 @@ const dashboardTabs = [
   "admins",
   "analytics",
   "verification",
+  "accounts",
+  "audit",
 ];
 
 
@@ -809,16 +812,7 @@ export default function AdminDashboardPage() {
   const handleApproveCaregiverClick = async (caregiverId) => {
     try {
       const now = serverTimestamp();
-      await updateDoc(doc(db, "vendors", caregiverId), {
-        isApproved: true,
-        approvedAt: now,
-        approvedBy: currentUser?.email || "superadmin",
-      });
-      try {
-        await updateDoc(doc(db, "users", caregiverId), { isApproved: true });
-      } catch {
-        // users doc may not exist
-      }
+      await httpsCallable(null,'approveCaregiverAccount')({caregiverId});
       setVendors((prev) =>
         prev.map((vendor) =>
           vendor.id === caregiverId
@@ -1252,6 +1246,7 @@ export default function AdminDashboardPage() {
         {editingCaregiver && <CaregiverEditor caregiver={editingCaregiver} onClose={() => setEditingCaregiver(null)} onSaved={savedCaregiver} />}
 
       {activeTab === "verification" && <VerificationManagement />}
+      {['accounts','audit'].includes(activeTab)&&<AdminOperationsPanel key={activeTab} kind={activeTab}/>}
       {/* Error Messages */}
       {error && (
         <div

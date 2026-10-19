@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // Sewak-specific media. Supply an original/licensed MP4 via the build setting.
 // The original Sewak illustration remains visible until the browser can render video.
@@ -6,11 +6,15 @@ const videoUrl = process.env.REACT_APP_SEWAK_HERO_VIDEO_URL || '';
 
 export function CareHeroMedia({ alt = '', className = '' }) {
   const [canPlay, setCanPlay] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const video=useRef(null);
+  // Resolve the preference before mounting a video, avoiding a first-frame autoplay.
+  const [reducedMotion, setReducedMotion] = useState(() =>
+    typeof window === 'undefined' || !window.matchMedia || window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return undefined;
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const sync = () => setReducedMotion(preference.matches);
+    const sync = () => {setReducedMotion(preference.matches);setPaused(false);};
     sync();
     preference.addEventListener?.('change', sync);
     return () => preference.removeEventListener?.('change', sync);
@@ -19,9 +23,15 @@ export function CareHeroMedia({ alt = '', className = '' }) {
     <img src="/images/care-for-every-generation.webp" alt={alt} width="1536" height="1024" decoding="async" />
     {videoUrl && !reducedMotion && <video
       aria-hidden="true" className={canPlay ? 'is-ready' : ''}
+      ref={video}
       autoPlay muted loop playsInline preload="metadata" tabIndex={-1}
       onLoadedData={() => setCanPlay(true)} onError={() => setCanPlay(false)}
     ><source src={videoUrl} type="video/mp4" /></video>}
+    {videoUrl&&!reducedMotion&&canPlay&&<button className="sewak-media-toggle" type="button"
+      aria-label={paused?'Play background video':'Pause background video'} onClick={()=>{
+        if(paused)video.current?.play().then(()=>setPaused(false)).catch(()=>setCanPlay(false));
+        else {video.current?.pause();setPaused(true);}
+      }}>{paused?'Play video':'Pause video'}</button>}
   </div>;
 }
 

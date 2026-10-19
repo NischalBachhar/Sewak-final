@@ -20,8 +20,9 @@ test('asset security headers allow Cloudflare sessions without external auth ori
 for(const width of [320,375,430,768,1366,1920])test(`public and four authenticated role routes at ${width}px`,async({browser})=>{
  const context=await browser.newContext({viewport:{width,height:900}});const page=await context.newPage();
  await page.goto('/browse');await expect(page.getByRole('heading',{name:/Care that feels/})).toBeVisible();await checkOverflow(page);
- await page.getByRole('link',{name:'Sign up',exact:true}).click();await expect(page.getByLabel('Full name')).toBeVisible();
- for(const [role,route,heading]of[['customer','/user/home','Find & Book Care'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Booking management'],['admin','/superadmin/caregivers','Caregivers']]){
+ await page.getByRole('link',{name:'Get started',exact:true}).click();
+ await page.getByRole('link',{name:'Create a family account'}).click();await expect(page.getByLabel('Full name')).toBeVisible();
+ for(const [role,route,heading]of[['customer','/user/home','Find & Book Care'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Bookings'],['admin','/superadmin/caregivers','Caregivers']]){
   const roleContext=await browser.newContext({viewport:{width,height:900}});const p=await roleContext.newPage();await signIn(p,role);await p.goto(route);
   if(heading)await expect(p.getByRole('heading',{name:new RegExp(heading)}).first()).toBeVisible();else await expect(p.getByRole('heading',{name:/Test caregiver|Caregiver|My jobs|Jobs/i}).first()).toBeVisible();
   await checkOverflow(p);await p.reload();await expect(p.getByRole('button',{name:/Account menu for/})).toBeVisible();await checkOverflow(p);
@@ -31,15 +32,16 @@ for(const width of [320,375,430,768,1366,1920])test(`public and four authenticat
  await context.close();
 });
 test('real D1 customer request -> caregiver acceptance/start/complete -> refreshed verified review',async({browser})=>{
+ const baselineBookingCount=(await db.collection('bookings').get()).size;
  const customerContext=await browser.newContext();const customer=await customerContext.newPage();await signIn(customer,'customer');await customer.goto('/user/book/e2e-caregiver');
  await customer.getByLabel('Person needing care').fill('Synthetic recipient');await customer.getByLabel('What help is required?').fill('Synthetic care needs');await customer.getByLabel('Care or support needed').selectOption('e2e-care');await customer.getByRole('button',{name:'Continue',exact:true}).click();
  await customer.locator('#booking-date').fill('2090-01-01');await customer.locator('#booking-time').fill('10:00');await customer.getByRole('button',{name:'Continue',exact:true}).click();
  await customer.getByLabel('Additional instructions').fill('Synthetic additional notes');await customer.getByRole('button',{name:'Continue',exact:true}).click();
- expect((await db.collection('bookings').get()).size).toBe(0);
+ expect((await db.collection('bookings').get()).size).toBe(baselineBookingCount);
  await customer.getByRole('button',{name:'Confirm booking',exact:true}).evaluate(button=>{button.click();button.click();});
  await expect(customer.getByRole('heading',{name:/Your request is with/})).toBeVisible();await customer.getByRole('button',{name:'View booking',exact:true}).click();
  const bookingId=new URL(customer.url()).pathname.split('/').pop();
- expect((await db.collection('bookings').get()).size).toBe(1);
+ expect((await db.collection('bookings').get()).size).toBe(baselineBookingCount+1);
  const caregiverContext=await browser.newContext();const caregiver=await caregiverContext.newPage();await signIn(caregiver,'caregiver');await caregiver.goto('/caregiver/jobs');
  await caregiver.getByRole('navigation',{name:'Job status filters'}).getByRole('button',{name:/^All\b/}).click();await caregiver.getByRole('button',{name:'Accept',exact:true}).last().click();await caregiver.getByRole('button',{name:/I've arrived/}).last().click();
  await caregiver.getByRole('button',{name:/Finish shift/}).last().click();
@@ -61,7 +63,7 @@ test('not-found, direct-link refresh, private metadata and recovery action',asyn
 });
 
 test('report submission, duplicate retry, private moderator data and safe history agree',async({page})=>{
- const prior=(await db.collection('bookings').limit(1).get()).docs[0];expect(prior).toBeTruthy();
+ const prior=(await db.collection('bookings').get()).docs.find(d=>d.data().careSessionId&&d.data().caregiverId==='e2e-caregiver');expect(prior).toBeTruthy();
  await signIn(page,'caregiver');await page.goto(`/caregiver/reportuser?bookingId=${prior.id}`);
  await page.getByLabel('Reason').selectOption('Safety concerns');await page.getByLabel('What happened?').fill('Synthetic conduct concern for local regression testing.');await page.getByRole('button',{name:'Submit report for review'}).click();await expect(page.getByText(/Report submitted for review/)).toBeVisible();
  await db.doc(`blacklistReports/${prior.id}`).update({moderatorNote:'PRIVATE_MODERATOR_DETAIL'});
@@ -72,7 +74,7 @@ test('report submission, duplicate retry, private moderator data and safe histor
 
 test('organization retains booking history after caregiver leaves roster; customer cancellation and account switching work',async({browser})=>{
  const vendorRef=db.doc('vendors/e2e-caregiver'),vendor=(await vendorRef.get()).data();
- const prior=(await db.collection('bookings').limit(1).get()).docs[0];const id=`e2e-customer_${require('node:crypto').randomUUID()}`;
+ const prior=(await db.collection('bookings').get()).docs.find(d=>d.data().careSessionId&&d.data().caregiverId==='e2e-caregiver');expect(prior).toBeTruthy();const id=`e2e-customer_${require('node:crypto').randomUUID()}`;
  await db.doc(`bookings/${id}`).set({...prior.data(),status:'pending',careRecipient:'Cancellation test'});
  const context=await browser.newContext(),page=await context.newPage();
  try {

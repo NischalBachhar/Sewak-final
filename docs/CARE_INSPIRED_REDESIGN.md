@@ -1,5 +1,7 @@
 # Sewak care-marketplace redesign
 
+This is the historical visual-refresh record. See [the feature matrix](CARE_MARKETPLACE_FEATURE_MATRIX.md) and [production release record](MARKETPLACE-PRODUCTION-RELEASE.md) for current messaging, care jobs, caregiver signup, notifications, QA and delivery status.
+
 This change gives Sewak an original, consistent visual system influenced by publicly documented Care.com design principles, not a pixel-for-pixel copy.
 
 ## Reference patterns

@@ -2,6 +2,7 @@ import type { Write, Saved } from './repository.ts';
 import { Repository, requireActive } from './repository.ts';
 import { badInput, requireThat, onlyKeys, type Data, type Actor, type Env } from './types.ts';
 import { weeklyRestriction, weeklyArgs, weeklyHoursAction, weeklyHoursRead } from './weekly-hours.ts';
+import { nepalDay } from './nepal-time.ts';
 
 // All dates/times in this module are local wall times in Nepal, not UTC.
 const validDay=(value:unknown):value is string=>typeof value==='string' &&
@@ -86,7 +87,7 @@ export async function careScheduleRoute(request:Request,url:URL,repo:Repository,
  requireThat(user.role==='caregiver','Only caregivers can manage their availability.');
  if(request.method==='GET'){
   const rows=await db.prepare('SELECT id,day,start_min AS startMin,end_min AS endMin FROM caregiver_time_off WHERE caregiver_id=? AND day>=? ORDER BY day,start_min LIMIT 100')
-    .bind(user.uid,new Date().toISOString().slice(0,10)).all<Data>();
+    .bind(user.uid,nepalDay()).all<Data>();
   return {blocks:rows.results,weeklyHours:await weeklyHoursRead(repo,user.uid)};
  }
  requireThat(request.method==='POST','Unsupported scheduling method.',405,'method-not-allowed');
@@ -100,7 +101,7 @@ export async function careScheduleRoute(request:Request,url:URL,repo:Repository,
   return {updated:true};
  }
  badInput(input.id===undefined&&validDay(input.day),'Choose a valid date.');
- const today=new Date().toISOString().slice(0,10);
+ const today=nepalDay();
  badInput(input.day>=today&&input.day<=plus(today,366),'Choose a date within the next year.');
  const start=minute(input.start),end=minute(input.end,true);
  badInput(end>start,'End time must follow start time.');

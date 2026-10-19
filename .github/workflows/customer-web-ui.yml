@@ -32,7 +32,7 @@ jobs:
       - name: Install pinned dependencies
         run: npm ci --no-audit --no-fund
       - name: Unit tests
-        run: npm run test:unit -- --passWithNoTests
+        run: npm run test:unit
       - name: Production React build
         run: npm run build
         env:

@@ -41,6 +41,8 @@ export function WorkspaceIcon({ type, size = 19 }) {
 }
 
 const MENU_LABELS = {
+  accounts: "Accounts",
+  audit: "Audit log",
   verification: "My Verification",
   overview: "Overview",
   home: "Overview",
@@ -101,7 +103,7 @@ export default function WorkspaceShell({
         </div>
       </aside>
 
-      <div className="sewak-workspace__content">
+      <main id="main-content" className="sewak-workspace__content">
         <div className="sewak-workspace__intro">
           <div>
             <p className="sewak-workspace__eyebrow">{isAdmin ? "SEWAK PLATFORM" : "YOUR WORKSPACE"}</p>
@@ -114,7 +116,7 @@ export default function WorkspaceShell({
           </div>
         </div>
         <div className="sewak-workspace__body">{children}</div>
-      </div>
+      </main>
     </div>
   );
 }

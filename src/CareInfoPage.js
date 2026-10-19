@@ -40,7 +40,7 @@ export default function CareInfoPage({ page = 'start', withHeader = true }) {
       {page === 'start' && <>
         <Intro eyebrow="WELCOME TO SEWAK" title="Let’s find your next step."><p>Care is personal. Start with the path that fits what you need.</p></Intro>
         <div className="care-info-choice-grid">
-          <article><span className="care-info-choice-icon" aria-hidden="true">♡</span><h2>I'm looking for care</h2><p>Explore trusted local profiles, compare availability and hourly rates, and send a booking request.</p><Link to="/browse">Find care <span aria-hidden="true">→</span></Link></article>
+            <article><span className="care-info-choice-icon" aria-hidden="true">♡</span><h2>I'm looking for care</h2><p>Explore trusted local profiles, compare availability and hourly rates, and send a booking request.</p><Link to="/browse">Find care <span aria-hidden="true">→</span></Link><Link to="/auth?mode=register&role=user">Create a family account <span aria-hidden="true">→</span></Link></article>
           <article><span className="care-info-choice-icon" aria-hidden="true">✳</span><h2>I manage a care organization</h2><p>Register your agency or service business. Your application is reviewed before your team is published.</p><Link to="/auth?mode=register&role=orgadmin">Register organization <span aria-hidden="true">→</span></Link></article>
           <article><span className="care-info-choice-icon" aria-hidden="true">⌂</span><h2>I'm a caregiver</h2><p>Apply as an independent care professional. Complete your profile and wait for Sewak approval before accepting bookings.</p><Link to="/auth?mode=register&role=caregiver">Apply as a caregiver <span aria-hidden="true">→</span></Link></article>
         </div>

@@ -5,6 +5,8 @@ on:
       - 'worker/**'
       - 'src/**'
       - 'tests/d1/**'
+      - 'migrations/**'
+      - 'scripts/*marketplace*.mjs'
       - 'tests/browser/auth-reliability.spec.cjs'
       - 'scripts/serve-d1-test.mjs'
       - 'playwright.auth.config.cjs'
@@ -34,7 +36,7 @@ jobs:
       - name: Caregiver previews, availability and discovery
         run: npm run test:browser -- caregiver-previews.spec.cjs zz-discovery.spec.cjs
       - name: New marketplace inbox and availability end-to-end journeys
-        run: npm run test:browser -- marketplace-rebuild.spec.cjs
+        run: npm run test:browser -- marketplace-rebuild.spec.cjs marketplace-media.spec.cjs
       - run: npm run build:release
         env:
           REACT_APP_CANONICAL_ORIGIN: https://sewak-final.nischalbachhar9.workers.dev

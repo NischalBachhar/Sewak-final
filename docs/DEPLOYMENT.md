@@ -4,6 +4,8 @@ Production is `sewak-final` in account `860970f755498a4fe10e16c2fa99ce55`. Use `
 
 The guarded operator validates exact Worker, account, both D1 names and IDs, audience, and write mode before any network mutation. Unsupported/duplicate arguments and environment/CI overrides fail closed. After upload it checks current settings and the active 100% deployment's version bindings. A name match alone is insufficient.
 
+The PR #43 marketplace release additionally requires the reviewed additive schema plan in `scripts/migrate-marketplace.mjs` and the marketplace readiness check inside `deploy-worker.mjs`. See [the release record](MARKETPLACE-PRODUCTION-RELEASE.md) for current backup evidence, QA and migration/deployment status. A dry run packages code; an actual upload rejects missing remote marketplace schemas.
+
 Build and dry-run from the repository root (PowerShell uses `npm.cmd`):
 
 ```powershell

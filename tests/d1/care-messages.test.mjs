@@ -24,3 +24,19 @@ test('rejects overlong messages and unverified context IDs',async()=>{
  const result=await call(env,'/api/care-messages',{uid:'customer',method:'POST',json:{kind:'job',contextId:'../wrong',caregiverId:'caregiver',body:'hello'}});
  assert.equal(result.status,400);
 });
+
+test('an application withdrawn during message submission cannot receive a message or notification',async()=>{
+ const env=environment();await seed(env);
+ const created=await call(env,'/api/care-jobs',{uid:'customer',method:'POST',json:post});
+ const id=created.data.id;
+ assert.equal((await call(env,'/api/care-jobs/'+id+'/apply',{uid:'caregiver',method:'POST',json:{message:'Synthetic caregiver application for this care request.'}})).status,200);
+ const batch=env.DB.batch.bind(env.DB);
+ env.DB.batch=async statements=>{
+   await env.DB.prepare("UPDATE care_job_applications SET status='withdrawn' WHERE job_id=? AND caregiver_id=?").bind(id,'caregiver').run();
+   return batch(statements);
+ };
+ const result=await call(env,'/api/care-messages',{uid:'customer',method:'POST',json:{kind:'job',contextId:id,caregiverId:'caregiver',body:'Synthetic concurrent message'}});
+ assert.equal(result.status,409);
+ assert.equal((await env.DB.prepare('SELECT COUNT(*) n FROM care_messages').first()).n,0);
+ assert.equal((await env.DB.prepare("SELECT COUNT(*) n FROM care_notifications WHERE event_type='care-message'").first()).n,0);
+});

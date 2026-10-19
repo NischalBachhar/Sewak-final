@@ -517,7 +517,7 @@ function App() {
             element={
               <div className="app-shell dashboard-shell dashboard-shell--admin">
                 <div className="app-card">
-                  <DashboardPath root="/superadmin" sections={["overview", "organizations", "caregivers", "bookings", "services", "blacklist", "admins", "analytics", "verification"]}><AdminDashboardPage /></DashboardPath>
+                  <DashboardPath root="/superadmin" sections={["overview", "organizations", "caregivers", "bookings", "services", "blacklist", "admins", "analytics", "verification", "accounts", "audit"]}><AdminDashboardPage /></DashboardPath>
                 </div>
               </div>
             }

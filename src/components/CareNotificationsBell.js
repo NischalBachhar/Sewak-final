@@ -1,22 +1,22 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../apiClient';
 
 export default function CareNotificationsBell({role}){
   const [count,setCount]=useState(0);
   const navigate=useNavigate();
-  const refresh=useCallback(()=>{
-    let alive=true;
-    apiRequest('/api/care-notifications').then(result=>{if(alive)setCount(Math.max(0,Number(result.unread)||0));}).catch(()=>{});
-    return ()=>{alive=false;};
-  },[]);
   useEffect(()=>{
-    const cleanup=refresh();
+    let alive=true;
+    const refresh=()=>{
+    apiRequest('/api/care-notifications').then(result=>{if(alive)setCount(Math.max(0,Number(result.unread)||0));}).catch(()=>{});
+    };
+    setCount(0);refresh();
     const timer=window.setInterval(refresh,60000);
     const onFocus=()=>refresh();
     window.addEventListener('focus',onFocus);
-    return ()=>{cleanup();window.clearInterval(timer);window.removeEventListener('focus',onFocus);};
-  },[refresh]);
+    window.addEventListener('sewak-notifications-changed',onFocus);
+    return ()=>{alive=false;window.clearInterval(timer);window.removeEventListener('focus',onFocus);window.removeEventListener('sewak-notifications-changed',onFocus);};
+  },[role]);
   const path=role==='caregiver'?'/caregiver/notifications':role==='orgadmin'?'/organization/notifications':role==='superadmin'?'/superadmin/notifications':'/user/notifications';
   return <button type="button" className="header-notification-link"
     aria-label={'Notifications'+(count?' ('+count+' unread)':'')}

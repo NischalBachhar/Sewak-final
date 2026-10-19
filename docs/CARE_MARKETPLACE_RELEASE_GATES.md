@@ -36,7 +36,7 @@ Do not represent the animated fallback as a real cinematic video.
 ## Work remaining for a true full-featured care platform
 - Original/licensed cinematic footage, captions if it conveys information, media compression.
 - Production-ready transactional email and push consent/delivery, beyond in-app alerts.
-- Calendar recurrence generation, availability management by care organizations, reminder preferences.
+- Automatic recurring appointment generation and organization-initiated rescheduling; caregiver weekly hours and recipient reminder preferences are implemented.
 - Verified payment gateway onboarding, refunds, invoice receipts and regulatory assessment for Nepal.
 - Family accounts, emergency escalation/support workflows and deeper mobile QA.
 These are NOT silently enabled or claimed as complete by this change.

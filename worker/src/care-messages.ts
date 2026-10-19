@@ -1,5 +1,5 @@
 import { Repository, requireActive } from './repository.ts';
-import { ApiError, badInput, onlyKeys, requireThat, type Actor, type Data } from './types.ts';
+import { active, ApiError, badInput, onlyKeys, requireThat, type Actor, type Data } from './types.ts';
 
 const token = /^[A-Za-z0-9_-]{1,160}$/;
 const sanitizeBody = (value:unknown) => {
@@ -36,11 +36,21 @@ export async function careMessagesRoute(request:Request,url:URL,repo:Repository,
    requireThat(Number(count?.n||0)<100,'Daily messaging limit reached.',429,'rate-limited');
    const id='msg_'+crypto.randomUUID(),createdAt=new Date().toISOString();
    const target=user.uid===customerId?caregiverId:customerId;
+   const recipient=await repo.data('users/'+target);
+   requireThat(active(recipient),'This account is unavailable for new messages.',409,'recipient-unavailable');
    const noticeUrl=kind==='job'?(user.uid===customerId?'/caregiver/messages/job/':'/user/messages/job/')+encodeURIComponent(contextId)+(user.uid===customerId?'':'?caregiverId='+encodeURIComponent(caregiverId)):(user.uid===customerId?'/caregiver/messages/booking/':'/user/messages/booking/')+encodeURIComponent(contextId);
+   const contextGuard=kind==='job'
+     ?db.prepare("INSERT INTO commit_guards(id,valid) VALUES(?,EXISTS(SELECT 1 FROM care_jobs j JOIN care_job_applications a ON a.job_id=j.id WHERE j.id=? AND a.caregiver_id=? AND j.customer_id=? AND a.status='applied'))").bind('message-context:'+id,contextId,caregiverId,customerId)
+     :db.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,EXISTS(SELECT 1 FROM bookings WHERE id=? AND caregiver_id=? AND user_id=?))').bind('message-context:'+id,contextId,caregiverId,customerId);
    await repo.commit([],[
+     contextGuard,
+     db.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,(SELECT COUNT(*) FROM care_messages WHERE sender_id=? AND created_at>=?)<100)')
+       .bind('message-quota:'+id,user.uid,new Date(Date.now()-86400000).toISOString()),
      db.prepare("INSERT INTO care_messages(id,kind,context_id,customer_id,caregiver_id,sender_id,body,created_at) VALUES(?,?,?,?,?,?,?,?)").bind(id,kind,contextId,customerId,caregiverId,user.uid,body,createdAt),
      db.prepare("INSERT OR IGNORE INTO care_notifications(id,recipient_id,event_type,context_id,title,body,link,created_at) VALUES(?,?,?,?,?,?,?,?)")
        .bind('message:'+id,target,'care-message',contextId,'New message','Your care conversation has a new message.',noticeUrl,createdAt),
+     db.prepare('DELETE FROM commit_guards WHERE id=?').bind('message-quota:'+id),
+     db.prepare('DELETE FROM commit_guards WHERE id=?').bind('message-context:'+id),
    ]);
    return {id,createdAt};
  }

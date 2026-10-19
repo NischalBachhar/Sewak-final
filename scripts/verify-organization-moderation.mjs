@@ -60,6 +60,10 @@ finally{
   try{
     for(const org of orgs){
       assert.match(org.uid,/^usr_[0-9a-f-]{36}$/);assert.ok(org.name.endsWith(run));
+      // Approval can create an in-app alert. Remove only this run's recipient's
+      // alerts before deleting its synthetic identity; retain audit history.
+      const notices=await DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='care_notifications'").first();
+      if(notices)await DB.prepare('DELETE FROM care_notifications WHERE recipient_id=?').bind(org.uid).run();
       const row=await DB.prepare('SELECT organization_name FROM organizations WHERE id=?').bind(org.uid).first();
       if(row){assert.equal(row.organization_name,org.name);await DB.prepare('DELETE FROM organization_applications WHERE id=? AND applicant_id=?').bind(org.uid,org.uid).run();await DB.prepare('DELETE FROM blacklist WHERE id=?').bind(org.uid).run();await DB.prepare('UPDATE users SET organization_id=NULL WHERE id=? AND email=? AND organization_id=?').bind(org.uid,org.email,org.uid).run();await DB.prepare('DELETE FROM organizations WHERE id=? AND admin_uid=?').bind(org.uid,org.uid).run();}
       await DB.prepare('DELETE FROM users WHERE id=? AND email=?').bind(org.uid,org.email).run();

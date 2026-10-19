@@ -101,7 +101,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
           </nav>
         )}
 
-        <CareNotificationsBell role={userRole} />
+        <CareNotificationsBell key={user?.uid} role={userRole} />
         {/* User Menu */}
         <div className="header-menu" ref={menuRef}>
           <button

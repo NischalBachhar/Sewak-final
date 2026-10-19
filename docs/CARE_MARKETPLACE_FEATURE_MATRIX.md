@@ -1,31 +1,17 @@
-# Sewak care-marketplace implementation matrix
+﻿# Sewak marketplace feature matrix
 
-This is an independent Sewak product; it must not copy Care.com's proprietary assets, UI source, photos, trademarks or wording.
+Current implementation is based on merged PR #43 (`8c5875f`). Release status and current validation are recorded in `MARKETPLACE-PRODUCTION-RELEASE.md`; this matrix describes application capability, not deployment completion.
 
-## Implemented on design/care-inspired-sewak-refresh
-- Family care job posts, caregiver applications, withdrawal, job closing and applicant view (new Worker API and D1 migration).
-- Public browsing and pricing: real service catalog, public caregiver cards, individual profile details, verified review counts, availability disclosures and actual configured NPR rates.
-- Care service and safety pages, start-by-role entry, pricing explanation.
-- Signed-in customer shortlist (saved caregivers). **Browser-local and user-scoped; not cross-device sync.** Saved profiles are always re-fetched from the published projection.
-- Customer booking requests, caregiver acceptance and care-session status, completed-booking reviews (existing D1 backend).
-- Organizational caregiver roster, application review and separate superadmin account/workspace permissions (existing D1 backend).
-- Mobile-friendly layouts, role-aware navigation, accessible save buttons; no Care.com images or video.
+| Area | Integrated behavior | Contract and limits |
+| --- | --- | --- |
+| Customers | Real D1 caregiver discovery, filters, prices, profiles, saved caregivers, booking requests, cancellations, history, verified completed-booking reviews, care jobs and applications | Shortlists are scoped to the signed-in user in this browser. They are not synchronized across devices. |
+| Caregivers | Independent signup, profile editing, private verification submission, approval, job applications, booking acceptance and care shifts, time off, weekly hours, calendar and recorded earnings | Pending applicants remain unpublished. Verification badges require audited decisions. Recorded cash earnings are not payment or payout confirmation. |
+| Organizations | Registration and approval, invited team accounts, profile and explicit service assignments, team management, booking history, scheduling overview and notifications | Caregiver consent and the existing booking lifecycle remain authoritative. Organization staff cannot silently replace a family's selected caregiver on an existing booking. |
+| Superadmin | Organization approval/rejection/blacklist/tombstone deletion, caregiver approval and restrictions, customer/caregiver account management, verification review, moderation and paginated audit log | Caregiver approval updates profile, listing, audit and notification atomically. Deletion revokes access and preserves historical data. |
+| Messaging | Participant-only D1 booking and job conversations, private inbox and recipient notifications | Manual refresh; no public chat, email or push delivery. Old/withdrawn job application permissions remain enforced. |
+| Notifications | Private in-app list, unread count, mark-read actions, approval/booking/job/message events, idempotent reminders and per-recipient reminder preferences | Essential lifecycle updates remain available. Email and Web Push are explicitly disabled. |
+| Scheduling | Atomic overlap guards for requests and acceptance, overnight booking checks, time off, optional weekly working windows and Nepal date boundaries | Recurring weekly availability is supported. A recurring booking request does not automatically create an unlimited series of visits. |
+| Membership/payment | D1 Free/Plus Preview preference, explicit NPR 0 demo acknowledgement and cash booking | No charges, subscription, premium entitlement or fake payment success. |
+| Media/accessibility | Original six-second illustrated MP4 on public and role landing pages, pause/play, static error fallback and reduced-motion fallback | No Care.com assets or footage. Video is decorative, muted and approximately 44 KB. |
 
-- Private, role-scoped customer–caregiver messaging for an existing booking or active job application (D1; manual refresh only). Messages are not emails or push notifications and do not confirm bookings.
-
-## Still not equivalent to Care.com
-- Family job posting and caregiver applications now have protected D1 storage. Candidate ranking, detailed applicant pipeline and service matching are not implemented yet.
-- Standalone inbox, unread message notifications and email/push delivery (individual conversations now supported).
-- Direct independent caregiver self-signup and approval workflows (current flow uses organization invitation).
-- Dedicated category profile creation for each skill and independent provider job searches.
-- Customer saved searches and cross-device shortlist (currently only saved profiles per device).
-- Optional membership billing, subscriptions, screening vendor integration, payroll, or online payment provider.
-- True recommendation ranking, travel distances, background checks and customer service hotline.
-
-These require backend design, D1 migrations, privacy/safety checks, and end-to-end authenticated tests before launch.
-
-## Release gates
-- No route, login, data, payment, booking or security permission regressions.
-- Tests: frontend lint, unit, typecheck, D1 and Playwright browser; WCAG AA and responsive visual QA.
-- Clearly label *requested*, *pending*, *accepted*, *completed*. Never imply that a sent booking request means a confirmed hire.
-- Do not deploy or delete the live database or original repository to speed up demo creation.
+No fabricated caregivers, prices, ratings, reviews, verification decisions or successful payments are supplied to production. Synthetic fixtures are limited to explicit QA and are identified and cleaned by the operator tools.

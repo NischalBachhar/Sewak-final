@@ -1,5 +1,6 @@
 const {spawnSync}=require('node:child_process'),fs=require('node:fs');
 const env={...process.env,SEWAK_LOCAL_TESTS:'true',REACT_APP_CANONICAL_ORIGIN:'http://127.0.0.1:4173',GENERATE_SOURCEMAP:'false',SEWAK_E2E_TOKEN:require('node:crypto').randomBytes(32).toString('hex')};
+if(fs.existsSync('public/videos/sewak-care-hero.mp4')&&!env.REACT_APP_SEWAK_HERO_VIDEO_URL)env.REACT_APP_SEWAK_HERO_VIDEO_URL='/videos/sewak-care-hero.mp4';
 delete env.DEBUG;for(const key of Object.keys(env))if(/CLOUDFLARE|FIREBASE|GCLOUD|GOOGLE_APPLICATION|MIGRATION_TOKEN/.test(key))delete env[key];
 fs.mkdirSync('.local-tools',{recursive:true});fs.writeFileSync('.local-tools/last-build.json',JSON.stringify({authMode:'cloudflare-local-test'}));
 const filter=env.SEWAK_BROWSER_GREP?['--grep',env.SEWAK_BROWSER_GREP]:[];

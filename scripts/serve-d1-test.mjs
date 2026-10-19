@@ -74,7 +74,7 @@ http.createServer(async(req,res)=>{
    const value=header[2];
    res.setHeader(header[1],value);
   }
-  res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.jpeg':'image/jpeg','.png':'image/png','.xml':'application/xml','.webp':'image/webp'})[path.extname(file)]||'application/octet-stream');
+  res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.jpeg':'image/jpeg','.png':'image/png','.xml':'application/xml','.webp':'image/webp','.mp4':'video/mp4'})[path.extname(file)]||'application/octet-stream');
   if(/^\/(auth|user|caregiver|organization|superadmin|payment-callback)(\/|$)/.test(url.pathname))res.setHeader('X-Robots-Tag','noindex, nofollow');
   fs.createReadStream(file).pipe(res);
  }catch(error){console.error(error.message);res.writeHead(500,{'Content-Type':'application/json'}).end(JSON.stringify({error:'Local test server error'}));}

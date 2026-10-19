@@ -1,0 +1,15 @@
+.admin-operations { min-width:0; padding:20px; border:1px solid var(--brand-sand); border-radius:20px; background:#fff; }
+.admin-operations header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.admin-operations h2,.admin-operations h3 { color:var(--brand-forest); margin:0 0 8px; }
+.admin-operations p { color:var(--brand-cocoa); line-height:1.6; margin:6px 0; overflow-wrap:anywhere; }
+.admin-operations__records { padding:0; list-style:none; }
+.admin-operations__records li { display:flex; justify-content:space-between; gap:18px; padding:18px 0; border-bottom:1px solid var(--brand-sand); }
+.admin-operations__records li>div { min-width:0; }
+.admin-operations small,.admin-operations time { overflow-wrap:anywhere; color:var(--brand-cocoa); }
+.admin-operations nav,.admin-operations__actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+.admin-operations nav { margin-top:18px; justify-content:space-between; }
+.admin-operations__backdrop { position:fixed; inset:0; z-index:10000; background:rgb(0 24 17 / 55%); display:grid; place-items:center; padding:14px; }
+.admin-operations__dialog { width:min(100%,520px); max-height:90dvh; overflow:auto; border-radius:20px; padding:24px; background:#fff; }
+.admin-operations__dialog label { display:grid; gap:8px; margin:20px 0; overflow-wrap:anywhere; }
+.admin-operations__dialog input,.admin-operations__dialog textarea { box-sizing:border-box; width:100%; min-height:44px; padding:10px; border:1px solid var(--brand-sand); border-radius:8px; font:inherit; }
+@media(max-width:600px){.admin-operations { padding:14px; }.admin-operations__records li { flex-direction:column; }.admin-operations header { flex-wrap:wrap; }}

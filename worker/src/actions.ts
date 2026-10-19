@@ -158,7 +158,42 @@ async function deleteOrganization(repo: Repository, actor: Actor | null, input: 
 
 export async function processAuthOperations(_env: Env){return {remaining:0};}
 
+async function deleteCareAccount(repo:Repository,actor:Actor|null,input:Data){
+ const admin=requireAdmin(actor);onlyKeys(input,['targetUid','confirmation']);
+ const uid=textField(input.targetUid,'Account ID',1,160),profile=await repo.data('users/'+uid);
+ requireThat(uid!==admin.uid&&profile&&['user','caregiver'].includes(profile.role),'Only customer and caregiver accounts can be deleted here.');
+ requireThat(profile.isSuspended===true&&profile.isBlacklisted===true&&!profile.deletedAt,'Restrict the account before deletion.',409,'failed-precondition');
+ badInput(input.confirmation===(profile.name||uid),'Type the account name exactly.');
+ const caregiver=profile.role==='caregiver'?await repo.data('vendors/'+uid):null;
+ const now=nowISO(),block={isApproved:false,isAvailable:false,isSuspended:true,isBlacklisted:true,deletedAt:now,deletedBy:admin.uid,updatedAt:now};
+ await repo.commit([
+   {path:'users/'+uid,data:{...profile,...block,tokensValidAfter:epoch()+1}},
+   ...(caregiver?[{path:'vendors/'+uid,data:{...caregiver,...block}}]:[]),
+   audit(admin,'care_account_deleted',uid,{targetType:profile.role==='user'?'customer':'caregiver',deletionMode:'soft'}),
+ ],[
+   repo.env.DB.prepare('UPDATE cf_credentials SET disabled=1,credential_version=credential_version+1 WHERE user_id=?').bind(uid),
+   repo.env.DB.prepare('DELETE FROM cf_sessions WHERE user_id=?').bind(uid),
+   repo.env.DB.prepare('DELETE FROM cf_invitations WHERE user_id=? AND used_at IS NULL').bind(uid),
+ ]);
+ return {deleted:true,deletionMode:'soft'};
+}
+
 export async function runAction(repo: Repository, actor: Actor | null, operation: string, input: Data) {
+  if(operation==='approveCaregiverAccount'){
+    const admin=requireAdmin(actor);onlyKeys(input,['caregiverId']);
+    const uid=textField(input.caregiverId,'Caregiver ID',1,160),caregiver=await repo.data('vendors/'+uid),profile=await repo.data('users/'+uid);
+    requireThat(active(caregiver)&&(!profile||active(profile)&&profile.role==='caregiver')&&!caregiver!.deletedAt,'This caregiver cannot be approved.');
+    requireThat(await organizationActive(repo,caregiver!.organizationId||''),'The caregiver organization is not active.');
+    requireThat(caregiver!.isApproved!==true,'This caregiver is already approved.',409,'failed-precondition');
+    const now=nowISO();
+    await repo.commit([
+      {path:'vendors/'+uid,data:{...caregiver,isApproved:true,approvedAt:now,approvedBy:admin.uid,updatedAt:now}},
+      ...(profile?[{path:'users/'+uid,data:{...profile,isApproved:true,updatedAt:now}}]:[]),
+      audit(admin,'caregiver_approved',uid),
+    ]);
+    return {approved:true};
+  }
+  if(operation==='deleteCareAccount')return deleteCareAccount(repo,actor,input);
   if (operation === 'createAccountRecoveryInvitation') {
     const admin=requireAdmin(actor);onlyKeys(input,['targetUid']);
     requireThat(epoch()-admin.authTime<300,'Sign in again before issuing account recovery.',401,'recent-login-required');

@@ -29,4 +29,4 @@ This branch is an **original Sewak implementation**, inspired by common care mar
 6. Check actual signup/role journeys in a **nonproduction** Cloudflare Worker + D1 project. Only after explicit review, apply idempotent D1 migrations in order and deploy.
 7. Verify live API health, real D1 service inventory, sessions, denied cross-role access, mobile menus and booking notifications after deploy. Do not fabricate providers, reviews, testimonials, ratings, prices or badges.
 
-**Current state:** development branch only; no claim of completed full parity, merge, production deployment, real payment or verified email delivery.
+**Current state:** rebuild merged in PR #43. Current release work, QA results and actual deployment status are recorded in `MARKETPLACE-PRODUCTION-RELEASE.md`. No real payment or verified email delivery is enabled.

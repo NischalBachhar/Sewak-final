@@ -8,6 +8,8 @@ The eight dummy Firebase users and obsolete service-account keys are deleted and
 
 Start with [the migration runbook](docs/FIREBASE_TO_D1_MIGRATION.md), [validation](docs/MIGRATION_VALIDATION.md), [audit](docs/FIREBASE_TO_D1_AUDIT.md), [main schema](docs/D1_SCHEMA.md), [media schema](docs/D1_MEDIA_SCHEMA.md), [image pipeline](docs/PROFILE_IMAGE_PIPELINE.md), [Free limits](docs/D1_FREE_TIER_OPTIMIZATION.md), and [rollback](docs/MIGRATION_ROLLBACK.md). Earlier reports are historical.
 
+The current marketplace rebuild is tracked in [the release record](docs/MARKETPLACE-PRODUCTION-RELEASE.md) and [feature matrix](docs/CARE_MARKETPLACE_FEATURE_MATRIX.md). These distinguish implementation, current QA, pending migrations and actual deployment from the historical cutover evidence above.
+
 ## Local verification
 
 Use Node 22.18+ for operator/SQLite tests and installed Chrome for browser journeys. On Windows use `npm.cmd`.

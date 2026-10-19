@@ -40,7 +40,7 @@ export default function CareConversationPage() {
      {state.loading?<p role="status">Loading messages…</p>:state.error?<div role="alert"><p>{state.error}</p><button type="button" onClick={refresh}>Retry</button></div>:
      !state.messages.length?<p className="care-conversation-empty">No messages yet. Introduce yourself and agree on the next step.</p>:
      <ol className="care-conversation-list">{state.messages.map(item=><li key={item.id} className={item.senderId===user?.uid?'is-own':''}>
-       <span>{item.senderId===user?.uid?'You':'Care conversation partner'}</span><p>{item.body}</p><small>{item.createdAt?new Date(item.createdAt).toLocaleString('en-NP'):''}</small>
+       <span>{item.senderId===user?.uid?'You':'Care conversation partner'}</span><p>{item.body}</p><small>{item.createdAt?new Date(item.createdAt).toLocaleString('en-NP',{timeZone:'Asia/Kathmandu'}):''}</small>
      </li>)}</ol>}
      {!state.error&&!state.loading&&<form onSubmit={submit}><label htmlFor="care-message-text">Your message</label><textarea id="care-message-text" value={body} onChange={e=>setBody(e.target.value)} rows="3" maxLength="1500" placeholder="Write a thoughtful message…" required/><div><span>{body.length} / 1500 characters</span><button type="submit" disabled={sending||!body.trim()}>{sending?'Sending…':'Send message →'}</button></div></form>}
      {notice&&<p role="alert" className="care-jobs-notice">{notice}</p>}

@@ -22,4 +22,4 @@ The recorded Care.com walkthrough was **reference material only** and must not b
 - The `REACT_APP_SEWAK_HERO_VIDEO_URL` setting can override the generated clip.
 - Existing reduced-motion safeguards prevent playback for visitors who request less animation.
 
-The original MP4 is generated on the release builder, not checked into Git history; do not commit the reference recording.
+The small original illustrated MP4 is now versioned at `public/videos/sewak-care-hero.mp4` so reviewed builds have the same owned media even without FFmpeg. It is six seconds, muted, 960 × 540, and approximately 44 KB. Visitors can pause playback; reduced motion uses the static illustration without mounting a video. Do not commit the reference recording.

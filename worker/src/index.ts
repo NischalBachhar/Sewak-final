@@ -5,6 +5,7 @@ import { careInboxRoute } from './care-inbox.ts';
 import { notificationsRoute, scheduledBookingReminders } from './notifications.ts';
 import { careScheduleRoute } from './care-schedule.ts';
 import { membershipRoute } from './membership.ts';
+import { adminOperationsRoute } from './admin-operations.ts';
 import { authenticateSession, authRoute, enforceCsrf } from './cloudflare-auth.ts';
 export { PasswordHasher } from './passwords.ts';
 import { runAction } from './actions.ts';
@@ -57,6 +58,9 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
         enforceCsrf(request,identity);
         if (authPath) return Response.json(await authRoute(request,env,headers,request.method==='POST'?await jsonBody(request):{},identity),{headers});
         const repo = new Repository(env), actor = await repo.actor(identity);
+        if(['/api/admin/accounts','/api/admin/audit'].includes(url.pathname)&&request.method==='GET'){
+          return Response.json(await adminOperationsRoute(url,repo,actor),{headers});
+        }
         if (url.pathname === '/api/membership' && ['GET','POST'].includes(request.method)) {
           return Response.json(await membershipRoute(request,repo,actor,request.method==='POST'?await jsonBody(request):{}),{headers});
         }

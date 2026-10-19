@@ -84,16 +84,25 @@ export function notificationStatements(env:Env,writes:Write[],reads:Map<string,S
 export async function notificationsRoute(request:Request,repo:Repository,actor:Actor|null,input:Data={}) {
   const user=requireActive(actor),db=repo.env.DB;
   if(request.method==='GET') {
-    const [items, count]=await Promise.all([
+    const [items, count, preferences]=await Promise.all([
       db.prepare('SELECT id,event_type AS eventType,context_id AS contextId,title,body,link,created_at AS createdAt,read_at AS readAt FROM care_notifications WHERE recipient_id=? ORDER BY created_at DESC,id DESC LIMIT 60')
         .bind(user.uid).all<Data>(),
       db.prepare('SELECT COUNT(*) AS unread FROM care_notifications WHERE recipient_id=? AND read_at IS NULL').bind(user.uid).first<Data>(),
+      db.prepare('SELECT booking_reminders FROM care_notification_preferences WHERE user_id=?').bind(user.uid).first<Data>(),
     ]);
-    return {items:items.results,unread:Number(count?.unread||0)};
+    return {items:items.results,unread:Number(count?.unread||0),preferences:{bookingReminders:preferences?.booking_reminders!==0},delivery:{inApp:true,email:false,webPush:false}};
   }
   requireThat(request.method==='POST','Unsupported notification action.',405,'method-not-allowed');
   requireThat(repo.env.APP_WRITES_ENABLED==='true','Notifications are read-only during maintenance.',503,'maintenance');
-  onlyKeys(input,['action','id']);
+  onlyKeys(input,['action','id','bookingReminders']);
+  if(input.action==='preferences'){
+    badInput(input.id===undefined&&typeof input.bookingReminders==='boolean','Choose a reminder preference.');
+    await repo.commit([],[db.prepare(`INSERT INTO care_notification_preferences(user_id,booking_reminders,updated_at)
+      VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET booking_reminders=excluded.booking_reminders,updated_at=excluded.updated_at`)
+      .bind(user.uid,Number(input.bookingReminders),now())]);
+    return {updated:true,preferences:{bookingReminders:input.bookingReminders}};
+  }
+  badInput(input.bookingReminders===undefined,'Unsupported notification fields.');
   badInput(['read','read-all'].includes(input.action),'Choose a notification action.');
   if(input.action==='read')badInput(typeof input.id==='string'&&input.id.length>=1&&input.id.length<=250,'Invalid notification ID.');
   else badInput(input.id===undefined,'Unsupported notification selection.');
@@ -116,7 +125,9 @@ export async function scheduledBookingReminders(env:Env) {
         'Upcoming care appointment','Your confirmed care session begins within 24 hours.',
         ${role==='customer'?"'/user/bookings/'||b.id":"'/caregiver?tab=jobs'"},?
       FROM bookings b JOIN users u ON u.id=${recipient}
-      WHERE b.status IN ('accepted','confirmed') AND b.schedule_at>? AND b.schedule_at<=?`;
+      WHERE b.status IN ('accepted','confirmed') AND b.schedule_at>? AND b.schedule_at<=?
+        AND COALESCE(u.is_suspended,0)=0 AND COALESCE(u.is_blacklisted,0)=0
+        AND NOT EXISTS(SELECT 1 FROM care_notification_preferences p WHERE p.user_id=${recipient} AND p.booking_reminders=0)`;
     await env.DB.prepare(sql).bind(created,created,within).run();
   }
 }

@@ -22,6 +22,13 @@ test('customer sees owned notification inbox and messaging workspace on a phone'
   await page.goto('/user/notifications');
   await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Notifications/ })).toBeVisible();
+  const reminder=page.getByRole('checkbox',{name:'Remind me about upcoming care appointments'});
+  await reminder.uncheck();
+  await expect(page.getByRole('status')).toHaveText('Reminder preference saved.');
+  await page.reload();
+  await expect(reminder).not.toBeChecked();
+  await reminder.check();
+  await expect(page.getByRole('status')).toHaveText('Reminder preference saved.');
   const response = await privateGet(page,'/api/care-notifications');
   expect(response.status).toBe(200);
   const body = response.data;

@@ -684,6 +684,34 @@ a { text-underline-offset: 3px; }
 
 
 /* 320px handset QA: reserve space for branded home, alerts and account menu. */
+.customer-home .home-marketplace-heading { padding:20px 24px; }
+.home-marketplace-actions { display:flex; align-items:center; flex-wrap:wrap; gap:4px 14px; margin-top:10px; }
+.home-marketplace-actions .customer-home-find-link { margin-top:0; }
+.home-marketplace-actions .customer-home-saved-link { margin:0; padding:6px 0; min-height:32px; }
+.home-caregiver { position:relative; }
+.home-caregiver .saved-care-card-control { position:absolute; right:12px; top:12px; }
+.home-caregiver .sawak-save-button { width:40px; min-height:40px; padding:6px; font-size:20px; }
+.home-caregiver .home-caregiver-identity { padding-right:42px; }
+.care-notices__panel label { display:flex; align-items:center; gap:10px; min-height:44px; }
+.care-notices__panel input[type=checkbox] { width:20px; height:20px; flex:0 0 20px; accent-color:var(--brand-coral); }
+.sewak-care-media .sewak-media-toggle { position:absolute; bottom:10px; right:10px; z-index:3; min-height:44px; padding:8px 12px; border:1px solid #fff; border-radius:999px; color:#fff; background:#064c3c; font-size:12px; cursor:pointer; }
+.sewak-care-media img,.sewak-care-media::after { animation:none; }
+.sewak-role-hero .sewak-care-media { z-index:auto; }
+.sewak-role-hero::before { z-index:1; }
+.sewak-role-hero__body { position:relative; z-index:2; pointer-events:none; }
+.sewak-role-hero .sewak-role-hero__body h2 { color:#fff; }
+.sewak-role-hero__body a { pointer-events:auto; }
+.home-marketplace__hero-visual::after { pointer-events:none; }
+@media(max-width:600px){
+  .customer-home.customer-marketplace { gap:14px; }
+  .customer-home .home-caregiver { gap:7px; padding:14px; }
+  .home-caregiver .home-caregiver-rate { padding-top:8px; }
+  .customer-home .home-marketplace-heading { padding:16px 18px; }
+  .customer-home .home-marketplace-heading h1 { font-size:30px; }
+  .home-marketplace-actions { gap:2px 12px; }
+  .home-marketplace-actions .customer-home-find-link { min-height:34px; padding:6px 10px; font-size:12px; }
+  .home-marketplace-actions .customer-home-saved-link { font-size:12px; }
+}
 @media(max-width:360px){
   .header-container { padding-inline:8px !important; gap:5px; min-width:0; }
   .header-logo { flex:0 0 auto; gap:5px; min-width:0; }
