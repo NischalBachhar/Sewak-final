@@ -8,7 +8,7 @@ import { apiRequest } from '../apiClient';
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate, useLocation: () => ({ hash: '' }), Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a> }));
-jest.mock('../AuthContext', () => ({ useAuth: () => ({ user: { uid: 'customer' }, userDoc: { name: 'Customer' } }) }));
+jest.mock('../AuthContext', () => ({ useAuth: () => ({ user: { uid: 'customer' }, userRole: 'user', userDoc: { name: 'Customer' } }), useOptionalAuth: () => ({ user: { uid: 'customer' }, userRole: 'user', userDoc: { name: 'Customer' } }) }));
 jest.mock('../useCustomerBookings', () => () => ({ bookings: [], loading: false }));
 jest.mock('../apiClient', () => ({ apiRequest: jest.fn() }));
 jest.mock('./PublicHeader', () => () => null);
