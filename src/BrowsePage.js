@@ -96,19 +96,16 @@ export default function BrowsePage() {
 
 
 
-      <section className="browse-hero" aria-labelledby="browse-hero-title">
+      <section className="browse-hero sewak2-browse-hero" aria-labelledby="browse-hero-title">
         <div className="browse-hero__content">
-          <p className="browse-eyebrow">
-            <span className="browse-eyebrow__dot" aria-hidden="true" />
-            Find support with confidence
-          </p>
-          <h1 id="browse-hero-title">
-            Care that feels <em>close to home.</em>
-          </h1>
-          <p className="browse-hero__copy">
-            Explore local caregiver and household-help profiles, compare
-            availability, and book when you&apos;re ready.
-          </p>
+          <p className="browse-eyebrow"><span className="browse-eyebrow__dot" aria-hidden="true" /> FIND CARE ON SEWAK</p>
+          <h1 id="browse-hero-title">Meet your next <em>care partner.</em></h1>
+          <p className="browse-hero__copy">Explore real caregiver profiles across Nepal. Filter by service, location and schedule; compare rates and request care when you find the right person.</p>
+          <a className="sewak2-browse-cta" href="#browse-caregiver-results">See caregivers <span aria-hidden="true">↗</span></a>
+        </div>
+        <div className="sewak2-browse-photo">
+          <img src="https://images.unsplash.com/photo-1758598738003-3c2ea5c8b166?auto=format&fit=crop&w=1000&q=80" width="1000" height="750" alt="Mother and daughter enjoying a story together at home"
+            onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = "/images/care-for-every-generation.webp"; }} />
         </div>
       </section>
 
