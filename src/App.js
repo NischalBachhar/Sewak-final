@@ -382,8 +382,7 @@ function App() {
         onMyBookings={handleMyBookings}
         notificationCount={notificationCount}
       />
-      {((userRole === "user" && location.pathname === "/user/home") ||
-        (userRole === "caregiver" && ["/caregiver", "/caregiver/dashboard", "/caregiver/home"].includes(location.pathname)) ||
+      {((userRole === "caregiver" && ["/caregiver", "/caregiver/dashboard", "/caregiver/home"].includes(location.pathname)) ||
         (userRole === "orgadmin" && ["/organization", "/organization/dashboard"].includes(location.pathname)) ||
         (userRole === "superadmin" && ["/superadmin", "/superadmin/overview"].includes(location.pathname))) && <RoleCareHero role={userRole} />}
       <Routes>
