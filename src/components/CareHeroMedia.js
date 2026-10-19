@@ -2,7 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 
 // Sewak-specific media. Supply an original/licensed MP4 via the build setting.
 // The original Sewak illustration remains visible until the browser can render video.
-const videoUrl = process.env.REACT_APP_SEWAK_HERO_VIDEO_URL || '';
+// Free Pexels/Kampus Production clip, 9 s: illustrative actors, not Sewak caregivers.
+// Reviewed license/source: docs/SEWAK2_MEDIA_SOURCES.md. Use a self-hosted optimized
+// file before production; remote source here is a preview-only fallback.
+const videoUrl = process.env.REACT_APP_SEWAK_HERO_VIDEO_URL
+  || 'https://videos.pexels.com/video-files/7517384/7517384-hd_1920_1080_25fps.mp4';
 // Images portray care generally; they are not actual Sewak caregiver profiles.
 // Each photograph is identified and licensed in docs/SEWAK2_MEDIA_SOURCES.md.
 const photos = {
