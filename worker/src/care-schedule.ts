@@ -72,7 +72,7 @@ export async function careScheduleRoute(request:Request,url:URL,repo:Repository,
   const professional=await repo.data('vendors/'+check);
   requireThat(professional&&professional.isApproved===true&&professional.isAvailable===true&&!professional.isBlacklisted&&!professional.isSuspended,'Caregiver unavailable.',404,'not-found');
   let blocked=false;
-  for(const seg of timeSegments(day,start,duration)){
+  for(const seg of timeSegments(day!,start,duration)){
    const row=await conflicts(db,check,seg).first<Data>();
    if(row?.blocked) {blocked=true;break;}
   }
