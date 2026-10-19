@@ -79,3 +79,26 @@ test('caregiver account cannot open customer membership data', async ({ page }) 
   const result = await page.request.get('/api/membership');
   expect(result.status()).toBe(403);
 });
+
+test('caregiver can publish recurring weekly working hours and families see truthful booking availability',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await signIn(page,'caregiver');
+  await page.goto('/caregiver/availability');
+  await expect(page.getByRole('heading',{name:'Recurring weekly hours'})).toBeVisible();
+  const date='2091-05-09';
+  const weekday=new Date(date+'T00:00:00Z').getUTCDay();
+  await page.getByLabel('Day of week').selectOption(String(weekday));
+  await page.locator('#weekly-start').fill('09:00');
+  await page.locator('#weekly-end').fill('17:00');
+  await page.getByRole('button',{name:'Add hours'}).click();
+  await expect(page.getByRole('status')).toContainText('Weekly working hours saved');
+  const inside=await page.request.get('/api/care-schedule?caregiverId=e2e-caregiver&day='+date+'&time=10:00&hours=2');
+  expect(inside.status()).toBe(200);
+  expect((await inside.json()).available).toBe(true);
+  const outside=await page.request.get('/api/care-schedule?caregiverId=e2e-caregiver&day='+date+'&time=19:00&hours=2');
+  expect(outside.status()).toBe(200);
+  expect((await outside.json()).available).toBe(false);
+  await page.getByRole('button',{name:'Remove hours'}).click();
+  await expect(page.getByText('You have not set any recurring working hours. Your normal profile availability applies.')).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
