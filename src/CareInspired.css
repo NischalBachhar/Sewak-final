@@ -1,0 +1,495 @@
+/*
+ * Sewak 2026 care-marketplace visual refresh.
+ * An original Sewak identity inspired by accessible care-marketplace patterns:
+ * calm greens, friendly editorial type, clear search, warm imagery and simple
+ * role-based workspaces. No Care.com assets, copy, or proprietary UI are used.
+ */
+:root { color-scheme: light; }
+html { scroll-padding-top: 90px; }
+body {
+  background: var(--brand-vanilla);
+  color: var(--brand-ink);
+  font-family: "Avenir Next", "Segoe UI", Arial, sans-serif;
+  line-height: 1.5;
+}
+button, input, select, textarea { font-family: inherit; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+a { text-underline-offset: 3px; }
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--brand-coral);
+  outline-offset: 3px;
+}
+:where(h1, h2, h3) { text-wrap: balance; }
+:where(.btn, .home-button, .customer-action, .browse-card-action) { transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.btn, .home-button, .customer-action, .browse-card-action {
+  border-radius: 999px;
+}
+.btn-primary, .customer-action--primary { background: var(--brand-coral); color: #fff; }
+.btn-outline { background: #fff; border-color: var(--brand-sand); color: var(--brand-coral-hover); }
+.app-card, .customer-panel, .home-caregiver, .browse-caregiver-card {
+  border-color: var(--brand-sand);
+}
+.app-title, .section-title, .dashboard-shell .section-title {
+  color: var(--brand-ink) !important;
+  letter-spacing: -.035em;
+}
+.app-shell { background: var(--brand-vanilla); }
+.app-card { border-radius: 24px; box-shadow: 0 14px 36px var(--color-shadow); }
+.form :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-radius: 12px;
+  min-height: 46px;
+  border-color: var(--color-input-border);
+  background: #fff;
+}
+.form :where(input, select, textarea):focus {
+  border-color: var(--brand-coral);
+  box-shadow: 0 0 0 3px var(--color-focus-soft);
+}
+
+/* Shared navigation */
+.public-header {
+  position: relative;
+  z-index: 400;
+  background: #fff;
+  border-bottom: 1px solid var(--brand-sand);
+}
+.public-header__inner {
+  max-width: 1480px;
+  min-height: 86px;
+  padding: 14px clamp(20px, 4vw, 64px);
+  gap: clamp(18px, 2.3vw, 34px);
+}
+.public-brand { gap: 11px; color: var(--brand-forest); }
+.public-brand img { width: 48px; height: 48px; border-radius: 15px; }
+.public-brand strong {
+  font: 800 27px/1 "Avenir Next", "Segoe UI", Arial, sans-serif;
+  letter-spacing: -.055em;
+}
+.public-brand small { font-size: 10px; letter-spacing: .01em; margin-top: 4px; }
+.public-nav { gap: clamp(14px, 2vw, 28px); }
+.public-nav a {
+  color: var(--brand-ink);
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+}
+.public-nav a:hover, .public-nav a.active {
+  color: var(--brand-coral);
+  border-color: var(--brand-coral);
+}
+.public-header__actions { gap: 9px; }
+.public-header__actions a {
+  border-radius: 999px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 750;
+  padding: 10px 20px;
+}
+.public-login { color: var(--brand-coral-hover); border-color: transparent !important; }
+.public-login:hover { background: var(--brand-vanilla); }
+.public-signup { background: var(--brand-coral); color: #fff; }
+.public-signup:hover { background: var(--brand-coral-hover); }
+.public-menu-toggle { display: none; width: 44px; height: 44px; border: 1px solid var(--brand-sand); border-radius: 13px; background: #fff; cursor: pointer; padding: 12px; }
+.public-menu-toggle span { display: block; height: 2px; margin: 4px 0; border-radius: 2px; background: var(--brand-forest); }
+.header {
+  background: #fff;
+  box-shadow: none;
+  border-bottom: 1px solid var(--brand-sand);
+}
+.header-container { max-width: 1480px; min-height: 74px; padding: 10px clamp(18px, 3.5vw, 52px); }
+.header-logo-img { border-radius: 13px; width: 43px; height: 43px; }
+.header-logo-text { color: var(--brand-forest); font-size: 25px; letter-spacing: -.045em; }
+.header-user-button { border-radius: 999px; background: var(--brand-vanilla); box-shadow: none; border-color: var(--brand-sand); }
+.header-user-role { border-radius: 999px; background: var(--brand-blush); color: var(--brand-coral-hover); }
+.header-dropdown { border-radius: 18px; padding: 5px; box-shadow: 0 18px 45px rgb(19 56 43 / 15%); }
+.dropdown-item { border-radius: 10px; font-weight: 600; }
+.header-customer-nav__item { border-radius: 999px; }
+.header-customer-nav__item.is-active { color: var(--brand-coral-hover); background: var(--brand-blush); }
+
+/* Public landing: search-first, with a distinct Sewak illustration */
+.home-page { background: var(--brand-vanilla); }
+.home-marketplace {
+  max-width: 1480px;
+  background: transparent;
+  padding: 24px clamp(20px, 4vw, 64px) 48px;
+}
+.home-marketplace__intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr);
+  align-items: stretch;
+  gap: 0;
+  min-height: 410px;
+  margin: 0 0 28px;
+  overflow: hidden;
+  border: 1px solid #dce8d9;
+  border-radius: 32px;
+  background: linear-gradient(120deg, #e9f5e3 0%, #eef6e9 60%, #f7f9ef 100%);
+}
+.home-marketplace__hero-copy {
+  min-width: 0;
+  padding: clamp(32px, 4.2vw, 68px) clamp(28px, 4vw, 62px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+.home-marketplace__eyebrow {
+  color: var(--brand-coral-hover);
+  letter-spacing: .12em;
+  font-size: 11px;
+  margin: 0 0 20px;
+}
+.home-marketplace__eyebrow span { font-size: 16px; margin-right: 5px; }
+.home-marketplace__intro h1 {
+  font: 600 clamp(43px, 5.1vw, 78px)/1.02 var(--font-display);
+  letter-spacing: -.055em;
+  color: var(--brand-forest);
+  max-width: 690px;
+  margin: 0 0 22px;
+}
+.home-marketplace__hero-copy > p:nth-of-type(2) {
+  color: #385d4d;
+  font-size: clamp(15px, 1.3vw, 18px);
+  line-height: 1.65;
+  max-width: 530px;
+}
+.home-marketplace__quick-categories { display: flex; flex-wrap: wrap; gap: 9px; margin: 23px 0 16px; }
+.home-marketplace__quick-categories a {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 42px;
+  padding: 9px 15px; border: 1px solid #b8d7bd; border-radius: 999px;
+  color: var(--brand-forest); background: #fff; font-size: 12px; font-weight: 750;
+  text-decoration: none;
+}
+.home-marketplace__quick-categories a:hover { border-color: var(--brand-coral); background: var(--brand-lime); }
+.home-marketplace__quick-categories span { font-size: 18px; line-height: 1; }
+.home-marketplace__intro .home-marketplace__hero-assurance {
+  color: #4c6c59; font-size: 12px; letter-spacing: .01em; margin: 0;
+}
+.home-marketplace__hero-visual {
+  position: relative;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: #e0f0dc;
+}
+.home-marketplace__hero-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 410px;
+  object-fit: cover;
+  object-position: center;
+}
+.home-marketplace__hero-visual figcaption {
+  position: absolute;
+  bottom: 23px;
+  left: 22px;
+  padding: 14px 18px;
+  border: 1px solid rgb(255 255 255 / 75%);
+  border-radius: 17px;
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 8px 30px rgb(19 56 43 / 12%);
+  color: var(--brand-forest);
+}
+.home-marketplace__hero-visual figcaption strong,
+.home-marketplace__hero-visual figcaption span { display: block; }
+.home-marketplace__hero-visual figcaption strong { font: 600 18px/1.25 var(--font-display); }
+.home-marketplace__hero-visual figcaption span { margin-top: 4px; color: var(--brand-cocoa); font-size: 11px; }
+.home-marketplace__search-heading {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 18px; margin-bottom: 13px;
+}
+.home-marketplace__search-heading strong {
+  display: block; color: var(--brand-forest);
+  font: 600 clamp(23px, 2.4vw, 32px)/1.2 var(--font-display);
+}
+.home-marketplace__search-heading span { display: block; color: var(--brand-cocoa); font-size: 13px; margin-top: 3px; }
+.home-marketplace__search-heading .home-marketplace__advanced { color: var(--brand-coral-hover); font-weight: 750; }
+.home-marketplace__search {
+  border: 1px solid var(--brand-sand);
+  border-radius: 22px;
+  padding: 18px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgb(19 56 43 / 8%);
+  gap: 12px;
+}
+.home-marketplace__field > span { font-size: 12px; color: var(--brand-forest); }
+.home-marketplace__field input, .home-marketplace__field select {
+  min-height: 50px; border-color: var(--color-input-border); border-radius: 12px; background: #fff;
+}
+.home-marketplace__submit { min-height: 50px; border-radius: 999px; }
+.home-marketplace__results-head { padding-top: 43px; margin-bottom: 12px; }
+.home-marketplace__results-head h2 {
+  font: 600 clamp(27px, 2.6vw, 37px)/1.15 var(--font-display);
+  color: var(--brand-forest);
+  letter-spacing: -.04em;
+}
+.home-marketplace__availability-note { color: var(--brand-cocoa); }
+.home-marketplace .caregiver-preview-card,
+.browse-caregiver-card, .home-caregiver {
+  border-radius: 21px;
+  background: #fff;
+  border: 1px solid var(--brand-sand);
+  box-shadow: 0 5px 20px rgb(19 56 43 / 5%);
+}
+.home-marketplace .caregiver-preview-card:hover,
+.browse-caregiver-card:hover, .home-caregiver:hover {
+  box-shadow: 0 13px 30px rgb(19 56 43 / 11%);
+}
+.home-marketplace .browse-caregiver-card__avatar { border-radius: 17px; }
+.home-marketplace__more { border-radius: 999px; padding-inline: 24px; }
+.home-values {
+  max-width: 1352px;
+  margin: 0 auto;
+  border: 1px solid var(--brand-sand);
+  border-radius: 22px;
+  background: #fff;
+  padding: 20px 30px;
+  gap: 20px;
+}
+.home-values > div { gap: 11px; }
+.home-values .home-icon { background: var(--brand-blush); color: var(--brand-coral); width: 42px; height: 42px; flex-basis: 42px; }
+.home-values strong { color: var(--brand-forest); font-size: 12px; line-height: 1.4; }
+.home-hero--secondary {
+  max-width: 1352px; margin-top: 32px; margin-bottom: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .8fr);
+  gap: clamp(26px, 5vw, 70px); padding: 44px clamp(20px, 3vw, 48px);
+  border: 0;
+}
+.home-hero--secondary h2 {
+  font: 600 clamp(37px, 4.3vw, 60px)/1.1 var(--font-display);
+  letter-spacing: -.045em; max-width: 600px;
+}
+.home-page em { color: var(--brand-coral); }
+.home-hero__story {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+  min-height: 290px; padding: clamp(25px, 4vw, 45px);
+  border-radius: 26px;
+  background: var(--brand-lime);
+  color: var(--brand-forest);
+}
+.home-hero__story-mark { font-size: 55px; line-height: 1; }
+.home-hero__story-kicker { font-size: 10px; font-weight: 800; letter-spacing: .12em; margin: 12px 0 8px; }
+.home-hero__story h3 { font: 600 clamp(26px, 2.7vw, 37px)/1.15 var(--font-display); letter-spacing: -.04em; }
+.home-hero__story > p:not(.home-hero__story-kicker) { max-width: 440px; font-size: 14px; line-height: 1.6; margin: 13px 0 17px; }
+.home-hero__story a { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-forest); font-weight: 800; font-size: 13px; }
+.home-hero__story a svg { width: 17px; height: 17px; }
+.home-section { max-width: 1352px; }
+.home-section h2 { color: var(--brand-forest); font-weight: 600; }
+.home-service { border-radius: 23px; padding: 26px; }
+.home-service:hover { border-color: var(--brand-coral); transform: translateY(-2px); box-shadow: 0 14px 28px var(--color-shadow); }
+.home-service .home-icon { border-radius: 15px; background: var(--brand-blush); color: var(--brand-coral); }
+.home-service a { color: var(--brand-coral-hover); }
+.home-how { background: #fff; }
+.home-steps li > span { background: var(--brand-lime); border-color: var(--brand-lime); color: var(--brand-forest); font: 700 16px/1 "Avenir Next", "Segoe UI", sans-serif; }
+.home-join {
+  max-width: 1352px; margin: 30px auto 0; padding: 40px clamp(26px, 4vw, 55px);
+  background: var(--brand-forest); border-radius: 28px;
+}
+.home-join h2, .home-join h2 em { color: #fff; }
+.home-join .home-eyebrow { color: var(--brand-lime); }
+.home-join p:not(.home-eyebrow) { color: #e4f4e7; }
+.home-join .home-button { color: var(--brand-forest); background: var(--brand-lime); border-color: var(--brand-lime); }
+.home-join .home-button:hover { background: #c4e78e; }
+.home-join .home-button--outline { color: #fff; background: transparent; border-color: #b1d4c1; }
+.home-join .home-button--outline:hover { background: #196650; }
+.home-join .home-text-link { color: var(--brand-lime); }
+.home-footer { max-width: 1480px; padding-block: 48px; }
+.home-footer__brand { color: var(--brand-forest); font: 800 28px/1 "Avenir Next", "Segoe UI", sans-serif; }
+
+/* Public discovery: filter clarity, readable results */
+.browse-page { padding: 0 0 70px; background: var(--brand-vanilla); }
+.browse-page__glow { opacity: .28; pointer-events: none; }
+.browse-page main { padding: 24px clamp(18px, 4vw, 64px) 0; }
+.browse-hero, .browse-preferences, .browse-results { width: min(100%, 1352px); }
+.browse-hero {
+  border-radius: 30px;
+  background: linear-gradient(115deg, #064c3c 0%, #0d6b51 100%);
+  box-shadow: none;
+  overflow: hidden;
+}
+.browse-hero h1 { font: 600 clamp(39px, 4.6vw, 65px)/1.04 var(--font-display); letter-spacing: -.05em; color: #fff; }
+.browse-hero h1 em { color: var(--brand-lime); }
+.browse-hero__copy { color: #ecf6ed; }
+.browse-eyebrow { color: var(--brand-lime); }
+.browse-eyebrow__dot { background: var(--brand-lime); }
+.browse-preferences {
+  background: #fff;
+  border: 1px solid var(--brand-sand);
+  border-radius: 25px;
+  padding: clamp(20px, 3vw, 36px);
+  margin-top: 24px;
+}
+.browse-section-heading h2 { font: 600 clamp(24px, 2.6vw, 35px)/1.2 var(--font-display); color: var(--brand-forest); }
+.browse-category-option {
+  background: #fff; border: 1px solid var(--brand-sand); border-radius: 18px;
+  box-shadow: none;
+}
+.browse-category-option:hover, .browse-category-option.is-active { background: #f0f8eb; border-color: var(--brand-coral); }
+.browse-category-option__icon { background: var(--brand-blush); color: var(--brand-coral); border-radius: 14px; }
+.browse-segmented-control { background: var(--brand-vanilla); border-radius: 999px; }
+.browse-segmented-control button { border-radius: 999px; }
+.browse-segmented-control button.is-active { background: var(--brand-coral); color: #fff; }
+.browse-results { margin-top: 28px; }
+.browse-list__heading h2, .browse-list__title-row h2 { color: var(--brand-forest); font-family: var(--font-display); }
+.browse-filter-panel, .browse-caregiver-card { background: #fff; border-color: var(--brand-sand); border-radius: 20px; }
+.browse-card-action { border-radius: 999px; }
+.browse-card-action:not(.browse-card-action--secondary) { background: var(--brand-coral); color: #fff; }
+
+/* Signed-in customer: same marketplace visual language, real data stays authoritative */
+.dashboard-shell--customer { background: var(--brand-vanilla); }
+.dashboard-shell--customer .app-card { max-width: 1300px; border-radius: 26px; }
+.customer-home { gap: 25px; }
+.customer-home .home-marketplace-heading {
+  position: relative;
+  border-radius: 26px;
+  padding: clamp(24px, 3.8vw, 42px);
+  background: linear-gradient(115deg, #e6f3df, #f6f9ef);
+  border: 1px solid #d5e7d5;
+}
+.customer-home-eyebrow { margin: 0 0 9px; color: var(--brand-coral); font-size: 11px; font-weight: 850; letter-spacing: .14em; }
+.customer-home .home-marketplace-heading h1 { font: 600 clamp(34px, 3.5vw, 48px)/1.08 var(--font-display); color: var(--brand-forest); letter-spacing: -.04em; }
+.customer-home .home-marketplace-heading > p:not(.customer-home-eyebrow) { max-width: 630px; color: #3f6253; line-height: 1.65; }
+.customer-home-find-link { display: inline-flex; align-items: center; gap: 10px; min-height: 42px; margin-top: 18px; padding: 9px 17px; border-radius: 999px; color: #fff; background: var(--brand-coral); text-decoration: none; font-weight: 750; font-size: 13px; }
+.customer-home-find-link:hover { background: var(--brand-coral-hover); }
+.home-filters, .home-booking-activity, .home-activity-grid > section, .customer-panel, .customer-summary__item {
+  border-color: var(--brand-sand); border-radius: 20px; background: #fff;
+}
+.home-filters :where(input, select) { border-radius: 11px; }
+.home-caregiver { border-radius: 20px; }
+.home-caregiver .caregiver-preview__book { border-radius: 999px; }
+.home-booking-activity h2, .home-activity-heading h2 { color: var(--brand-forest); }
+.customer-detail-shell { background: var(--brand-vanilla); }
+
+/* Caregiver, organization and admin: shared visual system without changing permissions */
+.dashboard-shell--caregiver, .dashboard-shell--admin, .dashboard-shell--organization { background: var(--brand-vanilla); }
+.sewak-workspace {
+  border-radius: 26px;
+  border: 1px solid var(--brand-sand);
+  box-shadow: 0 18px 44px rgb(19 56 43 / 7%);
+}
+.sewak-workspace__sidebar { background: #f5f8f1; border-right-color: var(--brand-sand); }
+.sewak-workspace__identity-icon { background: var(--brand-coral); border-radius: 14px; box-shadow: none; }
+.sewak-workspace__nav-item { border-radius: 13px; }
+.sewak-workspace__nav-item.is-active { color: var(--brand-forest); background: var(--brand-lime); }
+.sewak-workspace__nav-item:hover:not(.is-active) { background: #e8f2e6; }
+.sewak-workspace__sidebar-foot { border-radius: 17px; background: var(--brand-blush); }
+.sewak-workspace__intro { border-bottom-color: var(--brand-sand); }
+.sewak-workspace__intro h1 { color: var(--brand-forest); font: 600 clamp(28px, 3vw, 42px)/1.12 var(--font-display); letter-spacing: -.04em; }
+.sewak-workspace__eyebrow { color: var(--brand-coral); }
+.sewak-workspace__status-dot { background: var(--color-success); }
+.sewak-workspace__body :where(.card, .profile-section, .stat-card) { border-color: var(--brand-sand); border-radius: 18px; }
+.org-dashboard-header, .organization-workspace, .dashboard-admin-content { border-color: var(--brand-sand); }
+.dashboard-shell .card:hover { border-color: #a4c9b3; }
+
+/* Account access: airy split screen, prominent form and readable trust details */
+.auth-shell--login, .auth-shell--signup {
+  background: var(--brand-vanilla);
+  color: var(--brand-ink);
+}
+.auth-shell--login .login-experience {
+  border-radius: 28px;
+  padding: clamp(22px, 3vw, 42px);
+  background: #e9f5e3;
+}
+.auth-shell--login h1, .auth-shell--signup h1 { color: var(--brand-forest); font-family: var(--font-display); letter-spacing: -.04em; }
+.auth-shell--login .login-brand, .auth-shell--signup .signup-brand { color: var(--brand-forest); }
+.auth-shell--login .login-brand img, .auth-shell--signup .signup-brand img { border-radius: 14px; }
+.auth-shell--login .auth-card, .auth-shell--signup .auth-card {
+  border-color: var(--brand-sand);
+  border-radius: 26px;
+  box-shadow: 0 20px 48px rgb(19 56 43 / 8%);
+}
+.auth-shell--login .login-card-mark { border-radius: 16px; background: var(--brand-blush); }
+.auth-shell--login .auth-card h2, .auth-shell--signup .auth-card h2 { color: var(--brand-forest); }
+.auth-shell--login .form input, .auth-shell--signup .form input {
+  border-color: var(--color-input-border);
+  border-radius: 12px;
+}
+.auth-shell--login .auth-submit, .auth-shell--signup .auth-submit { border-radius: 999px; background: var(--brand-coral); color: #fff; }
+.auth-shell--signup .role-option { border-radius: 18px; }
+.auth-shell--signup .role-option.signup-role--selected { border-color: var(--brand-coral); background: #edf8e9; }
+.auth-shell--signup .signup-scene::before { background: radial-gradient(ellipse, #f4faed, #dcefd3 65%, transparent 72%); }
+
+/* Touch and responsive layouts */
+@media (max-width: 1150px) {
+  .public-header__inner { flex-wrap: nowrap; }
+  .public-nav { gap: 14px; }
+  .public-nav a { font-size: 12px; }
+  .public-header__actions a { padding-inline: 14px; }
+  .home-values { margin-inline: 24px; }
+}
+@media (max-width: 960px) {
+  .public-header__inner { min-height: 76px; padding: 12px 24px; flex-wrap: wrap; }
+  .public-menu-toggle { display: inline-block; }
+  .public-nav {
+    display: none; order: 3; width: 100%; gap: 0;
+    padding: 8px 0 5px; border-top: 1px solid var(--brand-sand);
+    flex-direction: column; align-items: stretch;
+  }
+  .public-nav.is-open { display: flex; }
+  .public-nav a { width: 100%; min-height: 44px; padding: 11px 10px; font-size: 14px; border-bottom: 0; border-radius: 9px; }
+  .public-nav a:hover, .public-nav a.active { background: var(--brand-blush); }
+  .home-marketplace__intro { min-height: 360px; }
+  .home-marketplace__hero-copy { padding: 32px; }
+  .home-marketplace__intro h1 { font-size: clamp(39px, 5.4vw, 59px); }
+  .home-marketplace__hero-visual img { min-height: 360px; }
+  .home-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-hero--secondary { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  html { scroll-padding-top: 76px; }
+  .public-header__inner { padding: 10px 16px; min-height: 68px; gap: 10px; }
+  .public-brand img { width: 40px; height: 40px; }
+  .public-brand strong { font-size: 24px; }
+  .public-brand small { display: none; }
+  .public-header__actions { margin-left: auto; }
+  .public-header__actions a { min-height: 40px; padding: 8px 13px; }
+  .public-login { display: none !important; }
+  .public-menu-toggle { width: 40px; height: 40px; padding: 10px; }
+  .home-marketplace { padding: 14px 16px 30px; }
+  .home-marketplace__intro { grid-template-columns: minmax(0, 1fr); border-radius: 23px; margin-bottom: 23px; }
+  .home-marketplace__hero-copy { padding: 34px 24px 23px; }
+  .home-marketplace__intro h1 { font-size: clamp(42px, 8vw, 61px); max-width: 540px; }
+  .home-marketplace__hero-visual { max-height: 285px; }
+  .home-marketplace__hero-visual img { min-height: 250px; max-height: 285px; object-position: center 35%; }
+  .home-marketplace__hero-visual figcaption { left: 13px; bottom: 13px; padding: 10px 12px; }
+  .home-marketplace__hero-visual figcaption strong { font-size: 15px; }
+  .home-marketplace__quick-categories { gap: 7px; }
+  .home-marketplace__quick-categories a { min-height: 40px; font-size: 11px; padding: 8px 11px; }
+  .home-marketplace__search-heading { align-items: flex-start; }
+  .home-marketplace__search-heading strong { font-size: 25px; }
+  .home-marketplace__search { border-radius: 18px; padding: 13px; }
+  .home-marketplace__results-head { padding-top: 32px; }
+  .home-values { margin: 0 16px; padding: 18px; gap: 16px; }
+  .home-hero--secondary { grid-template-columns: 1fr; padding: 34px 20px; gap: 20px; }
+  .home-hero__story { min-height: 230px; }
+  .home-join { margin-inline: 16px; border-radius: 23px; padding: 28px 24px; }
+  .browse-page main { padding: 16px 16px 0; }
+  .browse-hero { border-radius: 23px; }
+  .browse-preferences { border-radius: 20px; }
+  .auth-shell--login .login-experience { padding: 18px; border-radius: 20px; }
+  .auth-shell--login .auth-card, .auth-shell--signup .auth-card { border-radius: 20px; }
+  .header-container { min-height: 66px; }
+}
+@media (max-width: 480px) {
+  .home-marketplace__intro h1 { font-size: 42px; }
+  .home-marketplace__hero-copy > p:nth-of-type(2) { font-size: 14px; }
+  .home-marketplace__search-heading { display: block; }
+  .home-marketplace__search-heading .home-marketplace__advanced { margin-top: 5px; }
+  .home-values { grid-template-columns: minmax(0, 1fr); }
+  .home-values > div { gap: 12px; }
+  .home-footer { display: block; }
+  .home-footer nav { flex-wrap: wrap; margin-top: 12px; gap: 14px; }
+  .public-header__actions .public-signup { padding-inline: 11px; font-size: 12px; }
+  .customer-home .home-marketplace-heading { padding: 23px 18px; }
+  .sewak-workspace { border-radius: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-service, .home-marketplace .caregiver-preview-card,
+  .browse-caregiver-card, .home-caregiver, .home-marketplace__quick-categories a {
+    transition: none !important;
+    transform: none !important;
+  }
+}

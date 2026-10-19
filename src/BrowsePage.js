@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import CaregiverListPage from "./CaregiverListPage";
 import PublicHeader from "./components/PublicHeader";
 import "./BrowsePage.css";
@@ -67,9 +67,20 @@ const workOptions = [
 
 export default function BrowsePage() {
   const navigate = useNavigate();
-  const [userCategory, setUserCategory] = useState("");
-  const [userWorkType, setUserWorkType] = useState("");
+  const { search } = useLocation();
+  const initial = new URLSearchParams(search);
+  const [userCategory, setUserCategory] = useState(() => ["caregiver", "household"].includes(initial.get("category")) ? initial.get("category") : "");
+  const [userWorkType, setUserWorkType] = useState(() => ["fulltime", "parttime"].includes(initial.get("workType")) ? initial.get("workType") : "");
   const [userShift, setUserShift] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const category = params.get("category");
+    const workType = params.get("workType");
+    setUserCategory(["caregiver", "household"].includes(category) ? category : "");
+    setUserWorkType(["fulltime", "parttime"].includes(workType) ? workType : "");
+    setUserShift("");
+  }, [search]);
 
   const handleWorkTypeChange = (value) => {
     setUserWorkType(value);

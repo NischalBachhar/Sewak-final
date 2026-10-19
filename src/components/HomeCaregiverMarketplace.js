@@ -101,14 +101,25 @@ export default function HomeCaregiverMarketplace() {
   return (
     <section id="caregivers" className="home-marketplace" aria-labelledby={headingId}>
       <div className="home-marketplace__intro">
-        <div>
-          <p className="home-marketplace__eyebrow">SEWAK · FIND CARE</p>
+        <div className="home-marketplace__hero-copy">
+          <p className="home-marketplace__eyebrow"><span aria-hidden="true">✳</span> THE CARE YOU NEED, CLOSE TO HOME</p>
           <h1 id={headingId}>Find and book a caregiver</h1>
-          <p>Compare real care professionals, check who is accepting requests, and start your booking here.</p>
+          <p>For your family, your home and every chapter in between. Discover local care professionals and find the right support in Nepal.</p>
+          <div className="home-marketplace__quick-categories" aria-label="Explore support categories">
+            <Link to="/browse?category=caregiver"><span aria-hidden="true">♡</span> Caregiving</Link>
+            <Link to="/browse?category=household"><span aria-hidden="true">⌂</span> Household help</Link>
+            <Link to="/browse?workType=parttime"><span aria-hidden="true">◷</span> Flexible shifts</Link>
+          </div>
+          <p className="home-marketplace__hero-assurance">Browse profiles · Compare services · Request care</p>
         </div>
-        <Link className="home-marketplace__advanced" to="/browse">
-          Advanced filters <span aria-hidden="true">→</span>
-        </Link>
+        <figure className="home-marketplace__hero-visual">
+          <img src="/images/care-for-every-generation.webp" alt="Illustration of a Nepali family with caregivers supporting different generations at home" width="1536" height="1024" fetchPriority="high" />
+          <figcaption><strong>Care for every generation.</strong><span>Made for life in Nepal.</span></figcaption>
+        </figure>
+      </div>
+      <div className="home-marketplace__search-heading">
+        <div><strong>Let's find your care match</strong><span>Start with a name, service or area.</span></div>
+        <Link className="home-marketplace__advanced" to="/browse">More search options <span aria-hidden="true">→</span></Link>
       </div>
 
       <form className="home-marketplace__search" onSubmit={applySearch} role="search" aria-label="Find caregivers on Sewak">

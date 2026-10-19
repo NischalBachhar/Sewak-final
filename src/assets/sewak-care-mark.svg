@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Sewak care mark">
+  <rect width="64" height="64" rx="19" fill="#08664F"/>
+  <path d="M15 30.5 32 16l17 14.5" fill="none" stroke="#D7F1A3" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M21 29v19h22V29" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 43s-9-5.5-9-11a5.2 5.2 0 0 1 9-3.4 5.2 5.2 0 0 1 9 3.4c0 5.5-9 11-9 11Z" fill="#F7C5DC"/>
+</svg>
