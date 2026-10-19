@@ -1319,6 +1319,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ===== TAB: OPERATIONS OVERVIEW ===== */}
+      {activeTab === "overview" && <Sewak2ActionCenter role="admin" onAction={tab => navigate("/superadmin/" + tab)} metrics={[{label:"Caregivers awaiting review",value:pendingCaregiverCount},{label:"Organizations awaiting review",value:pendingOrgCount + pendingOrganizationApplicationCount},{label:"Safety records awaiting review",value:pendingBlacklistCount}]} />}
       {activeTab === "overview" && (
         <section aria-labelledby="operations-overview-heading">
           <div style={{ marginBottom: "24px" }}>
