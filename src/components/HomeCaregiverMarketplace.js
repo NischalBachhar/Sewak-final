@@ -100,7 +100,7 @@ export default function HomeCaregiverMarketplace() {
   const canLoadMore = result.status === 'ready' && Boolean(result.nextCursor);
 
   return (
-    <section id="caregivers" className="home-marketplace" aria-labelledby={headingId}>
+    <section id="caregivers" className="home-marketplace" aria-label="Find and book a caregiver">
       <div className="home-marketplace__intro">
         <div className="home-marketplace__hero-copy">
           <p className="home-marketplace__eyebrow"><span aria-hidden="true">✳</span> THE CARE YOU NEED, CLOSE TO HOME</p>
