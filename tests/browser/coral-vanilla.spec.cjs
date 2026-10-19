@@ -19,7 +19,7 @@ for (const width of [320, 375, 430, 768, 1024, 1366, 1920]) {
     await page.emulateMedia({reducedMotion:'reduce'});
     const errors=[]; page.on('pageerror', error => errors.push(error.message));
     await page.goto('/');
-    await expect(page.getByRole('heading',{name:'Trusted care for every stage of life.'})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'The right care. Right here.'})).toBeVisible();
     await page.locator('.home-marketplace__intro').scrollIntoViewIfNeeded();
     await expect(page.locator('.home-marketplace__hero-visual img')).toHaveJSProperty('complete',true);
     expect(await page.locator('.home-marketplace__hero-visual img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
@@ -70,7 +70,7 @@ test('Homepage service error, retry and empty catalog are truthful',async({page}
 test('Homepage keyboard skip link and customer workspace use available width',async({page})=>{
   await page.setViewportSize({width:1920,height:1080});
   await page.goto('/');
-  await expect(page.getByRole('heading',{name:'Trusted care for every stage of life.'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'The right care. Right here.'})).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link',{name:'Skip to content'})).toBeFocused();
   await page.keyboard.press('Enter');
