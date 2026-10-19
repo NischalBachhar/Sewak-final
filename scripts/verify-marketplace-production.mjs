@@ -154,7 +154,8 @@ try{
   for(const width of report.widths){await rolePage.setViewportSize({width,height:900});for(const [index,path]of paths.entries()){await rolePage.goto(origin+path);await inspect(rolePage,u.role+'-'+index,width);}}
   for(const width of [390,1440]){
    await rolePage.setViewportSize({width,height:900});await rolePage.emulateMedia({reducedMotion:'no-preference'});await rolePage.goto(origin+paths[0]);
-   await rolePage.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+   await rolePage.locator('.sewak-role-hero').scrollIntoViewIfNeeded();
+   await rolePage.waitForFunction(()=>{const clip=document.querySelector('video');return clip?.readyState>=2&&clip.paused===false;});
    await rolePage.getByRole('button',{name:'Pause background video',exact:true}).first().click();
    assert.equal(await rolePage.locator('video').first().evaluate(v=>v.paused),true);
    await rolePage.emulateMedia({reducedMotion:'reduce'});await rolePage.locator('video').waitFor({state:'detached'});

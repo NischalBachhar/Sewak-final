@@ -29,6 +29,15 @@ export function CareHeroMedia({ alt = '', className = '', photo = 'public' }) {
     preference.addEventListener?.('change', sync);
     return () => preference.removeEventListener?.('change', sync);
   }, []);
+  useEffect(() => {
+    const clip=video.current;
+    if(!clip){setCanPlay(false);return undefined;}
+    const sync=()=>setCanPlay(clip.readyState>=2&&!clip.error);
+    const events=['loadeddata','canplay','playing','error'];
+    for(const name of events)clip.addEventListener(name,sync);
+    sync();
+    return ()=>{for(const name of events)clip.removeEventListener(name,sync);};
+  },[reducedMotion]);
   return <div className={'sewak-care-media ' + className}>
     <img src={photos[photo] || photos.public} alt={alt} width="1536" height="1024" decoding="async"
       onError={event => { const fallback = '/images/care-for-every-generation.webp'; if (!event.currentTarget.src.endsWith(fallback)) event.currentTarget.src = fallback; }} />
@@ -36,7 +45,6 @@ export function CareHeroMedia({ alt = '', className = '', photo = 'public' }) {
       aria-hidden="true" className={canPlay ? 'is-ready' : ''}
       ref={video}
       autoPlay muted loop playsInline preload="metadata" tabIndex={-1}
-      onLoadedData={() => setCanPlay(true)} onError={() => setCanPlay(false)}
     ><source src={videoUrl} type="video/mp4" /></video>}
     {videoUrl&&!reducedMotion&&canPlay&&<button className="sewak-media-toggle" type="button"
       aria-label={paused?'Play background video':'Pause background video'} onClick={()=>{
