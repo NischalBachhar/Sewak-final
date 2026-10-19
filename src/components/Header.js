@@ -240,6 +240,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
                 {(userRole === "caregiver" || userRole === "user") && <button type="button" className="dropdown-item" onClick={() => handleNavigate(userRole === "caregiver" ? "/caregiver/inbox" : "/user/inbox")}>Messages</button>}
                 {userRole === "user" && <button type="button" className="dropdown-item" onClick={() => handleNavigate("/user/jobs")}>Post a care job</button>}
                 {userRole === "user" && <button type="button" className="dropdown-item" onClick={() => handleNavigate("/user/saved")}>Saved caregivers</button>}
+                {userRole === "user" && <button type="button" className="dropdown-item" onClick={() => handleNavigate("/user/membership")}>Membership preview</button>}
                 {/* Organization navigation lives in its dedicated sidebar/mobile workspace. */}
                 {userRole === "orgadmin" && (
                   <>

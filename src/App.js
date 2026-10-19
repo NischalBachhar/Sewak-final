@@ -17,6 +17,7 @@ import CareConversationPage from "./CareConversationPage";
 import CareInboxPage from "./CareInboxPage";
 import CareNotificationsPage from "./CareNotificationsPage";
 import CaregiverAvailabilityPage from "./CaregiverAvailabilityPage";
+import CareMembershipPage from "./CareMembershipPage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
 import { RoleCareHero } from "./components/CareHeroMedia";
@@ -412,6 +413,7 @@ function App() {
             />
             <Route path="/user/profile" element={<div className="customer-detail-shell"><UserProfilePage /></div>} />
             <Route path="/user/saved" element={<SavedCarePage />} />
+            <Route path="/user/membership" element={<CareMembershipPage />} />
             <Route path="/user/jobs" element={<CareJobsPage role="user" />} />
             <Route path="/user/inbox" element={<CareInboxPage />} />
             <Route path="/user/notifications" element={<CareNotificationsPage />} />

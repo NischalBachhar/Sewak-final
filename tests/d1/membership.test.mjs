@@ -1,0 +1,23 @@
+import test from 'node:test';import assert from 'node:assert/strict';import { environment,seed,call } from './harness.mjs';
+test('membership preview is customer-only, free, explicit, and never a paid subscription',async()=>{
+ const env=environment();await seed(env);
+ const initial=await call(env,'/api/membership',{uid:'customer'});
+ assert.equal(initial.status,200);assert.equal(initial.data.tier,'free');assert.equal(initial.data.charged,false);
+ assert.equal(initial.data.realSubscription,false);assert.equal(initial.data.priceNpr,0);
+ const payload={tier:'plus_preview',acknowledgeDemo:true};
+ assert.equal((await call(env,'/api/membership',{uid:'customer',method:'POST',json:{tier:'plus_preview'}})).status,400);
+ assert.equal((await call(env,'/api/membership',{uid:'customer',method:'POST',json:{...payload,amount:499}})).status,400);
+ const added=await call(env,'/api/membership',{uid:'customer',method:'POST',json:payload});
+ assert.equal(added.status,200,JSON.stringify(added.data));assert.equal(added.data.priceNpr,0);
+ assert.equal((await call(env,'/api/membership',{uid:'customer'})).data.tier,'plus_preview');
+ assert.equal((await call(env,'/api/membership',{uid:'other'})).data.tier,'free');
+ assert.equal((await call(env,'/api/membership',{uid:'caregiver'})).status,403);
+ assert.equal((await call(env,'/api/membership',{uid:'admin'})).status,403);
+ assert.equal((await call(env,'/api/membership')).status,401);
+ assert.equal((await call(env,'/api/membership',{uid:'customer',method:'POST',json:{tier:'premium',acknowledgeDemo:true}})).status,400);
+ assert.equal((await call(env,'/api/membership',{uid:'customer',method:'POST',json:{tier:'free',acknowledgeDemo:true}})).status,200);
+ assert.equal((await call(env,'/api/membership',{uid:'customer'})).data.tier,'free');
+ env.APP_WRITES_ENABLED='false';
+ assert.equal((await call(env,'/api/membership',{uid:'customer',method:'POST',json:payload})).status,503);
+ assert.equal((await call(env,'/api/membership',{uid:'customer'})).status,200);
+});

@@ -65,7 +65,7 @@ export default function CareInfoPage({ page = 'start', withHeader = true }) {
         <div className="care-info-choice-grid">
           <article><span className="care-info-choice-icon" aria-hidden="true">₨</span><h2>Compare starting rates</h2><p>Browse profiles with real published NPR prices and service information. Unlisted rates are labeled clearly.</p><Link to="/browse">See caregiver rates →</Link></article>
           <article><span className="care-info-choice-icon" aria-hidden="true">◷</span><h2>Request the schedule you need</h2><p>One-time and recurring arrangements can be requested. Care begins only after caregiver acceptance.</p><Link to="/browse">Find a schedule →</Link></article>
-          <article><span className="care-info-choice-icon" aria-hidden="true">✓</span><h2>Pay using supported methods</h2><p>Sewak currently supports cash booking requests. Online payment and paid membership features are not enabled.</p><Link to="/safety">Safety guidance →</Link></article>
+          <article><span className="care-info-choice-icon" aria-hidden="true">✓</span><h2>Pay using supported methods</h2><p>Sewak currently supports cash booking requests. Online payment and paid membership features are not enabled. Registered families can preview plan concepts without charges.</p><Link to="/auth?mode=register">Explore free membership →</Link></article>
         </div>
       </>}
       <section className="care-info-end"><div><p>CARE, CLOSE TO HOME</p><h2>Ready to find a helping hand?</h2></div><Link to="/browse">Explore caregivers <span aria-hidden="true">→</span></Link></section>
