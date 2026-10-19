@@ -5,8 +5,11 @@ import { badInput, onlyKeys, requireThat, type Actor, type Data, type Env } from
 type Notice = {to:string;event:string;title:string;body:string;link:string;ctx:string;id:string;created:string};
 const now = () => new Date().toISOString();
 function createNotice(env:Env,n:Notice) {
-  return env.DB.prepare('INSERT OR IGNORE INTO care_notifications(id,recipient_id,event_type,context_id,title,body,link,created_at) VALUES(?,?,?,?,?,?,?,?)')
-    .bind(n.id,n.to,n.event,n.ctx,n.title,n.body,n.link,n.created);
+  // Some migration-era published caregiver profiles do not yet have a login.
+  // A valid booking must not fail a foreign key because its recipient cannot
+  // receive an in-app alert. It will still alert the signed-in customer.
+  return env.DB.prepare('INSERT OR IGNORE INTO care_notifications(id,recipient_id,event_type,context_id,title,body,link,created_at) SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM users WHERE id=?)')
+    .bind(n.id,n.to,n.event,n.ctx,n.title,n.body,n.link,n.created,n.to);
 }
 export function notificationStatements(env:Env,writes:Write[],reads:Map<string,Saved>):D1PreparedStatement[] {
   const statements:D1PreparedStatement[]=[];
