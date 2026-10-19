@@ -160,3 +160,9 @@
     background:linear-gradient(90deg,rgba(8,61,49,.98),rgba(8,61,49,.84));
   }
 }
+
+/* Tighten just the smallest handset so the first real caregiver remains
+   visible within the first 1000px viewport, with motion reduced. */
+@media (max-width:359px) {
+  .home-page .home-marketplace__hero-copy { padding:13px 18px !important; }
+}
