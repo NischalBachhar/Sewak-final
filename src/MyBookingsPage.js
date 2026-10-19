@@ -143,8 +143,9 @@ export default function MyBookingsPage() {
       </div>
       <div className="row customer-booking-filters" style={{ marginBottom: 12 }}>
         <div className="col">
-          <label>Payment Status</label>
+          <label htmlFor="booking-payment-status">Payment Status</label>
           <select
+            id="booking-payment-status"
             className="dropdown-select"
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value)}
