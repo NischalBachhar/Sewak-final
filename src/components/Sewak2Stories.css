@@ -1,0 +1,7 @@
+/* Local additions specific to photographic storytelling. */
+.sewak2-stories-accent { color: #0f7e5d; }
+.sewak2-story img { background: linear-gradient(140deg,#b5d3be,#f8d8cf); }
+.sewak2-story:hover .sewak2-story__link { background: #d8f7a0; }
+@media (prefers-reduced-motion: reduce) {
+  .sewak2-story:hover img,.sewak2-story:focus-visible img { transform: none; }
+}
