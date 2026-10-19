@@ -3,6 +3,16 @@ const {seed,db,createTestAccount}=require('./seed.cjs');
 const axe=require('axe-core');
 test.beforeAll(seed);
 
+for(const [role,path]of [['customer','/user/home'],['caregiver','/caregiver'],['org','/organization'],['admin','/superadmin']])for(const width of [390,1440])test(`role hero video playback and pause: ${role} at ${width}px`,async({page},info)=>{
+ await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'no-preference'});
+ await page.goto('/auth');await page.getByLabel('Email',{exact:true}).fill('e2e-'+role+'@example.test');await page.getByLabel('Password',{exact:true}).fill('Local-test-only-123!');await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).not.toHaveURL(/\/auth/);await page.goto(path);
+ const video=page.locator('.sewak-role-hero video').first();await video.scrollIntoViewIfNeeded();await expect(video).toHaveClass('is-ready');await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(false);
+ await page.getByRole('button',{name:'Pause background video',exact:true}).first().click();expect(await video.evaluate(v=>v.paused)).toBe(true);
+ await page.getByRole('button',{name:'Play background video',exact:true}).first().click();await expect.poll(()=>video.evaluate(v=>v.paused)).toBe(false);
+ await info.attach('role-media-state',{body:JSON.stringify(await video.evaluate(v=>({readyState:v.readyState,paused:v.paused,error:v.error?.code||null}))),contentType:'application/json'});
+ await page.emulateMedia({reducedMotion:'reduce'});await expect(video).toHaveCount(0);
+});
+
 test('self-hosted Sewak 2 media preserves the static fallback when delivery fails',async({page})=>{
  const external=[];
  page.on('request',request=>{if(/images\.unsplash\.com|videos\.pexels\.com/.test(request.url()))external.push(request.url());});

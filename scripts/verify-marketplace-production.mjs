@@ -50,7 +50,7 @@ try{
   await DB.prepare('INSERT INTO cf_credentials(user_id,email,password_hash,created_at) VALUES(?,?,?,?)').bind(u.uid,u.email,hashPassword(password),Math.floor(Date.now()/1000)).run();
   u.token=(await request('/auth/login',null,{email:u.email,password,sessionMode:'bearer'})).token;
  }
- await put('organizations',org.uid,{organizationId:org.uid,adminUid:org.uid,organizationName:'Unpublished live QA organization',isApproved:false,isSuspended:false,isBlacklisted:false});
+ await put('organizations',org.uid,{organizationId:org.uid,adminUid:org.uid,organizationName:'Unpublished live QA organization',isApproved:true,isSuspended:false,isBlacklisted:false});
  await put('vendors',caregiver.uid,{uid:caregiver.uid,name:'Unpublished live QA caregiver',isApproved:false,isAvailable:false,isSuspended:false,isBlacklisted:false,isIndependent:true});
  assert.equal((await request('/api/records/publicCaregivers/'+caregiver.uid,null)).items.length,0,'Synthetic caregiver must remain unpublished');
  await request('/api/query',null,{path:'publicCaregivers',limit:12});
@@ -110,21 +110,26 @@ try{
  browser=await chromium.launch({channel:'chrome',headless:true});
  const page=await browser.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
  page.setDefaultTimeout(45000);
- const views=[];
+ const views=[],accessibilityFindings=[];report.accessibilityFindings=accessibilityFindings;
  async function inspect(p,label,width){
-  await p.locator('main h1').first().waitFor();await p.waitForLoadState('networkidle');
+  report.activeView={label,width,url:p.url()};writeFileSync(dir+'/report.json',JSON.stringify(report,null,2));
+  const path=new URL(p.url()).pathname;
+  const heading=path==='/user'?'Caregivers ready to help':path==='/user/mybookings'?'My Bookings':null;
+  await (heading?p.getByRole('heading',{name:heading,exact:true}):p.getByRole('heading',{level:1}).first()).waitFor();await p.waitForLoadState('networkidle');
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),label+' overflow at '+width);
   if(width===320||width===1440){
    await p.evaluate(axe.source);
    const violations=await p.evaluate(async()=> (await window.axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
-   assert.deepEqual(violations,[],label+' accessibility at '+width);
+   if(violations.length)accessibilityFindings.push({label,width,violations});
   }
   for(const photo of await p.locator('img[src*="sewak2-"]').all())await photo.scrollIntoViewIfNeeded();
   await p.waitForFunction(()=>[...document.querySelectorAll('img[src*="sewak2-"]')].every(img=>img.complete&&img.naturalWidth>0));
   const photos=await p.locator('img[src*="sewak2-"]').evaluateAll(images=>images.map(img=>({src:img.getAttribute('src'),loaded:img.complete&&img.naturalWidth>0})));
   assert.ok(photos.every(img=>img.loaded),label+' photographic assets');
+  await p.evaluate(()=>{document.activeElement?.blur?.();window.scrollTo({top:0,left:0,behavior:'instant'});});
   await p.screenshot({path:dir+'/'+label+'-'+width+'.png',fullPage:true,animations:'disabled'});
   views.push({label,width,photographs:photos.length});
+  delete report.activeView;
  }
  await page.emulateMedia({reducedMotion:'reduce'});
  for(const width of report.widths){
@@ -149,7 +154,8 @@ try{
   for(const width of report.widths){await rolePage.setViewportSize({width,height:900});for(const [index,path]of paths.entries()){await rolePage.goto(origin+path);await inspect(rolePage,u.role+'-'+index,width);}}
   for(const width of [390,1440]){
    await rolePage.setViewportSize({width,height:900});await rolePage.emulateMedia({reducedMotion:'no-preference'});await rolePage.goto(origin+paths[0]);
-   await rolePage.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+   await rolePage.locator('.sewak-role-hero').scrollIntoViewIfNeeded();
+   await rolePage.waitForFunction(()=>{const clip=document.querySelector('video');return clip?.readyState>=2&&clip.paused===false;});
    await rolePage.getByRole('button',{name:'Pause background video',exact:true}).first().click();
    assert.equal(await rolePage.locator('video').first().evaluate(v=>v.paused),true);
    await rolePage.emulateMedia({reducedMotion:'reduce'});await rolePage.locator('video').waitFor({state:'detached'});
@@ -159,6 +165,7 @@ try{
  }
  report.verificationBrowser=await verifyVerificationViews(browser,{origin,worker,accounts:[{role:'caregiver',email:caregiver.email,password},{role:'admin',email:admin.email,password}]});
  assert.deepEqual(errors,[]);report.browser={publicWidths:report.widths,authenticatedRoles:roles,overflow:false,pageErrors:0,views,axeWidths:[320,1440]};
+ assert.deepEqual(accessibilityFindings,[],'Every live page must pass accessibility before QA can pass');
  const finalDeployment=(await cloudflare(root+'/deployments')).deployments[0];assert.equal(finalDeployment.versions[0].version_id,version,'Production changed during QA');
  report.checksPassed=true;
 }catch(error){report.failure={name:error.name,message:error.message};}

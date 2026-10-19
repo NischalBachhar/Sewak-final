@@ -1467,6 +1467,7 @@ export default function AdminDashboardPage() {
                 />
                 <select
                   className="dropdown-select"
+                  aria-label="Organization status"
                   value={orgStatusFilter}
                   onChange={(e) => setOrgStatusFilter(e.target.value)}
                   style={{
@@ -2598,6 +2599,7 @@ export default function AdminDashboardPage() {
                 />
                 <select
                   className="dropdown-select"
+                  aria-label="Caregiver approval status"
                   value={vendorStatusFilter}
                   onChange={(e) => setVendorStatusFilter(e.target.value)}
                   style={{
@@ -3285,6 +3287,7 @@ export default function AdminDashboardPage() {
             <h3 style={{ margin: 0 }}>Blacklist Reports</h3>
             <select
               className="dropdown-select"
+              aria-label="Report status"
               value={blacklistFilter}
               onChange={(e) => setBlacklistFilter(e.target.value)}
               style={{
