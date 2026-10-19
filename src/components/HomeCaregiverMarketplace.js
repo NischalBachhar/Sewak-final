@@ -104,18 +104,18 @@ export default function HomeCaregiverMarketplace() {
       <div className="home-marketplace__intro">
         <div className="home-marketplace__hero-copy">
           <p className="home-marketplace__eyebrow"><span aria-hidden="true">✳</span> THE CARE YOU NEED, CLOSE TO HOME</p>
-          <h1 id={headingId}>Find and book a caregiver</h1>
-          <p>For your family, your home and every chapter in between. Discover local care professionals and find the right support in Nepal.</p>
+          <h1 id={headingId}>The right care. <span>Right here.</span></h1>
+          <p>Find experienced care and household support near you. Compare real profiles, check prices and request the support your family needs.</p>
           <div className="home-marketplace__quick-categories" aria-label="Explore support categories">
             <Link to="/browse?category=caregiver"><span aria-hidden="true">♡</span> Caregiving</Link>
             <Link to="/browse?category=household"><span aria-hidden="true">⌂</span> Household help</Link>
             <Link to="/browse?workType=parttime"><span aria-hidden="true">◷</span> Flexible shifts</Link>
           </div>
-          <p className="home-marketplace__hero-assurance">Browse profiles · Compare services · Request care</p>
+          <p className="home-marketplace__hero-assurance">Real profiles · Clear prices · Simple booking requests</p>
         </div>
         <figure className="home-marketplace__hero-visual">
-          <CareHeroMedia alt="Illustration of a Nepali family with caregivers supporting different generations at home" />
-          <figcaption><strong>Care for every generation.</strong><span>Made for life in Nepal.</span></figcaption>
+          <CareHeroMedia alt="Caregiver helping an older adult with everyday support" />
+          <span className="sewak2-hero-label">Made for families in Nepal</span><figcaption><strong>Care for every chapter.</strong><span>Real people. Real support.</span></figcaption>
         </figure>
       </div>
       <div className="home-marketplace__search-heading">
