@@ -2,6 +2,7 @@ import React, { useEffect, useId, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loadPublicCareServices, searchCaregivers } from '../caregiverDiscovery';
 import CaregiverPreviewCard from './CaregiverPreviewCard';
+import { CareHeroMedia } from './CareHeroMedia';
 import './HomeCaregiverMarketplace.css';
 
 // This is the homepage's primary experience, not a promotional carousel.
@@ -113,7 +114,7 @@ export default function HomeCaregiverMarketplace() {
           <p className="home-marketplace__hero-assurance">Browse profiles · Compare services · Request care</p>
         </div>
         <figure className="home-marketplace__hero-visual">
-          <img src="/images/care-for-every-generation.webp" alt="Illustration of a Nepali family with caregivers supporting different generations at home" width="1536" height="1024" fetchPriority="high" />
+          <CareHeroMedia alt="Illustration of a Nepali family with caregivers supporting different generations at home" />
           <figcaption><strong>Care for every generation.</strong><span>Made for life in Nepal.</span></figcaption>
         </figure>
       </div>

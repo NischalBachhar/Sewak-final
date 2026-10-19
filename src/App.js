@@ -17,6 +17,7 @@ import CareConversationPage from "./CareConversationPage";
 import CareInboxPage from "./CareInboxPage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
+import { RoleCareHero } from "./components/CareHeroMedia";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
 import "./App.css";
 import "./DashboardExperience.css";
@@ -381,6 +382,10 @@ function App() {
         onMyBookings={handleMyBookings}
         notificationCount={notificationCount}
       />
+      {((userRole === "user" && location.pathname === "/user/home") ||
+        (userRole === "caregiver" && ["/caregiver", "/caregiver/dashboard", "/caregiver/home"].includes(location.pathname)) ||
+        (userRole === "orgadmin" && ["/organization", "/organization/dashboard"].includes(location.pathname)) ||
+        (userRole === "superadmin" && ["/superadmin", "/superadmin/overview"].includes(location.pathname))) && <RoleCareHero role={userRole} />}
       <Routes>
         <Route path="/get-started" element={<CareInfoPage page="start" withHeader={false} />} />
         <Route path="/care-services" element={<CareInfoPage page="services" withHeader={false} />} />

@@ -564,3 +564,35 @@ a { text-underline-offset: 3px; }
 .public-nav { gap: clamp(8px,1.4vw,19px); }
 @media (min-width:961px) { .public-nav a { font-size:12px; } }
 @media (max-width: 960px) { .public-nav { display: none; } .public-nav.is-open { display:flex; } }
+
+/* Original/owned motion-media support for the public and all four signed-in roles.
+   When no licensed MP4 is configured, the Sewak illustration is a safe fallback. */
+.sewak-care-media { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0b3428; }
+.sewak-care-media img, .sewak-care-media video { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.sewak-care-media video { opacity: 0; transition: opacity .5s ease; pointer-events: none; }
+.sewak-care-media video.is-ready { opacity: 1; }
+.home-marketplace__hero-visual .sewak-care-media img { min-height: 100%; max-height: none; height: 100%; }
+.home-marketplace__hero-visual .sewak-care-media video { filter: brightness(.68) saturate(.9); }
+.sewak-role-hero {
+  position: relative; width: min(calc(100% - 40px), 1420px);
+  height: 142px; margin: 14px auto 3px; isolation: isolate;
+  overflow: hidden; border-radius: 22px; background: #064c3c;
+  border: 1px solid #275f4e; color: #fff;
+}
+.sewak-role-hero .sewak-care-media { position: absolute; inset: 0; z-index: -2; }
+.sewak-role-hero .sewak-care-media img { object-position: center 42%; filter: brightness(.38) saturate(.8); }
+.sewak-role-hero::before {
+  position: absolute; content: ""; inset: 0; z-index: -1;
+  background: linear-gradient(90deg, rgb(5 45 34 / .95), rgb(5 45 34 / .65) 60%, rgb(5 45 34 / .25));
+  pointer-events: none;
+}
+.sewak-role-hero__body { display: flex; height: 100%; padding: 19px clamp(20px,4vw,48px); flex-direction: column; align-items: flex-start; justify-content: center; }
+.sewak-role-hero__body > span { font-size: 10px; font-weight: 800; color: var(--brand-lime); letter-spacing: .14em; }
+.sewak-role-hero__body h2 { margin: 6px 0 8px; font: 600 clamp(23px, 2.8vw, 35px)/1.12 var(--font-display); color: #fff; }
+.sewak-role-hero__body a { color: var(--brand-lime); font-weight: 750; font-size: 12px; text-decoration: none; }
+.sewak-role-hero__body a:hover { text-decoration: underline; }
+@media (max-width: 720px) {
+  .sewak-role-hero { height: 122px; width: calc(100% - 24px); margin-top: 10px; border-radius: 17px; }
+  .sewak-role-hero__body h2 { font-size: clamp(21px, 5vw, 28px); }
+}
+@media (prefers-reduced-motion: reduce) { .sewak-care-media video { display: none; } }
