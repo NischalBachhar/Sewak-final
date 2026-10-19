@@ -88,6 +88,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
               aria-current={location.pathname === "/user" ? "page" : undefined}
               onClick={() => onBrowseCaregivers ? onBrowseCaregivers() : handleNavigate("/user")}
             >Find Care</button>
+            <button type="button" className={"header-customer-nav__item" + (location.pathname === "/user/saved" ? " is-active" : "")} aria-current={location.pathname === "/user/saved" ? "page" : undefined} onClick={() => handleNavigate("/user/saved")}>Saved</button>
             <button
               type="button"
               className={"header-customer-nav__item header-customer-nav__item--bookings" + (location.pathname.startsWith("/user/mybookings") || location.pathname.startsWith("/user/bookings/") ? " is-active" : "")}

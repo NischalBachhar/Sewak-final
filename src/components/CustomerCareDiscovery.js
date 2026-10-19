@@ -6,6 +6,7 @@ import { hasVerifiedRating } from "../bookingModel";
 import { SkeletonCard, VerificationBadge } from "./CareExperience";
 import ProfileImage from "./ProfileImage";
 import RequestAvailability from "./RequestAvailability";
+import useSavedCare from "../useSavedCare";
 import { caregiverBookingReason } from "../caregiverDiscovery";
 import "./CaregiverPreview.css";
 const defaults = {
@@ -19,6 +20,7 @@ const defaults = {
 };
 const configuredRate = person => typeof person.hourlyRate === "number" && Number.isFinite(person.hourlyRate) && (person.hourlyRate > 0 || (person.hourlyRate === 0 && person.allowZeroRate === true));
 export default function CustomerCareDiscovery() {
+  const { saved, toggle } = useSavedCare();
   const [filters, setFilters] = useState(defaults);
   const [services, setServices] = useState([]);
   const [catalogError, setCatalogError] = useState(false);
@@ -176,6 +178,7 @@ export default function CustomerCareDiscovery() {
           const bookable = !caregiverBookingReason(person);
           const labels = (person.servicesOffered || []).map(id => services.find(service => service.id === id)).filter(Boolean).map(service => service.label || service.serviceName).filter(Boolean);
           return <article className="home-caregiver" key={person.id}>
+            <div className="saved-care-card-control"><button type="button" className="sawak-save-button" aria-pressed={saved.includes(person.id)} aria-label={(saved.includes(person.id) ? 'Remove ' : 'Save ') + (person.name || 'caregiver') + (saved.includes(person.id) ? ' from saved caregivers' : ' to saved caregivers')} onClick={() => toggle(person.id)}>{saved.includes(person.id) ? '♥ Saved' : '♡ Save'}</button></div>
             <div className="home-caregiver-identity"><ProfileImage className="home-caregiver-photo" src={person.profileImage || ""} alt={person.name || "Caregiver"} fallback={<span className="home-caregiver-photo home-caregiver-initial">{String(person.name || "C").charAt(0)}</span>} /><div><h2>{person.name || "Caregiver"}</h2><p>{person.location || "Location not listed"}</p></div></div>
             <p className="home-caregiver-category">{person.category === "both" ? "Caregiver & household help" : ["vendor", "household"].includes(person.category) ? "Household help" : "Caregiver support"}{person.organizationName ? ` · ${person.organizationName}` : " · Independent"}</p>
             <div className="home-caregiver-checks"><VerificationBadge state={verified ? "verified" : "not_verified"} label={verified ? "Verified by Sewak" : "Verification not complete"} compact /><RequestAvailability caregiver={person} /></div>

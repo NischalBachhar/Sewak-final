@@ -10,6 +10,8 @@ import CaregiverListPage from "./CaregiverListPage";
 import PublicCaregiverProfilePage from "./PublicCaregiverProfilePage";
 import BrowsePage from "./BrowsePage";
 import HomePage from "./HomePage";
+import CareInfoPage from "./CareInfoPage";
+import SavedCarePage from "./SavedCarePage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
@@ -298,6 +300,10 @@ function App() {
     return (
       <Routes>
         <Route path="/browse" element={<BrowsePage />} />
+        <Route path="/get-started" element={<CareInfoPage page="start" />} />
+        <Route path="/care-services" element={<CareInfoPage page="services" />} />
+        <Route path="/safety" element={<CareInfoPage page="safety" />} />
+        <Route path="/pricing" element={<CareInfoPage page="pricing" />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route
           path="/caregivers/:caregiverId"
@@ -373,6 +379,10 @@ function App() {
         notificationCount={notificationCount}
       />
       <Routes>
+        <Route path="/get-started" element={<CareInfoPage page="start" withHeader={false} />} />
+        <Route path="/care-services" element={<CareInfoPage page="services" withHeader={false} />} />
+        <Route path="/safety" element={<CareInfoPage page="safety" withHeader={false} />} />
+        <Route path="/pricing" element={<CareInfoPage page="pricing" withHeader={false} />} />
         <Route path="/payment-callback" element={<PaymentCallbackPage />} />
         <Route
           path="/caregivers/:caregiverId"
@@ -392,6 +402,7 @@ function App() {
               }
             />
             <Route path="/user/profile" element={<div className="customer-detail-shell"><UserProfilePage /></div>} />
+            <Route path="/user/saved" element={<SavedCarePage />} />
             <Route
               path="/user/caregivers/:caregiverId"
               element={<div className="customer-detail-shell"><PublicCaregiverProfilePage signedIn /></div>}

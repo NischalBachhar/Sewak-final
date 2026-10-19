@@ -553,3 +553,14 @@ a { text-underline-offset: 3px; }
   .home-marketplace__quick-categories a { font-size:10px; }
   .home-marketplace__intro .home-marketplace__hero-assurance { display:none; }
 }
+
+/* Accessible dark hero and expanded care navigation */
+.home-marketplace__intro .home-marketplace__hero-assurance { color: #eefbef !important; }
+.home-marketplace__hero-copy > p:nth-of-type(2) { color: #ffffff !important; }
+.home-marketplace__eyebrow { color: #e3f99f !important; }
+.home-marketplace__hero-visual img { filter: brightness(.27) saturate(.65); }
+.home-marketplace__hero-visual::after { background: linear-gradient(90deg,rgba(1,20,14,.95),rgba(1,20,14,.88) 45%,rgba(1,20,14,.58)); }
+.dashboard-shell--customer .app-card { max-width: min(96vw, 1640px); }
+.public-nav { gap: clamp(8px,1.4vw,19px); }
+@media (min-width:961px) { .public-nav a { font-size:12px; } }
+@media (max-width: 960px) { .public-nav { display: none; } .public-nav.is-open { display:flex; } }
