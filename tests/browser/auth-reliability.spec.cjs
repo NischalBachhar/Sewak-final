@@ -3,7 +3,7 @@ const {seed}=require('./seed.cjs');
 test.beforeAll(seed);
 
 for(const [role,route,heading] of [
- ['customer','/user/home',/Find & Book Care/],
+ ['customer','/user/home',/Find care for the people who matter\./],
  ['caregiver','/caregiver',/Test caregiver|Caregiver|Jobs/i],
  ['org','/organization/dashboard',/Your workspace overview/],
  ['admin','/superadmin',/Overview|Dashboard/i],
