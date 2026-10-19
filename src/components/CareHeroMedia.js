@@ -3,8 +3,17 @@ import React, { useEffect, useRef, useState } from 'react';
 // Sewak-specific media. Supply an original/licensed MP4 via the build setting.
 // The original Sewak illustration remains visible until the browser can render video.
 const videoUrl = process.env.REACT_APP_SEWAK_HERO_VIDEO_URL || '';
+// Images portray care generally; they are not actual Sewak caregiver profiles.
+// Each photograph is identified and licensed in docs/SEWAK2_MEDIA_SOURCES.md.
+const photos = {
+  public: 'https://images.unsplash.com/photo-1773227055624-07b515ba87c5?auto=format&fit=crop&w=1400&q=82',
+  user: 'https://images.unsplash.com/photo-1758598738003-3c2ea5c8b166?auto=format&fit=crop&w=1600&q=82',
+  caregiver: 'https://images.unsplash.com/photo-1773227055624-07b515ba87c5?auto=format&fit=crop&w=1600&q=82',
+  orgadmin: 'https://images.unsplash.com/photo-1765896387387-0538bc9f997e?auto=format&fit=crop&w=1600&q=82',
+  superadmin: 'https://images.unsplash.com/photo-1765896387387-0538bc9f997e?auto=format&fit=crop&w=1600&q=82',
+};
 
-export function CareHeroMedia({ alt = '', className = '' }) {
+export function CareHeroMedia({ alt = '', className = '', photo = 'public' }) {
   const [canPlay, setCanPlay] = useState(false);
   const [paused, setPaused] = useState(false);
   const video=useRef(null);
@@ -20,7 +29,8 @@ export function CareHeroMedia({ alt = '', className = '' }) {
     return () => preference.removeEventListener?.('change', sync);
   }, []);
   return <div className={'sewak-care-media ' + className}>
-    <img src="/images/care-for-every-generation.webp" alt={alt} width="1536" height="1024" decoding="async" />
+    <img src={photos[photo] || photos.public} alt={alt} width="1536" height="1024" decoding="async"
+      onError={event => { const fallback = '/images/care-for-every-generation.webp'; if (!event.currentTarget.src.endsWith(fallback)) event.currentTarget.src = fallback; }} />
     {videoUrl && !reducedMotion && <video
       aria-hidden="true" className={canPlay ? 'is-ready' : ''}
       ref={video}
@@ -46,7 +56,7 @@ export function RoleCareHero({ role }) {
   const detail = variants[role];
   if (!detail) return null;
   return <section className={'sewak-role-hero sewak-role-hero--' + role} aria-label="Sewak care">
-    <CareHeroMedia />
+    <CareHeroMedia photo={role} />
     <div className="sewak-role-hero__body">
       <span>{detail.eyebrow}</span>
       <h2>{detail.heading}</h2>
