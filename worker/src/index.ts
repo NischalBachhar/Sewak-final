@@ -1,4 +1,5 @@
 import { verificationRoute, verificationMaintenance } from './verification.ts';
+import { careJobsRoute } from './care-jobs.ts';
 import { authenticateSession, authRoute, enforceCsrf } from './cloudflare-auth.ts';
 export { PasswordHasher } from './passwords.ts';
 import { runAction } from './actions.ts';
@@ -51,6 +52,9 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
         enforceCsrf(request,identity);
         if (authPath) return Response.json(await authRoute(request,env,headers,request.method==='POST'?await jsonBody(request):{},identity),{headers});
         const repo = new Repository(env), actor = await repo.actor(identity);
+        if (url.pathname === '/api/care-jobs' || url.pathname.startsWith('/api/care-jobs/')) {
+          return Response.json(await careJobsRoute(request,url,repo,actor,request.method==='POST'?await jsonBody(request):{}),{headers});
+        }
         if (url.pathname.startsWith('/api/verification/')) {
           const value = await verificationRoute(request,repo,actor,request.method==='POST'?await jsonBody(request):{});
           return value instanceof Response ? value : Response.json(value,{headers});
