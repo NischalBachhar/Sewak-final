@@ -20,11 +20,16 @@ Unsplash License: https://unsplash.com/license . These photos are contextual ill
 
 ## Live-action video status
 
-A six-second illustrated MP4 exists at `public/videos/sewak-care-hero.mp4`. It is not cinematic live-action footage. Do **not** falsely represent it as live-action or present the Care.com reference recording as commercial media.
+The existing six-second illustrated MP4 at `public/videos/sewak-care-hero.mp4` is **not** live-action footage. No Care.com reference recording was copied.
 
-The shared `CareHeroMedia` supports a licensed MP4 supplied by `REACT_APP_SEWAK_HERO_VIDEO_URL`. Before claiming Sewak 2.0's cinematic heroes are complete, provide/approve appropriately licensed, short 720p/1080p caregiving footage, self-host `public/videos/sewak-care-hero.mp4` (after removing the illustrated placeholder), set the build-time URL if needed, and verify public, user, caregiver, organization, superadmin with muted autoplay, poster, pause, reduced-motion, network failure and mobile performance.
+A provisional free-to-use **nine-second live-action caregiving clip** by Kampus Production from Pexels is now configured as the default video source for `CareHeroMedia` (public and all four signed-in roles) with a photographic fallback:
 
-Example potential footage to review for rights, tone and download options: Pexels/Kampus Production https://www.pexels.com/video/a-woman-taking-good-care-of-an-elderly-lady-7517384/ . This footage is NOT included or deployed by this branch.
+- Source: https://www.pexels.com/video/a-woman-taking-good-care-of-an-elderly-lady-7517384/
+- License: https://www.pexels.com/license/ (reviewed 2026-10-19). The subjects in the clip are actors/stock contributors, **not real Sewak caregivers or endorsers**.
+- Preferred preview stream URL: https://videos.pexels.com/video-files/7517384/7517384-hd_1920_1080_25fps.mp4
+
+**Still a release blocker:** This preview URL has not been validated end-to-end in browsers. Cloudflare production must not rely on an unverified third-party video hotlink. Review the file/rights, download a permitted resolution, compress/trim it, self-host on Cloudflare static assets, switch to `/videos/sewak-care-hero.mp4`, and remove the temporary external `media-src` allowlist before production deployment. Confirm desktop/mobile playback, poster, play/pause, reduced-motion settings, load speed and data use. An explicit `REACT_APP_SEWAK_HERO_VIDEO_URL` overrides the preview source.
+
 
 ## Release gates
 
