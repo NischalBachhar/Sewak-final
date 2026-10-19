@@ -2,6 +2,7 @@ import React,{useCallback,useEffect,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {apiRequest} from './apiClient';
 import './CareInspired.css';
+import WeeklyHoursPanel from './components/WeeklyHoursPanel';
 
 const formatTime=minutes=>String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0');
 
@@ -53,6 +54,7 @@ export default function CaregiverAvailabilityPage(){
     state.error?<p role="alert">{state.error}</p>:!state.blocks.length?<p>No blocks set. Your profile's normal availability still applies.</p>:
     <ul>{state.blocks.map(item=><li key={item.id}><div><strong>{item.day}</strong><span>{formatTime(item.startMin)} – {formatTime(item.endMin)}</span></div><button type="button" onClick={()=>remove(item.id)} disabled={busy}>Remove</button></li>)}</ul>}
   </section></div>
+  <WeeklyHoursPanel />
   {notice&&<p role="status" className="care-timeoff-notice">{notice}</p>}
  </main>;
 }

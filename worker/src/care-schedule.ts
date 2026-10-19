@@ -1,6 +1,7 @@
 import type { Write, Saved } from './repository.ts';
 import { Repository, requireActive } from './repository.ts';
 import { badInput, requireThat, onlyKeys, type Data, type Actor, type Env } from './types.ts';
+import { weeklyRestriction, weeklyArgs, weeklyHoursAction, weeklyHoursRead } from './weekly-hours.ts';
 
 // All dates/times in this module are local wall times in Nepal, not UTC.
 const validDay=(value:unknown):value is string=>typeof value==='string' &&
@@ -29,15 +30,18 @@ export function timeSegments(day:string,start:number,duration:number){
 const guardedSql=`INSERT INTO commit_guards(id,valid) VALUES(?,NOT EXISTS(
  SELECT 1 FROM caregiver_time_off t WHERE t.caregiver_id=? AND t.day=? AND t.start_min<? AND t.end_min>?
 ) AND NOT EXISTS(SELECT 1 FROM bookings b WHERE ${overlapCurrent} AND b.id<>?)
-AND NOT EXISTS(SELECT 1 FROM bookings b WHERE ${overlapPrev} AND b.id<>?))`;
+AND NOT EXISTS(SELECT 1 FROM bookings b WHERE ${overlapPrev} AND b.id<>?)
+AND NOT ${weeklyRestriction})`;
 function conflicts(db:D1Database,caregiverId:string,segment:{day:string;start:number;end:number},ignoreId:string=''){
  return db.prepare(`SELECT (
   EXISTS(SELECT 1 FROM caregiver_time_off t WHERE t.caregiver_id=? AND t.day=? AND t.start_min<? AND t.end_min>?)
   OR EXISTS(SELECT 1 FROM bookings b WHERE ${overlapCurrent} AND b.id<>?)
   OR EXISTS(SELECT 1 FROM bookings b WHERE ${overlapPrev} AND b.id<>?)
+  OR ${weeklyRestriction}
  ) AS blocked`).bind(caregiverId,segment.day,segment.end,segment.start,
  caregiverId,segment.day,segment.end,segment.start,ignoreId,
- caregiverId,plus(segment.day,-1),segment.start,ignoreId);
+ caregiverId,plus(segment.day,-1),segment.start,ignoreId,
+ ...weeklyArgs(caregiverId,segment.day,segment.start,segment.end));
 }
 export function availabilityGuards(env:Env,writes:Write[],reads:Map<string,Saved>,transactionId:string) {
  const statements:D1PreparedStatement[]=[];
@@ -54,7 +58,8 @@ export function availabilityGuards(env:Env,writes:Write[],reads:Map<string,Saved
    statements.push(env.DB.prepare(guardedSql).bind(transactionId+'/schedule/'+id+'/'+index,
      data.caregiverId,segment.day,segment.end,segment.start,
      data.caregiverId,segment.day,segment.end,segment.start,id,
-     data.caregiverId,plus(segment.day,-1),segment.start,id));
+     data.caregiverId,plus(segment.day,-1),segment.start,id,
+     ...weeklyArgs(data.caregiverId,segment.day,segment.start,segment.end)));
   }
  }
  return statements;
@@ -82,12 +87,13 @@ export async function careScheduleRoute(request:Request,url:URL,repo:Repository,
  if(request.method==='GET'){
   const rows=await db.prepare('SELECT id,day,start_min AS startMin,end_min AS endMin FROM caregiver_time_off WHERE caregiver_id=? AND day>=? ORDER BY day,start_min LIMIT 100')
     .bind(user.uid,new Date().toISOString().slice(0,10)).all<Data>();
-  return {blocks:rows.results};
+  return {blocks:rows.results,weeklyHours:await weeklyHoursRead(repo,user.uid)};
  }
  requireThat(request.method==='POST','Unsupported scheduling method.',405,'method-not-allowed');
  requireThat(repo.env.APP_WRITES_ENABLED==='true','Availability management is read-only during maintenance.',503,'maintenance');
- onlyKeys(input,['action','id','day','start','end']);
- badInput(['block','unblock'].includes(input.action),'Invalid availability action.');
+ onlyKeys(input,['action','id','day','start','end','weekday']);
+ badInput(['block','unblock','weekly-add','weekly-remove'].includes(input.action),'Invalid availability action.');
+ if(input.action==='weekly-add'||input.action==='weekly-remove')return weeklyHoursAction(repo,user.uid,input);
  if(input.action==='unblock'){
   badInput(typeof input.id==='string'&&/^off_[A-Za-z0-9-]{36}$/.test(input.id),'Invalid block ID.');
   await repo.commit([],[db.prepare('DELETE FROM caregiver_time_off WHERE id=? AND caregiver_id=?').bind(input.id,user.uid)]);
