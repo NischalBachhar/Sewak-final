@@ -11,7 +11,6 @@ export default function SavedCarePage() {
   const { saved } = useSavedCare();
   const navigate = useNavigate();
   const [state, setState] = useState({ loading: true, items: [], services: [], error: '' });
-  const key = saved.join('|');
   useEffect(() => {
     let active = true;
     if (!saved.length) { setState({ loading: false, items: [], services: [], error: '' }); return () => { active = false; }; }
@@ -27,8 +26,7 @@ export default function SavedCarePage() {
       setState({ loading: false, items, services, error: results.every(result => result.status === 'rejected') ? 'Saved profiles could not be loaded right now.' : '' });
     }).catch(() => { if (active) setState({ loading: false, items: [], services: [], error: 'Unable to load saved profiles.' }); });
     return () => { active = false; };
-    // String key captures identity changes without treating array identity as a dependency.
-  }, [key]);
+  }, [saved]);
   return <main className="saved-care-page" id="main-content">
     <header className="saved-care-heading">
       <p className="saved-care-eyebrow">YOUR SHORTLIST</p>
