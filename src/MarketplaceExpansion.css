@@ -56,3 +56,48 @@
 .customer-home-saved-link { margin-left:12px; display:inline-flex; align-items:center; min-height:40px; color:#08664f; font-weight:750; font-size:13px; }
 @media(max-width:950px) { .care-info-choice-grid,.saved-care-grid,.care-info-service-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .care-info-categories { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:650px) { .care-info-main { padding:18px 16px 55px; } .care-info-intro { padding:26px 20px; } .care-info-intro h1 { font-size:38px; } .care-info-choice-grid,.care-info-categories,.saved-care-grid,.care-info-service-grid,.care-info-steps { grid-template-columns:minmax(0,1fr); } .care-info-choice-grid p,.care-info-categories p { min-height:0; } .care-info-section-heading,.care-info-end { align-items:flex-start; flex-direction:column; } .care-info-end { margin-top:40px; } .saved-care-page { padding:16px; } }
+
+
+/* Family care job posts & caregiver applications */
+.care-jobs-page { width:min(100%,1340px); margin:18px auto; padding:18px clamp(15px,3vw,35px) 75px; }
+.care-jobs-hero { padding:30px clamp(24px,4vw,44px); border-radius:24px; background:linear-gradient(110deg,#0b513d,#173d2f); color:white; }
+.care-jobs-hero>p { font-size:11px; letter-spacing:.13em; color:#e0f6a7; font-weight:800; margin:0 0 8px; }
+.care-jobs-hero h1 { font:600 clamp(34px,4vw,49px)/1.1 Georgia,serif; }
+.care-jobs-hero>div { margin:14px 0; max-width:650px; font-size:15px; line-height:1.65; }
+.care-jobs-hero button { background:#d7f1a3; color:#064c3c; border:0; border-radius:999px; padding:10px 20px; font-weight:800; cursor:pointer; }
+.care-jobs-create { border:1px solid #dce9d8; border-radius:23px; background:white; padding:clamp(19px,3vw,32px); margin:24px 0; }
+.care-jobs-create h2,.care-jobs-results h2 { font-size:24px; color:#064c3c; }
+.care-jobs-create>p { color:#52655d; margin:10px 0 18px; font-size:14px; }
+.care-jobs-create form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
+.care-jobs-create label,.care-job-apply label { display:grid; gap:6px; color:#204e3a; font-size:13px; font-weight:700; }
+.care-jobs-create input,.care-jobs-create select,.care-jobs-create textarea,.care-job-apply textarea { width:100%; min-height:44px; border:1px solid #9caea3; border-radius:11px; padding:11px; font:inherit; color:#173c32; background:white; }
+.care-jobs-create__description { grid-column:1/-1; }
+.care-jobs-create form>button,.care-job-card__actions button,.care-job-apply button,.care-jobs-results button { border:1px solid #08664f; border-radius:999px; background:#08664f; color:white; padding:10px 19px; font-weight:750; cursor:pointer; min-height:43px; }
+.care-jobs-create form>button { justify-self:start; }
+.care-jobs-create button:disabled,.care-job-card__actions button:disabled { opacity:.5; cursor:not-allowed; }
+.care-jobs-notice { margin:16px 0; padding:13px 18px; border-radius:14px; border:1px solid #c3d8c4; background:#eef8e9; color:#173c32; }
+.care-jobs-results { margin:26px 0; }
+.care-jobs-results__head { display:flex; gap:15px; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.care-jobs-results__head p { color:#52655d; font-size:13px; }
+.care-jobs-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.care-job-card { border:1px solid #dce9d8; background:white; border-radius:22px; padding:25px; min-width:0; }
+.care-job-card__top { display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; color:#52655d; font-size:11px; font-weight:700; }
+.care-job-card h2 { margin:16px 0 12px; font:600 24px/1.2 Georgia,serif; }
+.care-job-card>p { color:#425b50; font-size:14px; line-height:1.6; white-space:pre-wrap; }
+.care-job-card dl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:20px 0; }
+.care-job-card dt { font-size:11px; color:#52655d; }
+.care-job-card dd { font-size:13px; font-weight:700; color:#153a2e; margin-top:5px; overflow-wrap:anywhere; }
+.care-job-card__actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.care-job-card__actions button+button { background:white; color:#08664f; }
+.care-job-applied { font-size:13px; color:#08664f; }
+.care-job-apply { width:100%; display:grid; gap:14px; padding-top:15px; }
+.care-job-apply label { width:100%; }
+.care-job-applicants { border-top:1px solid #dce9d8; margin-top:18px; padding-top:17px; width:100%; }
+.care-job-applicants__head { display:flex; align-items:center; justify-content:space-between; }
+.care-job-applicants article { padding:15px 0; border-bottom:1px solid #dce9d8; }
+.care-job-applicants article strong { display:inline-block; font-size:14px; }
+.care-job-applicants article small { margin-left:12px; font-size:11px; text-transform:capitalize; }
+.care-job-applicants article p { color:#52655d; margin:10px 0; white-space:pre-wrap; }
+.care-job-applicants article a { color:#08664f; font-weight:750; }
+.care-job-applicants>p { margin-top:15px; font-size:12px; color:#52655d; }
+@media(max-width:720px) { .care-jobs-grid,.care-jobs-create form {grid-template-columns:minmax(0,1fr);} .care-job-card dl {grid-template-columns:repeat(2,minmax(0,1fr));} .care-jobs-create__description {grid-column:1;} }

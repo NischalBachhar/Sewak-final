@@ -3,6 +3,7 @@
 This is an independent Sewak product; it must not copy Care.com's proprietary assets, UI source, photos, trademarks or wording.
 
 ## Implemented on design/care-inspired-sewak-refresh
+- Family care job posts, caregiver applications, withdrawal, job closing and applicant view (new Worker API and D1 migration).
 - Public browsing and pricing: real service catalog, public caregiver cards, individual profile details, verified review counts, availability disclosures and actual configured NPR rates.
 - Care service and safety pages, start-by-role entry, pricing explanation.
 - Signed-in customer shortlist (saved caregivers). **Browser-local and user-scoped; not cross-device sync.** Saved profiles are always re-fetched from the published projection.
@@ -11,7 +12,7 @@ This is an independent Sewak product; it must not copy Care.com's proprietary as
 - Mobile-friendly layouts, role-aware navigation, accessible save buttons; no Care.com images or video.
 
 ## Still not equivalent to Care.com
-- Open job posting and caregiver applications, recruiter shortlist and applicant pipeline.
+- Family job posting and caregiver applications now have protected D1 storage. Candidate ranking, detailed applicant pipeline and service matching are not implemented yet.
 - In-app private messaging and notifications for conversations.
 - Direct independent caregiver self-signup and approval workflows (current flow uses organization invitation).
 - Dedicated category profile creation for each skill and independent provider job searches.
