@@ -1,4 +1,4 @@
-// Authorized live QA: unpublished, run-owned identities only. Never books a real provider.
+// Authorized live QA: run-owned identities only. Never books a real provider.
 import assert from 'node:assert/strict';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
@@ -36,6 +36,8 @@ const tables=(await DB.prepare("SELECT name FROM sqlite_master WHERE type='table
 const hash=data=>createHash('sha256').update(JSON.stringify(data)).digest('hex');
 async function snapshot(){const result={};for(const table of tables){assert.match(table,/^[a-z_][a-z0-9_]*$/);try{result[table]=hash((await DB.prepare('SELECT * FROM '+table+' ORDER BY rowid').all()).results);}catch(error){throw new Error('Application snapshot '+table+': '+error.message);}}return result;}
 const before=await snapshot();let browser;
+report.fixtures={userIds:users.map(user=>user.uid),closedBookingId:bookingId,lifecycleIds};
+writeFileSync(dir+'/report.json',JSON.stringify(report,null,2));
 async function put(name,id,data,mode='insert'){const q=insertSQL(name,encodeRecord(name,id,data),mode);await DB.prepare(q.sql).bind(...q.params).run();}
 async function request(path,user,json,expected=200){
  const response=await fetch(origin+path,{method:json?'POST':'GET',headers:{...(user?{Authorization:'Bearer '+user.token}:{}),...(json?{'Content-Type':'application/json'}:{})},...(json?{body:JSON.stringify(json)}:{}),signal:AbortSignal.timeout(45000)});
@@ -91,7 +93,7 @@ try{
   assert.equal((await request('/api/records/publicCaregivers/'+caregiver.uid,null)).items.length,1);
   const timestamp={__op:'serverTimestamp'};
   const create=async(time)=>{
-   const id=customer.uid+'_'+randomUUID();lifecycleIds.push(id);
+   const id=customer.uid+'_'+randomUUID();lifecycleIds.push(id);writeFileSync(dir+'/report.json',JSON.stringify(report,null,2));
    const data={schemaVersion:2,requestFingerprint:hash(run+id),requestedTimeWindows:[],scheduleAt:new Date('2090-01-01T'+time+':00+05:45').toISOString(),commissionRate:15,userId:customer.uid,userName:'Synthetic QA customer',userPhone:'+9779800000000',userEmail:customer.email,address:'Synthetic QA address',city:'Hetauda',date:'2090-01-01',time,durationHours:1,recurrence:'one_time',careRecipient:'Synthetic QA recipient',careNeeds:'Synthetic QA only',serviceId:service.id,serviceLabel:service.data.label||service.data.serviceName,caregiverId:caregiver.uid,vendorId:caregiver.uid,organizationId:'',organizationName:'',caregiverName:professional.name,caregiverLocation:professional.location,caregiverWorkType:'parttime',caregiverShifts:['morning'],caregiverCategory:'caregiver',status:'pending',hourlyRate:0,totalAmount:0,platformCommission:0,vendorEarnings:0,paymentMethod:'cash',paymentStatus:'pending',amountDue:0,createdAt:timestamp};
    await request('/api/commit',customer,{writes:[{path:'bookings/'+id,kind:'set',data}],preconditions:[]});return id;
   };
