@@ -53,7 +53,7 @@ test('customer homepage shows caregiver discovery before booking activity', asyn
     screen.getByRole('region', { name: 'Sewak care' }),
     screen.getByRole('region', { name: 'Your booking activity' }),
   ]);
-  expect(screen.getByRole('button', { name: /Manage new bookings/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Manage new bookings/i })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: /Discover care nearby/i })).toBeEnabled();
 });
 
