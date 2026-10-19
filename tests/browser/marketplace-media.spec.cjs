@@ -3,6 +3,22 @@ const {seed,db,createTestAccount}=require('./seed.cjs');
 const axe=require('axe-core');
 test.beforeAll(seed);
 
+test('self-hosted Sewak 2 media preserves the static fallback when delivery fails',async({page})=>{
+ const external=[];
+ page.on('request',request=>{if(/images\.unsplash\.com|videos\.pexels\.com/.test(request.url()))external.push(request.url());});
+ await page.route('**/videos/**',route=>route.abort('failed'));
+ await page.route('**/images/sewak2-senior-care.webp',route=>route.abort('failed'));
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ const response=await page.goto('/');
+ expect(response.headers()['content-security-policy']).toContain("media-src 'self';");
+ expect(response.headers()['content-security-policy']).toContain("img-src 'self' blob: data:;");
+ const fallback=page.locator('.home-marketplace__hero-visual img');
+ await expect(fallback).toHaveAttribute('src','/images/care-for-every-generation.webp');
+ await expect.poll(()=>fallback.evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
+ await expect(page.getByRole('button',{name:'Pause background video'})).toHaveCount(0);
+ expect(external).toEqual([]);
+});
+
 test('original hero MP4 plays, can be paused and preserves its static fallback',async({page})=>{
  await page.emulateMedia({reducedMotion:'no-preference'});
  await page.goto('/');

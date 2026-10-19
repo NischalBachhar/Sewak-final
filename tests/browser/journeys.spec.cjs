@@ -19,8 +19,9 @@ test('asset security headers allow Cloudflare sessions without external auth ori
 });
 for(const width of [320,375,430,768,1366,1920])test(`public and four authenticated role routes at ${width}px`,async({browser})=>{
  const context=await browser.newContext({viewport:{width,height:900}});const page=await context.newPage();
- await page.goto('/browse');await expect(page.getByRole('heading',{name:/Care that feels/})).toBeVisible();await checkOverflow(page);
- await page.getByRole('link',{name:'Get started',exact:true}).click();
+ await page.goto('/browse');await expect(page.getByRole('heading',{name:'Meet your next care partner.',exact:true})).toBeVisible();await checkOverflow(page);
+ const menu=page.getByRole('button',{name:'Open navigation',exact:true});if(await menu.isVisible())await menu.click();
+ await page.getByRole('navigation',{name:'Public pages'}).getByRole('link',{name:'Find care jobs',exact:true}).click();
  await page.getByRole('link',{name:'Create a family account'}).click();await expect(page.getByLabel('Full name')).toBeVisible();
  for(const [role,route,heading]of[['customer','/user/home','Find & Book Care'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Bookings'],['admin','/superadmin/caregivers','Caregivers']]){
   const roleContext=await browser.newContext({viewport:{width,height:900}});const p=await roleContext.newPage();await signIn(p,role);await p.goto(route);
@@ -97,7 +98,7 @@ test('organization retains booking history after caregiver leaves roster; custom
 
 test('slow loading and offline authentication show recoverable state; local navigation timings are recorded',async({page,context},testInfo)=>{
  await page.route('**/*.js',async route=>{await new Promise(resolve=>setTimeout(resolve,150));await route.continue();});
- await page.goto('/browse');await expect(page.getByRole('heading',{name:/Care that feels/})).toBeVisible();
+ await page.goto('/browse');await expect(page.getByRole('heading',{name:'Meet your next care partner.',exact:true})).toBeVisible();
  const metrics=await page.evaluate(()=>{const n=performance.getEntriesByType('navigation')[0];return {environment:'local Chrome, synthetic 150ms script delay; not field Web Vitals',domContentLoadedMs:n.domContentLoadedEventEnd,loadMs:n.loadEventEnd,paint:performance.getEntriesByType('paint').map(p=>({name:p.name,startTime:p.startTime})),scripts:performance.getEntriesByType('resource').filter(r=>r.initiatorType==='script').length};});await testInfo.attach('local-navigation-metrics',{body:JSON.stringify(metrics,null,2),contentType:'application/json'});
  await page.goto('/auth');await page.getByLabel('Email',{exact:true}).fill('offline@example.test');await page.getByLabel('Password',{exact:true}).fill('Local-test-only-123!');await context.setOffline(true);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page.getByRole('alert')).toBeVisible({timeout:30000});await context.setOffline(false);await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeEnabled();
 });

@@ -27,7 +27,7 @@ export default function LoginExperience() {
         <p className="login-description">Welcome back. Your caregivers, bookings and conversations are just a sign-in away.</p>
       </div>
       <div className="login-visual">
-        <img className="login-care-illustration" src="https://images.unsplash.com/photo-1765896387387-0538bc9f997e?auto=format&fit=crop&w=900&q=80" width="900" height="600" alt="Nurse sharing a smile with an older adult in a care setting" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = "/images/care-for-every-generation.webp"; }} />
+        <img className="login-care-illustration" src="/images/sewak2-care-team.webp" width="900" height="600" alt="Nurse sharing a smile with an older adult in a care setting" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = "/images/care-for-every-generation.webp"; }} />
         <div className="login-visual-note"><span><LoginIcon name="heart" /></span><div>Care that feels like home<small>For every generation.</small></div></div>
       </div>
       <ul className="login-trust" aria-label="The Sewak care experience">

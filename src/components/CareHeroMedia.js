@@ -1,20 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-// Sewak-specific media. Supply an original/licensed MP4 via the build setting.
-// The original Sewak illustration remains visible until the browser can render video.
-// Free Pexels/Kampus Production clip, 9 s: illustrative actors, not Sewak caregivers.
-// Reviewed license/source: docs/SEWAK2_MEDIA_SOURCES.md. Use a self-hosted optimized
-// file before production; remote source here is a preview-only fallback.
+// Licensed, optimized media is served from the same Cloudflare assets deployment.
+// Source and license records: docs/SEWAK2_MEDIA_SOURCES.md.
 const videoUrl = process.env.REACT_APP_SEWAK_HERO_VIDEO_URL
-  || 'https://videos.pexels.com/video-files/7517384/7517384-hd_1920_1080_25fps.mp4';
+  || '/videos/sewak-care-hero.mp4?v=sewak2-20261019';
 // Images portray care generally; they are not actual Sewak caregiver profiles.
 // Each photograph is identified and licensed in docs/SEWAK2_MEDIA_SOURCES.md.
 const photos = {
-  public: 'https://images.unsplash.com/photo-1773227055624-07b515ba87c5?auto=format&fit=crop&w=1400&q=82',
-  user: 'https://images.unsplash.com/photo-1758598738003-3c2ea5c8b166?auto=format&fit=crop&w=1600&q=82',
-  caregiver: 'https://images.unsplash.com/photo-1773227055624-07b515ba87c5?auto=format&fit=crop&w=1600&q=82',
-  orgadmin: 'https://images.unsplash.com/photo-1765896387387-0538bc9f997e?auto=format&fit=crop&w=1600&q=82',
-  superadmin: 'https://images.unsplash.com/photo-1765896387387-0538bc9f997e?auto=format&fit=crop&w=1600&q=82',
+  public: '/images/sewak2-senior-care.webp',
+  user: '/images/sewak2-family-care.webp',
+  caregiver: '/images/sewak2-senior-care.webp',
+  orgadmin: '/images/sewak2-care-team.webp',
+  superadmin: '/images/sewak2-care-team.webp',
 };
 
 export function CareHeroMedia({ alt = '', className = '', photo = 'public' }) {

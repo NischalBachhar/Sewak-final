@@ -349,7 +349,9 @@ body { background: #f8f7f2; color: var(--brand-ink); font-family: "Avenir Next",
   .browse-preferences { padding:17px; }
   .sewak-workspace__intro { padding:20px; }
 }
+@media(max-width:760px) {
+  .auth-shell--signup .signup-trust { display:none; }
+}
 @media(max-width:420px) {
-  .auth-shell--signup .signup-trust { flex-direction:column; }
   .sewak2-browse-hero h1 { font-size:33px; }
 }
