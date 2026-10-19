@@ -1,4 +1,5 @@
 import { entities as models, resource, encodeRecord, decodeRecord, insertSQL } from './model.mjs';
+import { notificationStatements } from './notifications.ts';
 import { ApiError, badInput, requireThat, type Actor, type Data, type Env, type Identity } from './types.ts';
 export const entities: Record<string, any> = models;
 export type Saved = { data: Data | null; version: number; path: string };
@@ -67,6 +68,7 @@ export class Repository {
         }
       }
     }
+    statements.push(...notificationStatements(this.env,writes,this.reads));
     statements.push(...extraStatements);
     statements.push(this.env.DB.prepare('DELETE FROM commit_guards WHERE id LIKE ?').bind(`${transactionId}/%`));
     badInput(this.reads.size + statements.length <= 48, 'This operation is too large. Submit fewer changes at once.');
