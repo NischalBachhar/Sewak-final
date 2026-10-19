@@ -260,3 +260,96 @@ body { background: #f8f7f2; color: var(--brand-ink); font-family: "Avenir Next",
   html { scroll-behavior:auto; }
   :where(*, *::before, *::after) { animation:none !important; transition-duration:.01ms !important; }
 }
+
+/* Registration and sign-in: photographic rather than old illustrated login scene */
+.auth-shell--login { background:radial-gradient(circle at 10% 30%,#e6f5d8,transparent 40%),radial-gradient(circle at 95% 80%,#f7d9e8,transparent 42%),#f9f8f5; }
+.auth-shell--login .auth-hero,.auth-shell--signup .signup-experience { max-width:570px; }
+.auth-shell--login .login-experience { padding:clamp(23px,3vw,45px); border-radius:29px; background:#e9f8df; }
+.auth-shell--login .login-intro h1,.auth-shell--login .login-experience h1 { font:850 clamp(39px,4vw,59px)/1.07 var(--font-display) !important; letter-spacing:-.065em; }
+.login-experience h1 span { color:#11795d; }
+.auth-shell--login .login-visual { position:relative; display:block; width:100%; margin:22px 0 14px; border-radius:20px; overflow:hidden; min-height:215px; box-shadow:0 13px 32px rgb(8 55 38 / 9%); }
+.auth-shell--login .login-care-illustration { position:relative; display:block; width:100%; height:clamp(215px,26vw,315px); max-width:none; object-fit:cover; object-position:center 46%; border-radius:20px; }
+.auth-shell--login .login-visual-note { position:absolute; left:15px; bottom:15px; background:rgb(255 255 255 / 96%); border-radius:15px; padding:10px 14px; }
+.auth-shell--login .login-description { font-size:15px; }
+.auth-shell--login .auth-card { border:1px solid #e7e8df; border-radius:29px; max-width:490px; padding:clamp(23px,4vw,42px); }
+.auth-shell--signup .signup-experience { background:#e5f5d7; border-radius:29px; padding:clamp(20px,3vw,37px); }
+.auth-shell--signup .signup-experience h1 { font:850 clamp(37px,3.6vw,57px)/1.08 var(--font-display) !important; letter-spacing:-.065em; }
+.auth-shell--signup .signup-experience h1 em { color:#137c5c; }
+.auth-shell--signup .signup-description { font-size:15px; line-height:1.55; }
+.sewak2-signup-image { position:relative; overflow:hidden; border-radius:22px; margin:20px 0 16px; min-height:235px; }
+.sewak2-signup-image img { display:block; width:100%; height:clamp(235px,27vw,360px); object-fit:cover; object-position:center; }
+.sewak2-signup-image span { position:absolute; bottom:15px; left:15px; border-radius:999px; background:#fff; color:#0b5647; font-weight:800; font-size:12px; padding:10px 15px; }
+.auth-shell--signup .signup-trust { display:flex; gap:10px; flex-wrap:wrap; }
+.auth-shell--signup .signup-trust li { flex:1 1 135px; background:#fff; padding:11px; border-radius:13px; font-size:12px; }
+
+/* Results browse — imagery plus functional filters */
+.browse-page { padding-top:0; }
+.browse-page .public-header { margin:0 -24px; }
+.browse-page .sewak2-browse-hero {
+  display:grid !important; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr) !important;
+  padding:0 !important; align-items:stretch; gap:0; overflow:hidden; border-radius:26px;
+  background: #0c4539 !important; min-height:310px;
+  width:min(calc(100% - 20px),1460px); margin:24px auto;
+}
+.sewak2-browse-hero .browse-hero__content { display:flex; flex-direction:column; justify-content:center; padding:clamp(25px,3.7vw,53px); }
+.sewak2-browse-hero .browse-eyebrow { color:#d8f7a0; }
+.sewak2-browse-hero .browse-hero h1,.sewak2-browse-hero h1 { color:#fff; font:850 clamp(39px,4.1vw,62px)/1.08 var(--font-display); margin:12px 0; max-width:530px; }
+.sewak2-browse-hero .browse-hero h1 em,.sewak2-browse-hero h1 em { font:inherit; color:#d8f7a0; }
+.sewak2-browse-hero .browse-hero__copy { color:#e7f6ec; max-width:530px; font-size:14px; line-height:1.6; }
+.sewak2-browse-cta { display:inline-flex; width:max-content; align-items:center; gap:16px; min-height:44px; margin-top:22px; padding:11px 20px; border-radius:999px; text-decoration:none; background:#d8f7a0; color:#073f35; font-weight:900; font-size:13px; }
+.sewak2-browse-cta:hover { background:#fff; transform:translateY(-2px); }
+.sewak2-browse-photo { position:relative; overflow:hidden; background:#c1d4c2; }
+.sewak2-browse-photo img { position:absolute; width:100%; height:100%; object-fit:cover; object-position:center; }
+.browse-preferences { background:#fff; border-radius:23px; padding:26px; box-shadow:0 10px 36px rgb(10 59 43 / 5%); }
+.browse-category-option { border-radius:16px; }
+.browse-category-option.is-active { background:#e5f8cd; border-color:#4fa17c; }
+.browse-category-option:nth-child(3):not(.is-active) { background:#fff2f7; }
+.browse-category-option:nth-child(2):not(.is-active) { background:#eff7e5; }
+.browse-results { padding-top:17px; }
+
+/* Role-specific professional workspaces */
+.sewak-workspace { --sewak2-role-tint:#e5f6d9; }
+.sewak-workspace--admin { --sewak2-role-tint:#e8e6fb; }
+.sewak-workspace--caregiver { --sewak2-role-tint:#fff1db; }
+.sewak-workspace--organization { --sewak2-role-tint:#fbe6ee; }
+.sewak-workspace__sidebar { background:#fff; border-right:1px solid #e7e9e0; }
+.sewak-workspace__identity { margin:0 0 27px; background:#e9f7dc; border-radius:18px; padding:14px; }
+.sewak-workspace__identity-icon { background:#0b5647; color:#fff; border-radius:15px; }
+.sewak-workspace__identity strong { font-family:var(--font-display); font-size:20px; letter-spacing:-.05em; }
+.sewak-workspace__identity strong span { color:#0c7a59; }
+.sewak-workspace__nav-item { border-radius:14px; }
+.sewak-workspace__nav-item.is-active { background:#d8f7a0; color:#103e32; }
+.sewak-workspace__intro { padding:23px 27px; border-radius:23px; background:var(--sewak2-role-tint); }
+.sewak-workspace__intro h1 { font:850 clamp(31px,3vw,43px)/1.08 var(--font-display); }
+.sewak-workspace__intro-status { border-radius:999px; background:#fff; border:1px solid #d8e5d4; }
+.sewak-workspace__body { background:transparent; }
+.sewak-workspace__sidebar-foot { border-radius:16px; background:#fff6e8; }
+.sewak-workspace__sidebar-foot-icon { color:#bd6181; }
+
+@media(max-width:900px) {
+  .auth-shell--login .auth-hero,.auth-shell--signup .signup-experience { max-width:680px; width:100%; }
+  .browse-page .sewak2-browse-hero { min-height:270px; }
+  .sewak2-browse-hero .browse-hero__content { padding:28px; }
+  .sewak2-browse-hero h1 { font-size:clamp(32px,5vw,45px); }
+}
+@media(max-width:720px) {
+  .auth-shell--login .login-experience { padding:20px; }
+  .auth-shell--login .login-visual { position:relative; width:100%; right:auto; bottom:auto; margin:12px 0; min-height:130px; }
+  .auth-shell--login .login-care-illustration { height:170px; }
+  .auth-shell--login .login-visual-note { display:none; }
+  .auth-shell--login .login-description { display:block; }
+  .auth-shell--login .auth-card { padding:23px; }
+  .auth-shell--signup .signup-experience { padding:20px; }
+  .sewak2-signup-image { min-height:170px; }
+  .sewak2-signup-image img { height:175px; }
+  .browse-page .sewak2-browse-hero { display:flex !important; flex-direction:column; margin:15px auto; width:100%; min-height:0; }
+  .sewak2-browse-hero .browse-hero__content { padding:22px; }
+  .sewak2-browse-hero h1 { font-size:38px; }
+  .sewak2-browse-photo { height:138px; }
+  .browse-preferences { padding:17px; }
+  .sewak-workspace__intro { padding:20px; }
+}
+@media(max-width:420px) {
+  .auth-shell--signup .signup-trust { flex-direction:column; }
+  .sewak2-browse-hero h1 { font-size:33px; }
+}
