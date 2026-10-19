@@ -1,5 +1,5 @@
 import React from 'react';
-import './Sewak2ActionCenter.css';
+
 
 // Presentation-only action hub. The owning dashboard supplies current counts and
 // routes all commands through its existing role-scoped navigation and permissions.
