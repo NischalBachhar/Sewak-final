@@ -29,9 +29,9 @@ const [customer,caregiver,org,admin]=users,bookingId='qa_'+run;
 const report={worker,version,run,startedAt:new Date().toISOString(),pass:false,checks:[],widths:[320,390,768,1440,1920],fixtureSetup:'unpublished-identities-and-closed-booking'};
 const dir='.local-tools/cloudflare-auth/marketplace-'+run;
 mkdirSync(dir,{recursive:true});
-const tables=(await DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).results.map(r=>r.name).filter(name=>!name.startsWith('_')&&!['sqlite_sequence','cf_sessions','cf_auth_limits'].includes(name)).sort();
+const tables=(await DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).results.map(r=>r.name).filter(name=>!name.startsWith('_')&&!name.startsWith('sqlite_')&&!['d1_migrations','cf_sessions','cf_auth_limits'].includes(name)).sort();
 const hash=data=>createHash('sha256').update(JSON.stringify(data)).digest('hex');
-async function snapshot(){const result={};for(const table of tables){assert.match(table,/^[a-z_]+$/);result[table]=hash((await DB.prepare('SELECT * FROM '+table+' ORDER BY rowid').all()).results);}return result;}
+async function snapshot(){const result={};for(const table of tables){assert.match(table,/^[a-z_][a-z0-9_]*$/);try{result[table]=hash((await DB.prepare('SELECT * FROM '+table+' ORDER BY rowid').all()).results);}catch(error){throw new Error('Application snapshot '+table+': '+error.message);}}return result;}
 const before=await snapshot();let browser;
 async function put(name,id,data){const q=insertSQL(name,encodeRecord(name,id,data),'insert');await DB.prepare(q.sql).bind(...q.params).run();}
 async function request(path,user,json,expected=200){

@@ -1,0 +1,222 @@
+{
+  "recordedAt": "2026-10-19T10:15:58.314Z",
+  "repository": "NischalBachhar/Sewak-final",
+  "branch": "main",
+  "baseline": "8c5875faa90e500f73e9f4f81821912d182602f3",
+  "deployedSourceCommit": "52e03c0a9817e335023a37cea60246be6652f7c8",
+  "productionDeployed": true,
+  "worker": "sewak-final",
+  "version": "3edd2923-6643-4f57-9bff-1942de974f74",
+  "origin": "https://sewak-final.nischalbachhar9.workers.dev",
+  "account": "860970f755498a4fe10e16c2fa99ce55",
+  "writesEnabled": true,
+  "workersFree": "owner-confirmed; billing API 403",
+  "localValidation": {
+    "typecheck": true,
+    "lint": true,
+    "unit": {
+      "passed": 105,
+      "failed": 0
+    },
+    "d1Workerd": {
+      "passed": 163,
+      "failed": 0
+    },
+    "browserAxe": {
+      "passed": 166,
+      "failed": 0
+    },
+    "finalContrastVideoResponsiveFollowup": {
+      "passed": 10,
+      "failed": 0
+    },
+    "productionBuild": true,
+    "guardedDryRun": true,
+    "credentialRuntimeScan": true,
+    "githubActions": "not separately dispatched; validation executed locally"
+  },
+  "migrations": {
+    "appliedAt": "2026-10-19T10:06:20.604Z",
+    "applied": [
+      {
+        "name": "0007_care_jobs.sql",
+        "hash": "b3a49fdae9f51ee3dfd85ae55a602bb6e2815152920ea5f35639c20de800f06b"
+      },
+      {
+        "name": "0008_care_messages.sql",
+        "hash": "e97338a7804b03467f93dd3348d0faf155c57e542ebf4f7990e612ecf9d3a969"
+      },
+      {
+        "name": "0009_care_notifications.sql",
+        "hash": "35bb128d927f7cb4921f58ab5e74b47d279fcd1856f80a35b9ab95b457084c6a"
+      },
+      {
+        "name": "0010_caregiver_time_off.sql",
+        "hash": "cb1146559aa01929c62088224f6bd6c78a3c25fe770d5edddc0c26c82c938df6"
+      },
+      {
+        "name": "0010_membership_demo.sql",
+        "hash": "2e3c9b38483b8b64d7e652536f1c9d65c893acfa9c81bf719bf1ce78321e3df9"
+      },
+      {
+        "name": "0011_caregiver_weekly_hours.sql",
+        "hash": "92a0f870f7ec295ccc6fe9fca1e46ac9e7773c6020b13d8c6c3605a8cef5d32c"
+      },
+      {
+        "name": "0012_notification_preferences.sql",
+        "hash": "eff0d894989d004b1db649444085feea1dfbc3981ffb001eb4ac7ab4556375fc"
+      }
+    ],
+    "existingApplicationRecordsUnchanged": true
+  },
+  "backups": {
+    "checkedAt": "2026-10-19T09:22:23.709Z",
+    "databases": [
+      {
+        "binding": "DB",
+        "id": "36fa1df1-aa5d-43a1-ad0e-a4e310c513c3",
+        "bookmark": "00000268-00000000-00005109-4be2f061885ba317a49e24055e014a3e",
+        "sha256": "1a312ae7293e2b25e42cccdafe024a7d8140413bf5235a176cf46e426e32b09d",
+        "restoreVerified": true
+      },
+      {
+        "binding": "MEDIA_DB",
+        "id": "c3721e25-4fb2-4a0d-b350-518ec9abbea2",
+        "bookmark": "000000d9-00000000-00005109-76d6d090dae8e80933e7d951a2ec3382",
+        "sha256": "58893978207d3b68925e9e2ba85b6b4813bb686f78ed683be7713ee42bdcd82c",
+        "restoreVerified": true
+      },
+      {
+        "binding": "EVIDENCE_DB",
+        "id": "591fe39d-688e-49b6-a3a0-015700c6c5d1",
+        "bookmark": "00000026-00000000-00005109-84f0151eacf4d9728bbcafa1bee59d5a"
+      }
+    ]
+  },
+  "productionValidation": {
+    "integrity": {
+      "pass": true,
+      "backend": "cloudflare-d1",
+      "worker": "sewak-final",
+      "version": "3edd2923-6643-4f57-9bff-1942de974f74",
+      "checkedAt": "2026-10-19T10:15:30.064Z",
+      "health": {
+        "healthy": true,
+        "writesEnabled": true,
+        "auth": "cloudflare-d1"
+      },
+      "checks": {
+        "DB": {
+          "integrity": "ok",
+          "foreignKeyViolations": 0
+        },
+        "MEDIA_DB": {
+          "integrity": "ok",
+          "foreignKeyViolations": 0
+        },
+        "EVIDENCE_DB": {
+          "integrity": "ok",
+          "foreignKeyViolations": 0
+        }
+      }
+    },
+    "authentication": {
+      "completedAt": "2026-10-19T10:15:20.392Z",
+      "checks": 54,
+      "fixtureSetup": "registration-api",
+      "cleanupVerified": true,
+      "applicationRecordsUnchanged": true,
+      "browser": {
+        "realCookieLogin": true,
+        "sessionRestored": true,
+        "privateProfile": true,
+        "firebaseRequests": 0,
+        "firebaseNetworkBlocked": true,
+        "httpOnly": true
+      }
+    },
+    "marketplace": {
+      "completedAt": "2026-10-19T10:11:43.199Z",
+      "checks": 28,
+      "cleanupVerified": true,
+      "applicationRecordsUnchanged": true,
+      "browser": {
+        "publicWidths": [
+          320,
+          390,
+          768,
+          1440,
+          1920
+        ],
+        "authenticatedRoles": [
+          "user",
+          "caregiver",
+          "orgadmin",
+          "superadmin"
+        ],
+        "overflow": false,
+        "pageErrors": 0
+      },
+      "media": {
+        "originalVideoBytesMatch": true
+      }
+    },
+    "moderation": {
+      "completedAt": "2026-10-19T10:12:45.252Z",
+      "cleanupVerified": true,
+      "applicationRecordsUnchanged": true,
+      "existingAuditHistoryPreserved": true,
+      "syntheticAuditEntriesPreserved": 4,
+      "browser": {
+        "approvalAndRejectionPersist": true,
+        "reviewButtonsRemoved": true,
+        "nameConfirmedDeletion": true,
+        "rejectedAndBlacklistedDeletion": true,
+        "countsCorrect": true,
+        "analyticsCountsCorrect": true,
+        "reloadVerified": true,
+        "pageErrors": 0
+      }
+    }
+  },
+  "security": {
+    "runtime": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "worker": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "fullFrontendDevelopment": {
+      "info": 0,
+      "low": 3,
+      "moderate": 33,
+      "high": 63,
+      "critical": 0,
+      "total": 99
+    },
+    "bundledAffectedPackages": 0,
+    "sourceMapsReviewed": 13
+  },
+  "limits": [
+    "Email and Web Push remain disabled pending configured providers, owned sending domain/VAPID secrets and real delivery QA.",
+    "Cash bookings remain; membership is an explicit demo with no charges or subscription.",
+    "Saved caregivers remain per browser; recurring availability does not create an automatic series of visits.",
+    "Live marketplace QA used unpublished identities and a closed booking. Real booking creation, overlap rejection and lifecycle transitions passed local D1/workerd and browser journeys; no request was sent to a real caregiver.",
+    "GitHub Actions were inspected and updated; the reported complete QA was executed locally."
+  ],
+  "resolvedAttempts": [
+    "The first post-deployment registration QA hit the existing hourly IP limit; fixtures were cleaned and registration coverage was rerun after its natural reset.",
+    "The live smoke operator was corrected to accept digits in table names and exclude Cloudflare-owned SQLite internals before any fixture was created.",
+    "The existing Wrangler OAuth session was refreshed after expiry."
+  ]
+}
