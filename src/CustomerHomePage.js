@@ -11,6 +11,7 @@ import Sewak2ActionCenter from "./components/Sewak2ActionCenter";
 import { useNavigate } from "react-router-dom";
 import "./CustomerMarketplace.css";
 export default function CustomerHomePage() {
+  const navigate = useNavigate();
   const {
     user
   } = useAuth();
