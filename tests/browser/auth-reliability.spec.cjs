@@ -27,7 +27,7 @@ for(const [role,route,heading] of [
  expect(new URL(page.url()).pathname).toBe(route);
  await expect(page.getByRole('heading',{name:'Page not found'})).toHaveCount(0);
  release();await expect(page).toHaveURL(/\/browse$/);
- await expect(page.getByRole('heading',{name:/Care that feels/})).toBeVisible();
+ await expect(page.getByRole('heading',{name:/Meet your next care partner/i})).toBeVisible();
  const revoked=await context.request.get('/api/auth/me',{headers:{Cookie:`${session.name}=${session.value}`}});expect(revoked.status()).toBe(401);
  await page.goto(route);await expect(page).toHaveURL(/\/auth$/);await expect(page.getByLabel('Password',{exact:true})).toBeVisible();
 });
@@ -37,7 +37,7 @@ test('auth reliability: public queries accept stale cookies without exposing pri
  await context.addCookies([{name:'__Host-sewak_session',value:stale,url:'https://127.0.0.1:4173/',secure:true,httpOnly:true,sameSite:'Lax'}]);
  const publicResult=await context.request.post('/api/query',{headers:{Cookie:'__Host-sewak_session='+stale},data:{path:'publicCaregivers'}});
  expect(publicResult.status()).toBe(200);const data=await publicResult.json();expect(data.items.length).toBeGreaterThan(0);expect(JSON.stringify(data)).not.toContain('e2e-caregiver@example.test');
- await page.goto('/browse');await expect(page.getByRole('heading',{name:/Care that feels/})).toBeVisible();
+ await page.goto('/browse');await expect(page.getByRole('heading',{name:/Meet your next care partner/i})).toBeVisible();
  await page.goto('/user/home');await expect(page).toHaveURL(/\/auth$/);
 });
 

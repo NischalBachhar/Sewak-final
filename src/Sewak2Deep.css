@@ -1,0 +1,168 @@
+/* Sewak 2.0 signed-in detail screens: messaging, jobs, bookings, notifications,
+   reviews and management. Existing authorization and business rules are untouched. */
+:where(.care-inbox-page,.care-jobs-page,.care-notices,.customer-bookings,.booking-detail-page){
+  color:#183a30;font-family:"Avenir Next","Segoe UI",Arial,sans-serif;
+}
+:where(.care-inbox-page,.care-jobs-page,.care-notices){width:min(calc(100% - 32px),1300px);margin:20px auto 80px}
+.care-inbox-intro,.care-jobs-hero,.care-notices__header,.customer-bookings__heading,.booking-detail-hero{
+  background:linear-gradient(118deg,#114b3e 0%,#165e4a 62%,#317562 100%)!important;
+  color:#fff!important;border:0!important;border-radius:25px!important;
+  padding:clamp(25px,4vw,43px)!important;box-shadow:0 15px 36px rgb(9 56 45 / 10%)!important;
+}
+:where(.care-inbox-intro,.care-jobs-hero,.care-notices__header,.customer-bookings__heading,.booking-detail-hero) h1{
+  color:#fff!important;font:850 clamp(33px,4vw,51px)/1.07 "Avenir Next","Segoe UI",Arial,sans-serif!important;letter-spacing:-.055em;
+}
+:where(.care-inbox-intro,.care-jobs-hero,.care-notices__header,.customer-bookings__heading,.booking-detail-hero) p,
+:where(.care-inbox-intro,.care-jobs-hero,.care-notices__header,.customer-bookings__heading,.booking-detail-hero) span{
+  color:#e2f0e5;
+}
+:where(.care-inbox-intro,.care-jobs-hero,.care-notices__header,.customer-bookings__heading,.booking-detail-hero) button,
+:where(.care-inbox-intro,.care-jobs-hero,.care-notices__header,.customer-bookings__heading,.booking-detail-hero) a{
+  background:#d8f7a0!important;border:0!important;color:#0c4539!important;border-radius:999px!important;font-weight:800!important;
+}
+:where(.care-inbox-intro,.care-jobs-hero,.care-notices__header,.customer-bookings__heading,.booking-detail-hero) button:hover,
+:where(.care-inbox-intro,.care-jobs-hero,.care-notices__header,.customer-bookings__heading,.booking-detail-hero) a:hover{
+  background:#fff!important;color:#0c4539!important;
+}
+.care-inbox-panel,.care-jobs-create,.care-jobs-results,.care-notices__panel,.booking-detail-main,
+.booking-detail-summary,.booking-detail-review,.customer-booking-card{
+  border:1px solid #e6e8df!important;border-radius:24px!important;background:#fff!important;
+  box-shadow:0 10px 28px rgb(15 55 40 / 5%)!important;
+}
+.care-inbox-thread{border-radius:15px;transition:background .2s ease,transform .2s ease}
+.care-inbox-thread:hover,.care-inbox-thread:focus-visible{background:#f0fae6;transform:translateX(3px)}
+.care-inbox-avatar{background:#d8f7a0!important;color:#104333!important;font-weight:900}
+.care-inbox-thread:nth-child(3n+2) .care-inbox-avatar{background:#fac8e1!important}
+.care-inbox-thread:nth-child(3n+3) .care-inbox-avatar{background:#ffe7a4!important}
+.sewak2-inbox-controls{display:flex;align-items:end;flex-wrap:wrap;gap:13px;margin:16px 0;padding:16px;background:#fff;border:1px solid #e7e9df;border-radius:17px}
+.sewak2-inbox-controls label{display:flex;flex:1 1 210px;flex-direction:column;gap:6px;font-size:12px;color:#466155;font-weight:800}
+.sewak2-inbox-controls input,.sewak2-inbox-controls select{width:100%;height:47px;padding:9px 12px;border:1px solid #b9c8bf;border-radius:12px;background:#fff;color:#173c32;font:inherit;font-size:13px}
+.sewak2-inbox-controls [role="status"]{font-size:12px;color:#5c7164;padding-bottom:14px}
+.care-job-card{background:#fff!important;border-radius:22px!important;border:1px solid #e5e7df!important;box-shadow:0 8px 28px rgb(21 54 42 / 5%)!important}
+.care-job-card:hover{transform:translateY(-3px);box-shadow:0 20px 38px rgb(21 54 42 / 10%)!important}
+.care-job-card__top span:first-child{background:#e4f8d3!important;color:#0d533f!important}
+.care-job-card:nth-child(3n+2) .care-job-card__top span:first-child{background:#fbe5ed!important}
+.care-job-card:nth-child(3n+3) .care-job-card__top span:first-child{background:#ffefcc!important}
+.care-jobs-create input,.care-jobs-create textarea,.care-jobs-create select,.care-job-apply textarea{min-height:46px;border:1px solid #bbc8bd;border-radius:12px!important}
+.care-job-card__actions button,.care-jobs-create button[type="submit"],.care-job-apply button[type="submit"]{border-radius:999px!important;font-weight:800}
+.care-notices__panel{margin-block:18px!important;padding:clamp(19px,3vw,30px)!important}
+.care-notices__toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sewak2-notice-filters{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap}
+.sewak2-notice-filters button{background:#f1f5ed;color:#24483b;border:1px solid #dbe3d9;border-radius:999px;padding:10px 18px;font:inherit;font-weight:750;font-size:13px}
+.sewak2-notice-filters button.is-active{background:#d8f7a0;border-color:#9bd576;color:#0c4539}
+.sewak2-no-results{padding:25px;border-radius:16px;background:#f5f9f0;text-align:center;font-size:14px;color:#50685a}
+.care-notices__panel li{border-radius:16px;transition:background-color .2s ease}
+.care-notices__panel li.is-unread{background:#f3f9e9}
+.customer-booking-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0}
+.customer-booking-stats__card{background:#fff!important;border:1px solid #e7e8df;border-radius:18px!important;padding:18px!important}
+.customer-booking-stats__card:nth-child(4n+1){background:#eaf8d8!important}
+.customer-booking-stats__card:nth-child(4n+2){background:#fff1df!important}
+.customer-booking-stats__card:nth-child(4n+3){background:#fce8f0!important}
+.customer-booking-stats__card:nth-child(4n+4){background:#e9edfc!important}
+.customer-bookings__status-tabs{display:flex;flex-wrap:wrap;gap:7px;padding:8px;background:#fff;border-radius:20px;border:1px solid #e5e8df}
+.customer-bookings__status-tab{border-radius:999px!important}
+.customer-bookings__status-tab.is-active{background:#d8f7a0!important;color:#113c31!important}
+.customer-booking-card{padding:clamp(18px,3vw,28px)!important;transition:transform .2s ease,box-shadow .2s ease}
+.customer-booking-card:hover{transform:translateY(-2px);box-shadow:0 19px 35px rgb(21 54 42 / 10%)!important}
+.customer-booking-card__name{font-size:19px!important}
+.booking-detail-page{max-width:1280px;margin:15px auto 60px}
+.booking-detail-grid{gap:18px}
+.booking-detail-review{padding:clamp(20px,3vw,32px)!important}
+.org-dashboard-header{background:linear-gradient(125deg,#fce8f0,#fff7e9)!important;border-radius:24px!important}
+.org-dashboard-header h1{font:850 clamp(31px,3vw,44px)/1.12 "Avenir Next","Segoe UI",Arial,sans-serif!important}
+.org-section-card,.sewak-workspace__body .card{border:1px solid #e7e8df!important;border-radius:22px!important;box-shadow:0 10px 28px rgb(21 54 42 / 5%)!important}
+.org-primary-action,.org-dashboard-root .btn-primary{border-radius:999px!important}
+@media(max-width:680px){
+  :where(.care-inbox-page,.care-jobs-page,.care-notices){width:calc(100% - 20px);margin:10px auto 75px}
+  .sewak2-inbox-controls{padding:12px}
+  .sewak2-inbox-controls [role="status"]{padding-bottom:2px}
+  .care-notices__toolbar{flex-wrap:wrap}
+  .care-inbox-intro,.care-jobs-hero,.care-notices__header,.customer-bookings__heading,.booking-detail-hero{border-radius:19px!important}
+  .customer-booking-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(prefers-reduced-motion:reduce){
+  .care-job-card:hover,.customer-booking-card:hover,.care-inbox-thread:hover{transform:none}
+}
+
+.sewak2-jobs-filters{display:flex;align-items:end;flex-wrap:wrap;gap:13px;margin:17px 0;padding:16px;background:#fff;border:1px solid #e7e9df;border-radius:17px}
+.sewak2-jobs-filters label{display:flex;flex:1 1 215px;flex-direction:column;gap:6px;font-size:12px;color:#466155;font-weight:800}
+.sewak2-jobs-filters input,.sewak2-jobs-filters select{width:100%;height:47px;padding:9px 12px;border:1px solid #b9c8bf;border-radius:12px;background:#fff;color:#173c32;font:inherit;font-size:13px}
+.sewak2-jobs-filters [role="status"]{font-size:12px;color:#5c7164;padding-bottom:14px}
+@media(max-width:680px){.sewak2-jobs-filters{padding:12px}.sewak2-jobs-filters [role="status"]{padding-bottom:2px}}
+
+/* Sewak 2.0 browser QA follow-up: readability and true mobile booking-first layout.
+   Override the legacy negative hero margins without hiding overflow or disabling axe. */
+.home-page .home-marketplace__intro {
+  margin-inline:0 !important;
+  padding-inline:0 !important;
+  max-height:none !important;
+}
+.home-page .home-marketplace__submit {
+  color:#fff !important;
+}
+.home-page .home-join {
+  background:#e9f9d4 !important;
+  color:#113e30 !important;
+}
+.home-page .home-join .home-eyebrow,
+.home-page .home-join h2,
+.home-page .home-join h2 em,
+.home-page .home-join p,
+.home-page .home-join .home-text-link {
+  color:#113e30 !important;
+}
+.home-page .home-join .home-button:not(.home-button--outline) {
+  color:#fff !important;
+  background:#0b5647 !important;
+  border-color:#0b5647 !important;
+}
+.home-page .home-join .home-button--outline {
+  color:#0b5647 !important;
+  background:#fff !important;
+  border-color:#0b5647 !important;
+}
+@media (max-width:720px) {
+  /* Video/photo remains visible behind the copy instead of consuming a second
+     140px row that pushes the first real caregiver below the first screen. */
+  .home-page .home-marketplace__intro {
+    position:relative;
+    display:block;
+    isolation:isolate;
+    overflow:hidden;
+  }
+  .home-page .home-marketplace__hero-visual {
+    position:absolute;
+    inset:0;
+    z-index:0;
+    width:100%;
+    height:100%;
+    min-height:0;
+    max-height:none;
+    pointer-events:none;
+  }
+  .home-page .home-marketplace__hero-visual .sewak-care-media {
+    width:100%;
+    height:100%;
+  }
+  .home-page .home-marketplace__hero-visual img {
+    height:100%;
+    min-height:0;
+    max-height:none;
+    object-fit:cover;
+    filter:brightness(.8);
+  }
+  .home-page .home-marketplace__hero-visual figcaption,
+  .home-page .sewak2-hero-label { display:none !important; }
+  .home-page .home-marketplace__hero-copy {
+    position:relative;
+    z-index:2;
+    width:100%;
+    background:linear-gradient(90deg,rgba(8,61,49,.98),rgba(8,61,49,.84));
+  }
+}
+
+/* Tighten just the smallest handset so the first real caregiver remains
+   visible within the first 1000px viewport, with motion reduced. */
+@media (max-width:359px) {
+  .home-page .home-marketplace__hero-copy { padding:13px 18px !important; }
+}

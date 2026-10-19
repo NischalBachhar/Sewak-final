@@ -7,8 +7,11 @@ import { scheduleBoundary } from "./bookingValidation";
 import { ErrorState, SkeletonCard, StatusBadge } from "./components/CareExperience";
 import CustomerCareDiscovery from "./components/CustomerCareDiscovery";
 import { RoleCareHero } from "./components/CareHeroMedia";
+import Sewak2ActionCenter from "./components/Sewak2ActionCenter";
+import { useNavigate } from "react-router-dom";
 import "./CustomerMarketplace.css";
 export default function CustomerHomePage() {
+  const navigate = useNavigate();
   const {
     user
   } = useAuth();
@@ -26,6 +29,7 @@ export default function CustomerHomePage() {
   return <main className="customer-home customer-marketplace" aria-label="Customer homepage">
     <header className="home-marketplace-heading"><p className="customer-home-eyebrow">YOUR CARE SPACE</p><h1>Find &amp; Book Care</h1><p>Compare caregivers and request local care.</p><nav className="home-marketplace-actions" aria-label="Care shortcuts"><Link className="customer-home-find-link" to="/user">Explore all caregivers <span aria-hidden="true">→</span></Link><Link className="customer-home-saved-link" to="/user/saved">♥ Saved caregivers →</Link><Link className="customer-home-saved-link" to="/user/jobs">Post a care job →</Link><Link className="customer-home-saved-link" to="/user/membership">Membership preview →</Link></nav></header>
     <CustomerCareDiscovery />
+    <Sewak2ActionCenter role="user" onAction={action => navigate(({find:"/user",bookings:"/user/mybookings",inbox:"/user/inbox"})[action])} metrics={[{label:"Open care requests",value:active.filter(b=>b.status==="pending").length},{label:"Confirmed or ongoing",value:active.filter(b=>b.status!=="pending").length},{label:"Completed or past bookings",value:recent.length}]} />
     <RoleCareHero role="user" />
     <section className="home-booking-activity" aria-labelledby="home-activity-heading"><div className="home-activity-heading"><h2 id="home-activity-heading">Your booking activity</h2><Link to="/user/mybookings">Manage bookings &rarr;</Link></div>
       {stale && <p role="status">Showing saved bookings. Reconnect for the latest care updates.</p>}

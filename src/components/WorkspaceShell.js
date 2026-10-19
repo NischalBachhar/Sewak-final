@@ -76,8 +76,8 @@ export default function WorkspaceShell({
         <div className="sewak-workspace__identity">
           <div className="sewak-workspace__identity-icon" aria-hidden="true">S</div>
           <div>
-            <strong>Sewak <span>{isAdmin ? "Control" : "Care"}</span></strong>
-            <small>{isAdmin ? "Platform operations" : "Professional workspace"}</small>
+            <strong>Sewak <span>2.0</span></strong>
+            <small>{isAdmin ? "Platform operations" : "Care professional studio"}</small>
           </div>
         </div>
         <p className="sewak-workspace__nav-heading">WORKSPACE</p>
@@ -104,7 +104,7 @@ export default function WorkspaceShell({
       </aside>
 
       <main id="main-content" className="sewak-workspace__content">
-        <div className="sewak-workspace__intro">
+        <div className={"sewak-workspace__intro sewak2-workspace-intro sewak2-workspace-intro--" + role}>
           <div>
             <p className="sewak-workspace__eyebrow">{isAdmin ? "SEWAK PLATFORM" : "YOUR WORKSPACE"}</p>
             <h1>{title}</h1>

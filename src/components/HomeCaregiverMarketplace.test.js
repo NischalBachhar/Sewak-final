@@ -45,8 +45,8 @@ beforeEach(() => {
 test('public homepage begins with caregiver hiring before promotional hero or services', async () => {
   render(<HomePage />);
   expect(screen.getAllByRole('region')[0]).toHaveAttribute('id', 'caregivers');
-  expect(screen.getByRole('heading', { level: 1, name: 'Find and book a caregiver' })).toBeVisible();
-  expect(screen.getByRole('heading', { level: 2, name: /Trusted care for/i })).toBeVisible();
+  expect(screen.getByRole('heading', { level: 1, name: 'The right care. Right here.' })).toBeVisible();
+  expect(screen.getByRole('heading', { level: 2, name: /Your people\. Your routine/i })).toBeVisible();
   expect(await screen.findByRole('heading', { name: 'Real Care Professional' })).toBeVisible();
   expect(searchCaregivers).toHaveBeenCalledWith({}, { limit: 9 });
   expect(screen.getByText('Accepting requests')).toBeVisible();

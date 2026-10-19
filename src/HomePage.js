@@ -6,6 +6,7 @@ import { loadServiceOptions } from './components/ServiceSelector';
 import HomeServiceIcon from './components/HomeServiceIcon';
 import './HomePage.css';
 import HomeCaregiverMarketplace from './components/HomeCaregiverMarketplace';
+import Sewak2Stories from './components/Sewak2Stories';
 
 export default function HomePage() {
   const [services, setServices] = useState([]);
@@ -28,22 +29,13 @@ export default function HomePage() {
     <PublicHeader />
     <main id="main-content">
       <HomeCaregiverMarketplace />
+      <Sewak2Stories />
       <div className="home-values" aria-label="The Sewak care experience">
         <div><span className="home-icon"><LoginIcon name="heart" /></span><strong>Care for every generation</strong></div>
         <div><span className="home-icon"><LoginIcon name="shield" /></span><strong>Review profile details</strong></div>
         <div><span className="home-icon"><LoginIcon name="clock" /></span><strong>Request a flexible schedule</strong></div>
         <div><span className="home-icon"><LoginIcon name="home" /></span><strong>Manage care in one place</strong></div>
       </div>
-      <section className="home-hero home-hero--secondary" aria-labelledby="home-title">
-        <div className="home-hero__copy">
-          <p className="home-eyebrow">People · Care · Everyday connection</p>
-          <h2 id="home-title">Trusted care for <em>every stage of life.</em></h2>
-          <p className="home-lead">Find trusted caregivers and household support for children, adults, elderly family members, and households across Nepal.</p>
-          <div className="home-actions"><a className="home-button" href="#caregivers"><LoginIcon name="heart" />Find Care<LoginIcon name="arrow" /></a><a className="home-button home-button--outline" href="#services">Explore Services</a></div>
-          <p className="home-hero__note">For your family. For your home. For a little peace of mind.</p>
-        </div>
-        <div className="home-hero__story" aria-label="Care with Sewak"><div className="home-hero__story-mark" aria-hidden="true">♡</div><p className="home-hero__story-kicker">A LITTLE HELP MAKES A BIG DIFFERENCE</p><h3>More time for what matters most.</h3><p>From everyday household help to support for loved ones, explore care that works around your life.</p><Link to="/browse">Explore local care <LoginIcon name="arrow" /></Link></div>
-      </section>
       <section id="services" className="home-section" aria-labelledby="services-title">
         <div className="home-section-heading"><div><p className="home-eyebrow">A helping hand, your way</p><h2 id="services-title">Support that fits your life.</h2></div><p>Explore Sewak’s current service catalog. Availability and pricing depend on the care professional you choose.</p></div>
         {state === 'loading' && <p className="home-catalog-state" role="status">Loading available services…</p>}

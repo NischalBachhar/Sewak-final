@@ -26,6 +26,7 @@ import { formatNpr } from "./config/brand";
 import { SkeletonCard } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
 import WorkspaceShell from "./components/WorkspaceShell";
+import Sewak2ActionCenter from "./components/Sewak2ActionCenter";
 import CareWeekPreview from "./components/CareWeekPreview";
 import { kathmanduDate } from "./bookingValidation";
 
@@ -447,6 +448,7 @@ export default function CaregiverDashboardPage() {
       {/* HOME TAB */}
       {activeTab === "home" && (
         <div>
+          <Sewak2ActionCenter role="caregiver" onAction={action => { if (action === "opportunities") navigate("/caregiver/opportunities"); else if (action === "availability") navigate("/caregiver/availability"); else selectTab("jobs"); }} metrics={[{label:"Pending requests",value:bookings.filter(b=>b.status==="pending").length},{label:"Accepted care",value:bookings.filter(b=>b.status==="accepted").length},{label:"Completed visits",value:bookings.filter(b=>b.status==="completed").length}]} />
           <section className="card" style={{ marginBottom: 16 }} aria-labelledby="caregiver-home-today">
             <p style={{ color: "var(--theme-text-muted)", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", margin: "0 0 6px" }}>
               TODAY

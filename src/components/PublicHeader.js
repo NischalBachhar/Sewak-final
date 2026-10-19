@@ -19,11 +19,11 @@ export default function PublicHeader() {
           <Link to="/care-services">Care services</Link>
           <Link to="/safety">Safety</Link>
           <Link to="/pricing">Pricing</Link>
-          <Link to="/get-started">For care partners</Link>
+          <Link to="/get-started">Find care jobs</Link>
         </nav>
         <div className="public-header__actions">
           <Link className="public-login" to="/auth">Log in</Link>
-          <Link className="public-signup" to="/get-started">Get started <span aria-hidden="true">→</span></Link>
+          <Link className="public-signup" to="/auth?mode=register">Join Sewak <span aria-hidden="true">→</span></Link>
           <button className="public-menu-toggle" type="button" aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
             aria-controls="public-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
             <span /><span /><span />

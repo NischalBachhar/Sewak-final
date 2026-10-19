@@ -14,6 +14,7 @@ export default function CareNotificationsPage() {
   const [version,setVersion] = useState(0);
   const [reminders,setReminders] = useState(true);
   const [notice,setNotice] = useState('');
+  const [filter,setFilter] = useState('all');
   const refresh=useCallback(()=>setVersion(value=>value+1),[]);
   useEffect(()=>{
     let active=true;
@@ -43,6 +44,7 @@ export default function CareNotificationsPage() {
       setReminders(enabled);setNotice('Reminder preference saved.');
     }catch(err){setError(err.message);}finally{setBusy('');}
   }
+  const visibleItems = filter === 'unread' ? items.filter(item=>!item.readAt) : items;
   const home=userRole==='caregiver'?'/caregiver':userRole==='orgadmin'?'/organization':userRole==='superadmin'?'/superadmin':'/user/home';
   return <main id="main-content" className="care-notices" aria-labelledby="care-notices-title">
     <header className="care-notices__header"><div>
@@ -60,11 +62,12 @@ export default function CareNotificationsPage() {
         <strong>{loading?'Checking updates…':unread?unread+' unread':'All caught up'}</strong>
         <button type="button" onClick={()=>mark('read-all')} disabled={!!busy||loading||unread===0}>Mark all as read</button>
       </div>
+      {!loading && items.length>0 && <div className="sewak2-notice-filters" role="group" aria-label="Filter notifications"><button type="button" className={filter==='all'?'is-active':''} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All ({items.length})</button><button type="button" className={filter==='unread'?'is-active':''} aria-pressed={filter==='unread'} onClick={()=>setFilter('unread')}>Unread ({unread})</button></div>}
       {error&&<div role="alert"><p>{error}</p><button type="button" onClick={refresh}>Retry</button></div>}
       {loading?<p role="status">Loading notifications…</p>:!items.length?<div className="care-notices__empty">
         <h2>No updates yet</h2><p>You'll see updates here once your care bookings begin.</p>
         <Link to={home}>Return to Sewak →</Link>
-      </div>:<ul>{items.map(item=><li key={item.id} className={item.readAt?'':'is-unread'}>
+      </div>:!visibleItems.length ? <p role="status" className="sewak2-no-results">You have no unread notifications.</p> : <ul>{visibleItems.map(item=><li key={item.id} className={item.readAt?'':'is-unread'}>
         <span className="care-notices__bullet" aria-hidden="true" />
         <div><small>{item.eventType.replaceAll('-',' ')}</small><strong>{item.title}</strong><p>{item.body}</p>
           <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString('en-NP',{timeZone:'Asia/Kathmandu'})}</time>

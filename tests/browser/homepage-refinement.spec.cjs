@@ -24,7 +24,7 @@ for (const width of [320, 375, 430, 768, 1024, 1366, 1440, 1920]) {
     await page.goto('/');
     const marketplace = page.getByRole('region', { name: 'Find and book a caregiver' });
     await expect(marketplace).toBeVisible();
-    await expect(marketplace.getByRole('heading', { level: 1 })).toHaveText('Find and book a caregiver');
+    await expect(marketplace.getByRole('heading', { level: 1 })).toHaveText('The right care. Right here.');
     await expect(marketplace.getByRole('search', { name: 'Find caregivers on Sewak' })).toBeVisible();
     await expect(marketplace.locator('.caregiver-preview-card')).toHaveCount(1);
     await expect(marketplace).toContainText('Test Caregiver');
@@ -33,12 +33,12 @@ for (const width of [320, 375, 430, 768, 1024, 1366, 1440, 1920]) {
     const position = await page.evaluate(() => {
       const first = document.querySelector('#main-content').firstElementChild;
       const box = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
-      return { first: first.id, card: box('.home-marketplace .caregiver-preview-card'), hero: box('.home-hero'), services: box('#services') };
+      return { first: first.id, card: box('.home-marketplace .caregiver-preview-card'), stories: box('.sewak2-stories'), services: box('#services') };
     });
     expect(position.first).toBe('caregivers');
     expect(position.card.top).toBeLessThan(height);
-    expect(position.card.top).toBeLessThan(position.hero.top);
-    expect(position.hero.top).toBeLessThan(position.services.top);
+    expect(position.card.top).toBeLessThan(position.stories.top);
+    expect(position.stories.top).toBeLessThan(position.services.top);
     await expect(page.locator('.home-service')).toHaveCount(6);
     await noOverflow(page, width);
     await page.evaluate(axe.source);
