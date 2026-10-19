@@ -630,3 +630,30 @@ a { text-underline-offset: 3px; }
 .care-notices__empty p { color:#52655d; margin:12px 0; }
 .care-notices__empty a { color:#08664f; font-weight:800; }
 @media(max-width:650px){.care-notices__header { display:block; padding:24px; }.care-notices__header a{display:inline-block; margin-top:14px;}.care-notices__panel li{flex-wrap:wrap;}.care-notices__actions{margin-left:20px;display:flex;gap:18px;}}
+
+/* Working caregiver availability */
+.care-timeoff-page{width:min(100%,1150px);margin:20px auto 80px;padding:0 18px}
+.care-timeoff-page>header{padding:28px 34px;background:#e6f3df;border-radius:24px}
+.care-timeoff-page>header p{color:#08664f;font-size:11px;font-weight:800;letter-spacing:.12em}
+.care-timeoff-page>header h1{font:600 clamp(32px,4vw,48px)/1.1 Georgia,serif;color:#064c3c;margin:10px 0}
+.care-timeoff-page>header span{display:block;max-width:660px;color:#456558;font-size:14px}
+.care-timeoff-page>header a{display:inline-block;margin-top:16px;color:#08664f;font-size:13px;font-weight:800}
+.care-timeoff-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:20px}
+.care-timeoff-card{background:white;border:1px solid #dce6df;border-radius:20px;padding:28px;min-width:0}
+.care-timeoff-card h2{color:#064c3c;font-size:24px;margin:0 0 18px}
+.care-timeoff-card form>label,.care-timeoff-card form .care-timeoff-hours label{display:grid;gap:7px;font-weight:750;font-size:13px;color:#244e3c}
+.care-timeoff-card input{min-height:46px;width:100%;border:1px solid #9caea3;border-radius:12px;padding:10px;background:white}
+.care-timeoff-hours{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0 18px}
+.care-timeoff-card button{background:#08664f;color:white;border:0;border-radius:99px;padding:10px 18px;min-height:42px;font-weight:750;cursor:pointer}
+.care-timeoff-card button:disabled{opacity:.55;cursor:default}
+.care-timeoff-help{margin-top:18px;color:#52655d;font-size:12px;line-height:1.55}
+.care-timeoff-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.care-timeoff-head button{background:white;border:1px solid #abc5b8;color:#08664f}
+.care-timeoff-card ul{padding:0;margin:0;list-style:none}
+.care-timeoff-card li{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px 0;border-bottom:1px solid #e6eee6}
+.care-timeoff-card li div{display:grid;gap:5px}
+.care-timeoff-card li strong{font-size:14px;color:#064c3c}
+.care-timeoff-card li span{font-size:12px;color:#52655d}
+.care-timeoff-card li button{background:white;color:#08664f;border:1px solid #abc5b8}
+.care-timeoff-notice{margin-top:15px;color:#08664f;font-weight:750}
+@media(max-width:720px){.care-timeoff-grid{grid-template-columns:minmax(0,1fr)}.care-timeoff-card{padding:20px}.care-timeoff-page>header{padding:24px}}

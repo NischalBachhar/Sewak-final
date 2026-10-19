@@ -39,6 +39,7 @@ export function environment() {
   DB.database.exec(readFileSync(new URL('../../migrations/main/0007_care_jobs.sql',import.meta.url),'utf8'));
   DB.database.exec(readFileSync(new URL('../../migrations/main/0008_care_messages.sql',import.meta.url),'utf8'));
   DB.database.exec(readFileSync(new URL('../../migrations/main/0009_care_notifications.sql',import.meta.url),'utf8'));
+  DB.database.exec(readFileSync(new URL('../../migrations/main/0010_caregiver_time_off.sql',import.meta.url),'utf8'));
   EVIDENCE_DB.database.exec(readFileSync(new URL('../../migrations/evidence/0001_private_evidence.sql',import.meta.url),'utf8'));
   return {DB,MEDIA_DB,EVIDENCE_DB,VERIFICATION_ENCRYPTION_KEY:Buffer.alloc(32,7).toString('base64url'),AUTH_AUDIENCE:'sewak-test',PASSWORD_HASHER:{idFromName:x=>x,get:()=>({fetch:(url,init)=>new PasswordHasher().fetch(new Request(url,init))})},APP_WRITES_ENABLED:'true'};
 }

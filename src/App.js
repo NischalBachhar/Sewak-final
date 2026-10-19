@@ -16,6 +16,7 @@ import CareJobsPage from "./CareJobsPage";
 import CareConversationPage from "./CareConversationPage";
 import CareInboxPage from "./CareInboxPage";
 import CareNotificationsPage from "./CareNotificationsPage";
+import CaregiverAvailabilityPage from "./CaregiverAvailabilityPage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
 import { RoleCareHero } from "./components/CareHeroMedia";
@@ -487,6 +488,7 @@ function App() {
             <Route path="/caregiver/opportunities" element={<CareJobsPage role="caregiver" />} />
             <Route path="/caregiver/inbox" element={<CareInboxPage />} />
             <Route path="/caregiver/notifications" element={<CareNotificationsPage />} />
+            <Route path="/caregiver/availability" element={<CaregiverAvailabilityPage />} />
             <Route path="/caregiver/messages/:kind/:contextId" element={<CareConversationPage />} />
             <Route
               path="/caregiver/reportuser"
