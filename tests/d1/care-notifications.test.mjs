@@ -33,3 +33,20 @@ test('failed booking never emits phantom notifications',async()=>{
  assert.notEqual(result.status,200);
  assert.equal((await call(env,'/api/care-notifications',{uid:'customer'})).data.unread,0);
 });
+
+
+test('migration-era caregiver without a login does not block a customer booking receipt',async()=>{
+ const {notificationStatements}=await import('../../worker/src/notifications.ts');
+ const env=environment();await seed(env);
+ const path='bookings/legacy_receipt';
+ const statements=notificationStatements(env,[{path,data:{
+  userId:'customer',caregiverId:'legacy_vendor_without_account',status:'pending',
+ }}],new Map([[path,{path,data:null,version:0}]]));
+ assert.ok(statements.length>=2);
+ await env.DB.batch(statements);
+ const customer=await env.DB.prepare("SELECT event_type AS eventType FROM care_notifications WHERE recipient_id='customer'").all();
+ assert.equal(customer.results.length,1);
+ assert.equal(customer.results[0].eventType,'booking-received');
+ const absent=await env.DB.prepare("SELECT COUNT(*) AS n FROM care_notifications WHERE recipient_id='legacy_vendor_without_account'").first();
+ assert.equal(absent.n,0);
+});
