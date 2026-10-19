@@ -16,6 +16,8 @@ export default function CareJobsPage({ role }) {
   const [busy,setBusy] = useState(false);
   const [notice,setNotice] = useState('');
   const [refreshKey,setRefreshKey] = useState(0);
+  const [searchText,setSearchText] = useState('');
+  const [categoryFilter,setCategoryFilter] = useState('all');
   const refresh=useCallback(()=>setRefreshKey(v=>v+1),[]);
   useEffect(()=>{
     let active=true;
@@ -53,6 +55,11 @@ export default function CareJobsPage({ role }) {
     }catch(e){setNotice(e.message);}
     finally{setBusy(false);}
   }
+  const visibleJobs = list.jobs.filter(job => {
+    const categoryOk = categoryFilter === 'all' || job.category === categoryFilter;
+    const haystack = [job.title,job.description,job.city].filter(Boolean).join(' ').toLowerCase();
+    return categoryOk && haystack.includes(searchText.trim().toLowerCase());
+  });
   return <main id="main-content" className="care-jobs-page">
     <header className="care-jobs-hero"><p>SEWAK CARE CONNECTIONS</p><h1>{customer?'Post a care job':'Find care jobs'}</h1>
       <div>{customer?'Describe your family’s needs and hear from approved caregivers. Posting a job does not confirm a booking.':'Browse care requests and apply with a thoughtful introduction. Acceptance and scheduling happen separately.'}</div>
@@ -70,11 +77,16 @@ export default function CareJobsPage({ role }) {
         <button type="submit" disabled={busy}>{busy?'Publishing…':'Publish job →'}</button>
       </form></section>}
     {notice&&<p role="status" className="care-jobs-notice">{notice}</p>}
+    {!list.loading && !list.error && list.jobs.length > 0 && <div className="sewak2-jobs-filters" role="search" aria-label="Filter care jobs">
+      <label>Search care jobs<input type="search" value={searchText} maxLength={100} onChange={event=>setSearchText(event.target.value)} placeholder="Search title, area or care need" /></label>
+      <label>Support type<select value={categoryFilter} onChange={event=>setCategoryFilter(event.target.value)}><option value="all">All support</option><option value="caregiver">Caregiving</option><option value="household">Household help</option></select></label>
+      <span role="status">{visibleJobs.length} of {list.jobs.length} posts</span>
+    </div>}
     <section className="care-jobs-results" aria-label={customer?'Your care jobs':'Open care jobs'}>
-      <div className="care-jobs-results__head"><h2>{customer?'Your job posts':'Open opportunities'}</h2><p>{list.loading?'Loading…':list.jobs.length+' posts'}</p></div>
+      <div className="care-jobs-results__head"><h2>{customer?'Your job posts':'Open opportunities'}</h2><p>{list.loading?'Loading…':visibleJobs.length+' posts'}</p></div>
       {list.loading?<p role="status">Loading care jobs…</p>:list.error?<div role="alert"><p>{list.error}</p><button type="button" onClick={refresh}>Try again</button></div>:
-        !list.jobs.length?<div className="saved-care-empty"><p>{customer?'No jobs posted yet. Start by describing the help you need.':'There are no open care jobs right now.'}</p></div>:
-      <div className="care-jobs-grid">{list.jobs.map(job=><article key={job.id} className="care-job-card">
+        !visibleJobs.length?<div className="saved-care-empty"><p>{list.jobs.length === 0 ? (customer?'No jobs posted yet. Start by describing the help you need.':'There are no open care jobs right now.') : 'No care jobs match your filters. Try a different search.'}</p></div>:
+      <div className="care-jobs-grid">{visibleJobs.map(job=><article key={job.id} className="care-job-card">
         <div className="care-job-card__top"><span>{job.category==='household'?'Household support':'Caregiving'}</span><span>{job.status==='open'?'Open':'Closed'}</span></div>
         <h2>{job.title}</h2><p>{job.description}</p>
         <dl><div><dt>City</dt><dd>{job.city}</dd></div><div><dt>Schedule</dt><dd>{job.schedule.replace('_',' ')}</dd></div><div><dt>Budget</dt><dd>{job.hourlyBudget==null?'Negotiable':formatNpr(job.hourlyBudget)+'/hr'}</dd></div></dl>
