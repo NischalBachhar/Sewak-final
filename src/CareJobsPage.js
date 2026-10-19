@@ -84,11 +84,11 @@ export default function CareJobsPage({ role }) {
         </div>
         {selected===job.id&&<section className="care-job-applicants" aria-label="Applicants"><div className="care-job-applicants__head"><h3>Applicants</h3><button type="button" onClick={()=>setSelected('')}>Close</button></div>
           {applications.loading?<p role="status">Loading applicants…</p>:applications.error?<p role="alert">{applications.error}</p>:!applications.items.length?<p>No applications yet.</p>:
-            applications.items.map(item=><article key={item.id}><strong>{item.caregiverName||'Caregiver'}</strong><small>{item.status}</small><p>{item.message}</p><Link to={'/user/caregivers/'+encodeURIComponent(item.caregiverId)}>View caregiver profile →</Link></article>)}
+            applications.items.map(item=><article key={item.id}><strong>{item.caregiverName||'Caregiver'}</strong><small>{item.status}</small><p>{item.message}</p><Link to={'/user/caregivers/'+encodeURIComponent(item.caregiverId)}>View caregiver profile →</Link><Link to={'/user/messages/job/'+encodeURIComponent(job.id)+'?caregiverId='+encodeURIComponent(item.caregiverId)}>Message caregiver →</Link></article>)}
           <p>Review the person’s profile before sending a separate booking request.</p>
         </section>}</>:<div className="care-job-card__actions">
           {job.myApplicationStatus?<><strong className="care-job-applied">Application: {job.myApplicationStatus}</strong>
-            {job.myApplicationStatus==='applied'&&<button type="button" disabled={busy} onClick={()=>act(job.id,'withdraw')}>Withdraw</button>}</>:
+            {job.myApplicationStatus==='applied'&&<><Link to={'/caregiver/messages/job/'+encodeURIComponent(job.id)}>Message family →</Link><button type="button" disabled={busy} onClick={()=>act(job.id,'withdraw')}>Withdraw</button></>}</>:
           <button type="button" onClick={()=>setApplying(v=>v===job.id?'':job.id)}>Apply</button>}
           {applying===job.id&&<form className="care-job-apply" onSubmit={e=>{e.preventDefault();act(job.id,'apply',{message});}}>
             <label>Introduce yourself<textarea required minLength="20" maxLength="700" rows="4" value={message} onChange={e=>setMessage(e.target.value)} placeholder="Your care experience, suitable shifts and a short introduction. Do not include contact details." /></label>

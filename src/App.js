@@ -13,6 +13,7 @@ import HomePage from "./HomePage";
 import CareInfoPage from "./CareInfoPage";
 import SavedCarePage from "./SavedCarePage";
 import CareJobsPage from "./CareJobsPage";
+import CareConversationPage from "./CareConversationPage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
@@ -405,6 +406,7 @@ function App() {
             <Route path="/user/profile" element={<div className="customer-detail-shell"><UserProfilePage /></div>} />
             <Route path="/user/saved" element={<SavedCarePage />} />
             <Route path="/user/jobs" element={<CareJobsPage role="user" />} />
+            <Route path="/user/messages/:kind/:contextId" element={<CareConversationPage />} />
             <Route
               path="/user/caregivers/:caregiverId"
               element={<div className="customer-detail-shell"><PublicCaregiverProfilePage signedIn /></div>}
@@ -474,6 +476,7 @@ function App() {
         {userRole === "caregiver" && (
           <>
             <Route path="/caregiver/opportunities" element={<CareJobsPage role="caregiver" />} />
+            <Route path="/caregiver/messages/:kind/:contextId" element={<CareConversationPage />} />
             <Route
               path="/caregiver/reportuser"
               element={<CaregiverReportUserPage />}

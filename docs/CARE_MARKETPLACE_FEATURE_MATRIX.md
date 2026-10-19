@@ -11,9 +11,11 @@ This is an independent Sewak product; it must not copy Care.com's proprietary as
 - Organizational caregiver roster, application review and separate superadmin account/workspace permissions (existing D1 backend).
 - Mobile-friendly layouts, role-aware navigation, accessible save buttons; no Care.com images or video.
 
+- Private, role-scoped customer–caregiver messaging for an existing booking or active job application (D1; manual refresh only). Messages are not emails or push notifications and do not confirm bookings.
+
 ## Still not equivalent to Care.com
 - Family job posting and caregiver applications now have protected D1 storage. Candidate ranking, detailed applicant pipeline and service matching are not implemented yet.
-- In-app private messaging and notifications for conversations.
+- Standalone inbox, unread message notifications and email/push delivery (individual conversations now supported).
 - Direct independent caregiver self-signup and approval workflows (current flow uses organization invitation).
 - Dedicated category profile creation for each skill and independent provider job searches.
 - Customer saved searches and cross-device shortlist (currently only saved profiles per device).
