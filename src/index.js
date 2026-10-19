@@ -11,6 +11,7 @@ import './index.css';
 import './DesignSystem.css';
 import './CareInspired.css';
 import './Sewak2.css';
+import './Sewak2Deep.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
