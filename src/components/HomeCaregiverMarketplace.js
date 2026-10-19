@@ -14,13 +14,15 @@ const searchFields = fields => Object.fromEntries(
 );
 const rowsFrom = result => (result.items || []).map(item => ({ ...item.data, id: item.id }));
 
-export default function HomeCaregiverMarketplace() {
+export default function HomeCaregiverMarketplace({ embedded = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const headingId = useId();
-  const urlService = new URLSearchParams(location.search).get('service') || '';
-  const [draft, setDraft] = useState(() => ({ ...emptyFields(), serviceId: urlService }));
-  const [filters, setFilters] = useState(() => searchFields({ ...emptyFields(), serviceId: urlService }));
+  const urlParams = new URLSearchParams(location.search);
+  const urlService = urlParams.get('service') || '';
+  const urlFields = () => ({ text: (urlParams.get('text') || '').slice(0,160), category: ['caregiver','household'].includes(urlParams.get('category')) ? urlParams.get('category') : '', serviceId: urlService, location: (urlParams.get('location') || '').slice(0,160) });
+  const [draft, setDraft] = useState(() => urlFields());
+  const [filters, setFilters] = useState(() => searchFields(urlFields()));
   const [services, setServices] = useState([]);
   const [catalogState, setCatalogState] = useState('loading');
   const [cursor, setCursor] = useState(null);
@@ -38,14 +40,17 @@ export default function HomeCaregiverMarketplace() {
     return () => { active = false; };
   }, []);
 
-  // A service card farther down this same homepage reopens this first,
-  // bookable section with the selected service. No second listing page.
+  // The cinematic search, category cards and published service links reopen
+  // real caregiver results on this page via a shareable URL.
   useEffect(() => {
-    setDraft({ ...emptyFields(), serviceId: urlService });
-    setFilters(previous => (previous.serviceId || '') === urlService && Object.keys(previous).length <= (urlService ? 1 : 0)
-      ? previous : searchFields({ ...emptyFields(), serviceId: urlService }));
+    const fields = urlFields();
+    const next = searchFields(fields);
+    setDraft(fields);
+    setFilters(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
     setCursor(null);
-  }, [urlService]);
+  // location.search carries the authoritative public search selection.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   useEffect(() => {
     let active = true;
@@ -100,7 +105,7 @@ export default function HomeCaregiverMarketplace() {
 
   return (
     <section id="caregivers" className="home-marketplace" aria-labelledby={headingId}>
-      <div className="home-marketplace__intro">
+      {!embedded && <div className="home-marketplace__intro">
         <div className="home-marketplace__hero-copy">
           <p className="home-marketplace__eyebrow"><span aria-hidden="true">✳</span> THE CARE YOU NEED, CLOSE TO HOME</p>
           <h1 id={headingId}>Find and book a caregiver</h1>
@@ -116,9 +121,9 @@ export default function HomeCaregiverMarketplace() {
           <img src="/images/care-for-every-generation.webp" alt="Illustration of a Nepali family with caregivers supporting different generations at home" width="1536" height="1024" fetchPriority="high" />
           <figcaption><strong>Care for every generation.</strong><span>Made for life in Nepal.</span></figcaption>
         </figure>
-      </div>
+      </div>}
       <div className="home-marketplace__search-heading">
-        <div><strong>Let's find your care match</strong><span>Start with a name, service or area.</span></div>
+        <div><strong>{embedded ? 'Discover people near you' : "Let's find your care match"}</strong><span>Start with a name, service or area.</span></div>
         <Link className="home-marketplace__advanced" to="/browse">More search options <span aria-hidden="true">→</span></Link>
       </div>
 
@@ -163,7 +168,7 @@ export default function HomeCaregiverMarketplace() {
 
       <div className="home-marketplace__results-head">
         <div>
-          <h2>Caregivers accepting requests</h2>
+          <h2 id={embedded ? headingId : undefined}>Caregivers accepting requests</h2>
           <p>{loadingFirst ? 'Loading real caregiver profiles…' :
             result.status === 'error' ? 'Unable to show current results.' :
               totalLabel + ' match' + (result.total === 1 ? 'es' : '') + ' your search.'}</p>

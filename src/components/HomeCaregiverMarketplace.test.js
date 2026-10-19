@@ -42,11 +42,11 @@ beforeEach(() => {
   searchCaregivers.mockResolvedValue(response([caregiver]));
 });
 
-test('public homepage begins with caregiver hiring before promotional hero or services', async () => {
+test('cinematic homepage starts with a working care search and shows real caregiver results', async () => {
   render(<HomePage />);
-  expect(screen.getAllByRole('region')[0]).toHaveAttribute('id', 'caregivers');
-  expect(screen.getByRole('heading', { level: 1, name: 'Find and book a caregiver' })).toBeVisible();
-  expect(screen.getByRole('heading', { level: 2, name: /Trusted care for/i })).toBeVisible();
+  expect(screen.getByRole('heading', { level: 1, name: /Connecting families with/i })).toBeVisible();
+  expect(screen.getByRole('search', { name: 'Start finding care' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'What can we help with?' })).toBeVisible();
   expect(await screen.findByRole('heading', { name: 'Real Care Professional' })).toBeVisible();
   expect(searchCaregivers).toHaveBeenCalledWith({}, { limit: 9 });
   expect(screen.getByText('Accepting requests')).toBeVisible();
@@ -72,7 +72,7 @@ test('homepage searches real caregivers by category, service, location and name'
 test('lower service cards search caregivers on the same homepage, not a separate find-care page', async () => {
   mockLocation = { search: '?service=care', hash: '#caregivers' };
   render(<HomePage />);
-  const serviceLink = await screen.findByRole('link', { name: 'Find caregivers offering Elderly Care' });
+  const serviceLink = await screen.findByRole('link', { name: /Elderly Care/i });
   expect(serviceLink).toHaveAttribute('href', '/?service=care#caregivers');
   await waitFor(() => expect(searchCaregivers).toHaveBeenCalledWith({ serviceId: 'care' }, { limit: 9 }));
 });
