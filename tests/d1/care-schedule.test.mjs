@@ -23,3 +23,21 @@ test('caregiver can block a slot; families cannot book it; only owner can remove
  await env.DB.prepare('DELETE FROM caregiver_time_off WHERE id=?').bind('fixture').run();
  assert.equal((await call(env,'/api/commit',{uid:'customer',method:'POST',json:{writes:[booking()]}})).status,200);
 });
+
+test('an unavailability block prevents later acceptance, not only new requests',async()=>{
+ const env=environment();await seed(env);
+ const request=booking();
+ const created=await call(env,'/api/commit',{uid:'customer',method:'POST',json:{writes:[request]}});
+ assert.equal(created.status,200,JSON.stringify(created.data));
+ // A new block is permissible before caregiver acceptance, but acceptance itself
+ // must fail against the block under the same D1 commit guard.
+ await env.DB.prepare('INSERT INTO caregiver_time_off(id,caregiver_id,day,start_min,end_min,created_at) VALUES(?,?,?,?,?,?)')
+  .bind('blocked-fixture','caregiver','2090-01-01',540,1020,new Date().toISOString()).run();
+ const decision=await call(env,'/api/commit',{uid:'caregiver',method:'POST',json:{writes:[{
+  path:request.path,kind:'update',data:{status:'accepted',updatedAt:{__op:'serverTimestamp'}},
+ }]}});
+ assert.equal(decision.status,409,JSON.stringify(decision.data));
+ const saved=await env.DB.prepare('SELECT status FROM bookings WHERE id=?').bind(request.path.split('/')[1]).first();
+ assert.equal(saved.status,'pending');
+ assert.equal((await call(env,'/api/care-notifications',{uid:'customer'})).data.items.filter(x=>x.eventType==='booking-accepted').length,0);
+});

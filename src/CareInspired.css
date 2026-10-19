@@ -657,3 +657,27 @@ a { text-underline-offset: 3px; }
 .care-timeoff-card li button{background:white;color:#08664f;border:1px solid #abc5b8}
 .care-timeoff-notice{margin-top:15px;color:#08664f;font-weight:750}
 @media(max-width:720px){.care-timeoff-grid{grid-template-columns:minmax(0,1fr)}.care-timeoff-card{padding:20px}.care-timeoff-page>header{padding:24px}}
+
+/* Original subtle motion for Sewak's illustrated fallback (never autoplay
+   aggressively or override the operating system reduced-motion preference). */
+@keyframes sewak-ambient-pan {
+  0% { transform: scale(1.01) translate3d(0,0,0); }
+  100% { transform: scale(1.07) translate3d(-1%,0,0); }
+}
+@keyframes sewak-ambient-light {
+  0%,100% { opacity: .12; }
+  50% { opacity: .28; }
+}
+.sewak-care-media img {
+  animation: sewak-ambient-pan 22s ease-in-out infinite alternate;
+  transform-origin: center center;
+}
+.sewak-care-media::after {
+  content:""; pointer-events:none; position:absolute; inset:0;
+  background: radial-gradient(circle at 70% 35%,rgba(215,241,163,.14),transparent 55%);
+  animation:sewak-ambient-light 10s ease-in-out infinite;
+}
+.booking-slot-status { grid-column:1/-1; color:#315f48; font-size:13px; font-weight:700; margin:12px 0; }
+@media(prefers-reduced-motion:reduce) {
+  .sewak-care-media img, .sewak-care-media::after { animation:none !important; transform:none !important; }
+}
