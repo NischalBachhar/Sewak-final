@@ -26,6 +26,7 @@ import { formatNpr } from "./config/brand";
 import { SkeletonCard } from "./components/CareExperience";
 import "./OrganizationDashboard.css";
 import WorkspaceShell from "./components/WorkspaceShell";
+import Sewak2ActionCenter from "./components/Sewak2ActionCenter";
 import CareWeekPreview from "./components/CareWeekPreview";
 import { kathmanduDate } from "./bookingValidation";
 
