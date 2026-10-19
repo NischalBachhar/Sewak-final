@@ -38,8 +38,8 @@ test('approved caregiver can block and unblock future availability through the s
   await expect(page.getByRole('heading', { name: 'Manage your time' })).toBeVisible();
   const day = new Date(Date.now() + 290 * 86400000).toISOString().slice(0, 10);
   await page.getByLabel('Date', { exact: true }).fill(day);
-  await page.getByLabel('From').fill('09:00');
-  await page.getByLabel('Until').fill('17:00');
+  await page.locator('#timeoff-start').fill('09:00');
+  await page.locator('#timeoff-end').fill('17:00');
   await page.getByRole('button', { name: 'Block this time' }).click();
   await expect(page.getByText('Time blocked. New booking requests cannot overlap this period.')).toBeVisible();
   await expect(page.getByText(day, { exact: true })).toBeVisible();

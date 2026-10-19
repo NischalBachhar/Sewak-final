@@ -28,8 +28,8 @@ export default function WeeklyHoursPanel(){
    <p>Tell families which days and hours you normally work. Once you set a window, new requests must fit your listed days and times. Already confirmed care stays confirmed.</p>
    <form onSubmit={event=>{event.preventDefault();act({action:'weekly-add',weekday:Number(weekday),start,end});}}>
     <label htmlFor="weekly-day">Day of week<select id="weekly-day" value={weekday} onChange={e=>setWeekday(e.target.value)}>{weekdays.map((day,index)=><option value={index} key={day}>{day}</option>)}</select></label>
-    <label htmlFor="weekly-start">From<input id="weekly-start" type="time" value={start} required onChange={e=>setStart(e.target.value)}/></label>
-    <label htmlFor="weekly-end">Until<input id="weekly-end" type="time" value={end} required onChange={e=>setEnd(e.target.value)}/></label>
+    <label htmlFor="weekly-start">Working from<input id="weekly-start" type="time" value={start} required onChange={e=>setStart(e.target.value)}/></label>
+    <label htmlFor="weekly-end">Working until<input id="weekly-end" type="time" value={end} required onChange={e=>setEnd(e.target.value)}/></label>
     <button type="submit" disabled={busy}>Add hours →</button>
    </form>
    {state.loading?<p role="status">Loading weekly hours…</p>:state.error?<p role="alert">{state.error}</p>:
