@@ -1,6 +1,12 @@
 const { test, expect } = require('./test.cjs');
 const { seed } = require('./seed.cjs');
 test.beforeAll(seed);
+async function privateGet(page,path){
+ return page.evaluate(async url=>{
+  const response=await fetch(url,{credentials:'same-origin',cache:'no-store'});
+  return {status:response.status,data:await response.json()};
+ },path);
+}
 
 async function signIn(page, role) {
   await page.goto('/auth');
@@ -16,9 +22,9 @@ test('customer sees owned notification inbox and messaging workspace on a phone'
   await page.goto('/user/notifications');
   await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Notifications/ })).toBeVisible();
-  const response = await page.request.get('/api/care-notifications');
-  expect(response.status()).toBe(200);
-  const body = await response.json();
+  const response = await privateGet(page,'/api/care-notifications');
+  expect(response.status).toBe(200);
+  const body = response.data;
   expect(Array.isArray(body.items)).toBe(true);
   await page.goto('/user/inbox');
   await expect(page.getByRole('heading', { name: 'Messages', exact: true })).toBeVisible();
@@ -37,9 +43,9 @@ test('approved caregiver can block and unblock future availability through the s
   await page.getByRole('button', { name: 'Block this time' }).click();
   await expect(page.getByText('Time blocked. New booking requests cannot overlap this period.')).toBeVisible();
   await expect(page.getByText(day, { exact: true })).toBeVisible();
-  const availability = await page.request.get('/api/care-schedule');
-  expect(availability.status()).toBe(200);
-  expect((await availability.json()).blocks.some(item => item.day === day)).toBe(true);
+  const availability = await privateGet(page,'/api/care-schedule');
+  expect(availability.status).toBe(200);
+  expect(availability.data.blocks.some(item => item.day === day)).toBe(true);
   await page.getByRole('button', { name: 'Remove' }).first().click();
   await expect(page.getByText('No blocks set. Your profile\'s normal availability still applies.')).toBeVisible();
   await page.goto('/caregiver/inbox');
@@ -59,9 +65,9 @@ test('customer can preview membership preferences without payment or a subscript
   await acknowledgement.check();
   await plus.click();
   await expect(page.getByRole('status')).toContainText('No payment was made or subscription created');
-  const saved = await page.request.get('/api/membership');
-  expect(saved.status()).toBe(200);
-  const preference = await saved.json();
+  const saved = await privateGet(page,'/api/membership');
+  expect(saved.status).toBe(200);
+  const preference = saved.data;
   expect(preference).toMatchObject({
     tier: 'plus_preview', mode: 'demo-only', priceNpr: 0,
     charged: false, realSubscription: false,
@@ -76,8 +82,8 @@ test('customer can preview membership preferences without payment or a subscript
 
 test('caregiver account cannot open customer membership data', async ({ page }) => {
   await signIn(page, 'caregiver');
-  const result = await page.request.get('/api/membership');
-  expect(result.status()).toBe(403);
+  const result = await privateGet(page,'/api/membership');
+  expect(result.status).toBe(403);
 });
 
 test('caregiver can publish recurring weekly working hours and families see truthful booking availability',async({page})=>{
@@ -92,12 +98,12 @@ test('caregiver can publish recurring weekly working hours and families see trut
   await page.locator('#weekly-end').fill('17:00');
   await page.getByRole('button',{name:'Add hours'}).click();
   await expect(page.getByRole('status')).toContainText('Weekly working hours saved');
-  const inside=await page.request.get('/api/care-schedule?caregiverId=e2e-caregiver&day='+date+'&time=10:00&hours=2');
-  expect(inside.status()).toBe(200);
-  expect((await inside.json()).available).toBe(true);
-  const outside=await page.request.get('/api/care-schedule?caregiverId=e2e-caregiver&day='+date+'&time=19:00&hours=2');
-  expect(outside.status()).toBe(200);
-  expect((await outside.json()).available).toBe(false);
+  const inside=await privateGet(page,'/api/care-schedule?caregiverId=e2e-caregiver&day='+date+'&time=10:00&hours=2');
+  expect(inside.status).toBe(200);
+  expect(inside.data.available).toBe(true);
+  const outside=await privateGet(page,'/api/care-schedule?caregiverId=e2e-caregiver&day='+date+'&time=19:00&hours=2');
+  expect(outside.status).toBe(200);
+  expect(outside.data.available).toBe(false);
   await page.getByRole('button',{name:'Remove hours'}).click();
   await expect(page.getByText('You have not set any recurring working hours. Your normal profile availability applies.')).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
