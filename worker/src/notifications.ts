@@ -11,7 +11,31 @@ function createNotice(env:Env,n:Notice) {
 export function notificationStatements(env:Env,writes:Write[],reads:Map<string,Saved>):D1PreparedStatement[] {
   const statements:D1PreparedStatement[]=[];
   for (const write of writes) {
-    if(!write.path.startsWith('bookings/') || !write.data) continue;
+    if(!write.data)continue;
+    if(write.path.startsWith('vendors/')){
+      const previous=reads.get(write.path)?.data;
+      if(previous && !previous.isApproved && write.data.isApproved === true && !write.data.isSuspended){
+        const id=write.path.slice(8),version=(reads.get(write.path)?.version||0)+1;
+        statements.push(createNotice(env,{id:'caregiver-approved:'+id+':'+version,to:id,event:'caregiver-approved',
+          title:'Caregiver account approved',body:'You can now complete your availability and apply for care jobs.',
+          link:'/caregiver',ctx:id,created:now()}));
+      }
+      continue;
+    }
+    if(write.path.startsWith('organizations/')){
+      const old=reads.get(write.path)?.data;
+      if(old && !old.isApproved && write.data.isApproved === true && !write.data.isSuspended){
+        const id=write.path.slice(14),version=(reads.get(write.path)?.version||0)+1;
+        const notice={id:'organization-approved:'+id+':'+version,event:'organization-approved',
+          title:'Your organization is approved',body:'Your Sewak organization is approved. Complete setup to publish available services.',
+          link:'/organization',ctx:id,created:now()};
+        statements.push(env.DB.prepare(`INSERT OR IGNORE INTO care_notifications(id,recipient_id,event_type,context_id,title,body,link,created_at)
+          SELECT ?,o.admin_uid,?,?,?,?,?,? FROM organizations o JOIN users u ON u.id=o.admin_uid WHERE o.id=?`)
+         .bind(notice.id,notice.event,notice.ctx,notice.title,notice.body,notice.link,notice.created,id));
+      }
+      continue;
+    }
+    if(!write.path.startsWith('bookings/'))continue;
     const contextId=write.path.slice('bookings/'.length);
     const before=reads.get(write.path);
     const old=before?.data;
@@ -75,4 +99,21 @@ export async function notificationsRoute(request:Request,repo:Repository,actor:A
     db.prepare('UPDATE care_notifications SET read_at=? WHERE recipient_id=? AND read_at IS NULL').bind(now(),user.uid);
   await repo.commit([],[sql]);
   return {updated:true};
+}
+
+export async function scheduledBookingReminders(env:Env) {
+  if(env.APP_WRITES_ENABLED!=='true')return;
+  const created=new Date().toISOString(),within=new Date(Date.now()+86400000).toISOString();
+  // Existing cron runs every 15 minutes. Deterministic IDs make retries safe,
+  // and no family names, medical data or private addresses enter notifications.
+  for(const role of ['customer','caregiver']){
+    const recipient=role==='customer'?'b.user_id':'b.caregiver_id';
+    const sql=`INSERT OR IGNORE INTO care_notifications(id,recipient_id,event_type,context_id,title,body,link,created_at)
+      SELECT 'booking-reminder:'||b.id||':${role}',${recipient},'booking-reminder',b.id,
+        'Upcoming care appointment','Your confirmed care session begins within 24 hours.',
+        ${role==='customer'?"'/user/bookings/'||b.id":"'/caregiver?tab=jobs'"},?
+      FROM bookings b JOIN users u ON u.id=${recipient}
+      WHERE b.status IN ('accepted','confirmed') AND b.schedule_at>? AND b.schedule_at<=?`;
+    await env.DB.prepare(sql).bind(created,created,within).run();
+  }
 }

@@ -65,7 +65,11 @@ export async function careJobsRoute(request:Request,url:URL,repo:Repository,acto
    const count=await db.prepare('SELECT COUNT(*) AS n FROM care_job_applications WHERE caregiver_id=? AND created_at>=?').bind(user.uid,new Date(Date.now()-86400000).toISOString()).first<Data>();
    requireThat(Number(count?.n||0)<30,'Daily application limit reached.',429,'rate-limited');
    const aid='apply_'+crypto.randomUUID(),at=timestamp();
-   await repo.commit([],[db.prepare("INSERT INTO care_job_applications(id,job_id,caregiver_id,message,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)").bind(aid,id,user.uid,message,'applied',at,at)]);
+   await repo.commit([],[
+     db.prepare("INSERT INTO care_job_applications(id,job_id,caregiver_id,message,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)").bind(aid,id,user.uid,message,'applied',at,at),
+     db.prepare("INSERT OR IGNORE INTO care_notifications(id,recipient_id,event_type,context_id,title,body,link,created_at) VALUES(?,?,?,?,?,?,?,?)")
+       .bind('care-job-application:'+aid,job.customerId,'care-job-applied',id,'New caregiver application','A caregiver applied to your care job. Review the application and profile.','/user/jobs',at),
+   ]);
    return {id:aid,status:'applied'};
  }
  if(action==='withdraw'&&post) {

@@ -2,7 +2,7 @@ import { verificationRoute, verificationMaintenance } from './verification.ts';
 import { careJobsRoute } from './care-jobs.ts';
 import { careMessagesRoute } from './care-messages.ts';
 import { careInboxRoute } from './care-inbox.ts';
-import { notificationsRoute } from './notifications.ts';
+import { notificationsRoute, scheduledBookingReminders } from './notifications.ts';
 import { careScheduleRoute } from './care-schedule.ts';
 import { authenticateSession, authRoute, enforceCsrf } from './cloudflare-auth.ts';
 export { PasswordHasher } from './passwords.ts';
@@ -23,7 +23,7 @@ async function jsonBody(request: Request): Promise<Data> {
 }
 export function createWorker(authenticate: (request: Request, env: Env) => Promise<Identity | null> = authenticateSession) {
   return {
-    async scheduled(_controller: ScheduledController, env: Env, context: ExecutionContext) { context.waitUntil(verificationMaintenance(env)); },
+    async scheduled(_controller: ScheduledController, env: Env, context: ExecutionContext) { context.waitUntil(Promise.all([verificationMaintenance(env),scheduledBookingReminders(env)])); },
     async fetch(request: Request, env: Env): Promise<Response> {
       const url = new URL(request.url);
       const authPath = /^\/(?:api\/)?auth\/(me|login|register|logout|bootstrap|activate|sessions|revoke-sessions|change-password|complete-registration)$/.test(url.pathname);

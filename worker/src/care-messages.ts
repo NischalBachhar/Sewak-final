@@ -35,7 +35,13 @@ export async function careMessagesRoute(request:Request,url:URL,repo:Repository,
    const count=await db.prepare('SELECT COUNT(*) AS n FROM care_messages WHERE sender_id=? AND created_at >= ?').bind(user.uid,new Date(Date.now()-86400000).toISOString()).first<Data>();
    requireThat(Number(count?.n||0)<100,'Daily messaging limit reached.',429,'rate-limited');
    const id='msg_'+crypto.randomUUID(),createdAt=new Date().toISOString();
-   await repo.commit([],[db.prepare("INSERT INTO care_messages(id,kind,context_id,customer_id,caregiver_id,sender_id,body,created_at) VALUES(?,?,?,?,?,?,?,?)").bind(id,kind,contextId,customerId,caregiverId,user.uid,body,createdAt)]);
+   const target=user.uid===customerId?caregiverId:customerId;
+   const noticeUrl=kind==='job'?(user.uid===customerId?'/caregiver/messages/job/':'/user/messages/job/')+encodeURIComponent(contextId)+(user.uid===customerId?'':'?caregiverId='+encodeURIComponent(caregiverId)):(user.uid===customerId?'/caregiver/messages/booking/':'/user/messages/booking/')+encodeURIComponent(contextId);
+   await repo.commit([],[
+     db.prepare("INSERT INTO care_messages(id,kind,context_id,customer_id,caregiver_id,sender_id,body,created_at) VALUES(?,?,?,?,?,?,?,?)").bind(id,kind,contextId,customerId,caregiverId,user.uid,body,createdAt),
+     db.prepare("INSERT OR IGNORE INTO care_notifications(id,recipient_id,event_type,context_id,title,body,link,created_at) VALUES(?,?,?,?,?,?,?,?)")
+       .bind('message:'+id,target,'care-message',contextId,'New message','Your care conversation has a new message.',noticeUrl,createdAt),
+   ]);
    return {id,createdAt};
  }
  throw new ApiError(404,'not-found','Endpoint not found.');
