@@ -49,9 +49,12 @@ test('customer homepage shows caregiver discovery before booking activity', asyn
   expect(screen.getByRole('heading', { name: 'Find & Book Care' })).toBeVisible();
   expect(screen.getAllByRole('region')).toEqual([
     screen.getByRole('region', { name: 'Find caregivers' }),
+    screen.getByRole('region', { name: 'Quick actions' }),
     screen.getByRole('region', { name: 'Sewak care' }),
     screen.getByRole('region', { name: 'Your booking activity' }),
   ]);
+  expect(screen.getByRole('button', { name: /Manage new bookings/i })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Discover care nearby/i })).toBeEnabled();
 });
 
 test('preview handles empty and retryable network errors', async () => {
