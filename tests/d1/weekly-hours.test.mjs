@@ -42,7 +42,7 @@ test('caregiver cannot accept an existing request that later falls outside weekl
  assert.equal(added.status,200,JSON.stringify(added.data));
  const accept=()=>call(env,'/api/commit',{uid:'caregiver',method:'POST',json:{writes:[{
   path:request.path,kind:'update',data:{status:'accepted',updatedAt:{__op:'serverTimestamp'}}
- }]});
+ }]}});
  const blocked=await accept();
  assert.equal(blocked.status,409,JSON.stringify(blocked.data));
  assert.equal((await env.DB.prepare('SELECT status FROM bookings WHERE id=?').bind(request.path.split('/')[1]).first()).status,'pending');
