@@ -46,3 +46,36 @@ test('approved caregiver can block and unblock future availability through the s
   await expect(page.getByRole('heading', { name: 'Messages', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+test('customer can preview membership preferences without payment or a subscription', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, 'customer');
+  await page.goto('/user/membership');
+  await expect(page.getByRole('heading', { name: 'Care made simpler, for everyone.' })).toBeVisible();
+  await expect(page.getByText('Demo mode — no charges')).toBeVisible();
+  const acknowledgement = page.getByRole('checkbox', { name: /I understand these are demo plan preferences/ });
+  const plus = page.getByRole('button', { name: 'Select Care Plus preview' });
+  await expect(plus).toBeDisabled();
+  await acknowledgement.check();
+  await plus.click();
+  await expect(page.getByRole('status')).toContainText('No payment was made or subscription created');
+  const saved = await page.request.get('/api/membership');
+  expect(saved.status()).toBe(200);
+  const preference = await saved.json();
+  expect(preference).toMatchObject({
+    tier: 'plus_preview', mode: 'demo-only', priceNpr: 0,
+    charged: false, realSubscription: false,
+  });
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Your selected preview' })).toBeVisible();
+  await page.getByRole('checkbox', { name: /I understand these are demo plan preferences/ }).check();
+  await page.getByRole('button', { name: 'Select Care essentials' }).click();
+  await expect(page.getByRole('status')).toContainText('No payment was made');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+test('caregiver account cannot open customer membership data', async ({ page }) => {
+  await signIn(page, 'caregiver');
+  const result = await page.request.get('/api/membership');
+  expect(result.status()).toBe(403);
+});
