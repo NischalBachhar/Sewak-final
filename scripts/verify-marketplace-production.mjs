@@ -147,6 +147,13 @@ try{
   rolePage.on('pageerror',error=>errors.push(error.message));await rolePage.emulateMedia({reducedMotion:'reduce'});
   await rolePage.goto(origin+'/auth');await rolePage.getByLabel('Email',{exact:true}).fill(u.email);await rolePage.getByLabel('Password',{exact:true}).fill(password);await rolePage.getByRole('button',{name:'Sign in',exact:true}).click();await rolePage.waitForURL(url=>url.pathname!=='/auth');
   for(const width of report.widths){await rolePage.setViewportSize({width,height:900});for(const [index,path]of paths.entries()){await rolePage.goto(origin+path);await inspect(rolePage,u.role+'-'+index,width);}}
+  for(const width of [390,1440]){
+   await rolePage.setViewportSize({width,height:900});await rolePage.emulateMedia({reducedMotion:'no-preference'});await rolePage.goto(origin+paths[0]);
+   await rolePage.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+   await rolePage.getByRole('button',{name:'Pause background video',exact:true}).first().click();
+   assert.equal(await rolePage.locator('video').first().evaluate(v=>v.paused),true);
+   await rolePage.emulateMedia({reducedMotion:'reduce'});await rolePage.locator('video').waitFor({state:'detached'});
+  }
   await rolePage.getByRole('button',{name:/Account menu for/}).click();await rolePage.getByRole('button',{name:/Logout/}).click();await rolePage.getByRole('button',{name:/Account menu for/}).waitFor({state:'hidden'});
   roles.push(u.role);await context.close();
  }

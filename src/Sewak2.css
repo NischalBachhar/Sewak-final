@@ -333,11 +333,14 @@ body { background: #f8f7f2; color: var(--brand-ink); font-family: "Avenir Next",
   .sewak2-browse-hero h1 { font-size:clamp(32px,5vw,45px); }
 }
 @media(max-width:720px) {
-  .auth-shell--login .login-experience { padding:20px; }
-  .auth-shell--login .login-visual { position:relative; width:100%; right:auto; bottom:auto; margin:12px 0; min-height:130px; }
-  .auth-shell--login .login-care-illustration { height:170px; }
+  .auth-shell--login .login-experience { padding:16px; }
+  .auth-shell--login .login-brand { margin-bottom:12px; }
+  .auth-shell--login .login-intro { width:100%; min-height:0; }
+  .auth-shell--login .login-intro h1 { font:850 clamp(25px,7vw,30px)/1.1 var(--font-display) !important; }
+  .auth-shell--login .login-visual { position:relative; width:100%; right:auto; bottom:auto; margin:12px 0; min-height:110px; }
+  .auth-shell--login .login-care-illustration { height:110px; }
   .auth-shell--login .login-visual-note { display:none; }
-  .auth-shell--login .login-description { display:block; }
+  .auth-shell--login .login-description { display:none; }
   .auth-shell--login .auth-card { padding:23px; }
   .auth-shell--signup .signup-experience { padding:20px; }
   .sewak2-signup-image { min-height:170px; }
