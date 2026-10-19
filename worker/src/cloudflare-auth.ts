@@ -109,7 +109,7 @@ export async function authRoute(request:Request,env:Env,headers:Headers,body:Dat
   if(path==='/auth/complete-registration'){
     onlyKeys(body,['name',...registrationKeys]);
     const name=textField(body.name,'Name',2,120);
-    badInput(['user','orgadmin'].includes(body.selectedRole), 'Choose Customer or Organization.');
+    badInput(['user','caregiver','orgadmin'].includes(body.selectedRole), 'Choose Customer, Caregiver or Organization.');
     if(user.profile?.registrationComplete===true || user.profile?.profileComplete===true || user.role!=='user') {
       requireThat(user.role===body.selectedRole, 'An existing account cannot change its account type through registration.');
       return {completed:true};

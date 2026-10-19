@@ -56,7 +56,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState(auth.currentUser?.email || "");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(() => sessionStorage.getItem("sewak.registrationRole") || (params.get("role") === "orgadmin" ? "orgadmin" : "user"));
+  const [selectedRole, setSelectedRole] = useState(() => sessionStorage.getItem("sewak.registrationRole") || (["orgadmin", "caregiver"].includes(params.get("role")) ? params.get("role") : "user"));
   const [organization, setOrganization] = useState({});
   const [organizationName, setOrganizationName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -95,7 +95,7 @@ export default function AuthPage() {
         }
         await completeRegistration(account, { fullName, selectedRole, organizationName, ...organization });
         await finishRegistration();
-        setSuccess(selectedRole === "orgadmin" ? "Application submitted for review. Organization access requires approval." : "Registration complete.");
+        setSuccess(selectedRole === "orgadmin" ? "Application submitted for review. Organization access requires approval." : selectedRole === "caregiver" ? "Caregiver account created. Complete your profile. Approval is required before clients can book you." : "Registration complete.");
         setPassword("");
       }
     } catch (err) {
