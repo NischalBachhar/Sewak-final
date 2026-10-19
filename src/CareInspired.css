@@ -681,3 +681,26 @@ a { text-underline-offset: 3px; }
 @media(prefers-reduced-motion:reduce) {
   .sewak-care-media img, .sewak-care-media::after { animation:none !important; transform:none !important; }
 }
+
+
+/* 320px handset QA: reserve space for branded home, alerts and account menu. */
+@media(max-width:360px){
+  .header-container { padding-inline:8px !important; gap:5px; min-width:0; }
+  .header-logo { flex:0 0 auto; gap:5px; min-width:0; }
+  .header-logo-img { width:33px; height:33px; }
+  .header-logo-text { font-size:19px; }
+  .header-notification-link { width:35px; height:35px; }
+  .header-notification-link svg { width:19px; height:19px; }
+  .header-menu { flex:0 0 auto; min-width:0; }
+  .header-user-name { display:none; }
+  .header-user-button,
+  .header--user .header-user-button,
+  .header--caregiver .header-user-button,
+  .header--superadmin .header-user-button {
+    gap:3px; padding:6px 7px; min-width:0;
+  }
+  .header-user-avatar svg { width:19px; height:19px; }
+  .header-user-button >span:last-child { margin-left:0 !important; font-size:12px !important; }
+  .sewak-workspace__sidebar { min-width:0; }
+  .sewak-workspace__nav { min-width:0; width:100%; max-width:100%; overflow-x:auto; }
+}
