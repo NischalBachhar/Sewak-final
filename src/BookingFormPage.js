@@ -68,7 +68,7 @@ export default function BookingFormPage({ caregiver, onBooked }) {
   const submittingRef = useRef(false);
   const [recovering, setRecovering] = useState(false);
   useEffect(() => {
-    if (!caregiver?.id || !date || !/^\\d{2}:\\d{2}$/.test(time) || !(Number(durationHours)>0 && Number(durationHours)<=24)) {
+    if (!caregiver?.id || !date || !/^\d{2}:\d{2}$/.test(time) || !(Number(durationHours)>0 && Number(durationHours)<=24)) {
       setSlotAvailability({checking:false,available:null}); return undefined;
     }
     let active=true;
