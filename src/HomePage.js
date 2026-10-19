@@ -4,6 +4,7 @@ import PublicHeader from './components/PublicHeader';
 import HomeCaregiverMarketplace from './components/HomeCaregiverMarketplace';
 import { loadServiceOptions } from './components/ServiceSelector';
 import HomeServiceIcon from './components/HomeServiceIcon';
+import CareCategoryArtwork from './components/CareCategoryArtwork';
 import './HomePage.css';
 
 const categoryCards = [
@@ -114,7 +115,7 @@ export default function HomePage() {
         <div className="sewak-category-grid">
           {categoryCards.map(card=><button type="button" key={card.key} className={'sewak-category-card sewak-category-card--'+card.color} onClick={()=>categorySearch(card)}>
             <span className="sewak-category-label">{card.title}<b aria-hidden="true">↗</b></span>
-            <span className="sewak-category-art" aria-hidden="true">{card.glyph}</span>
+            <span className="sewak-category-art" aria-hidden="true"><CareCategoryArtwork type={card.key}/></span>
           </button>)}
         </div>
       </section>

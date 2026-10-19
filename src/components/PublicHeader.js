@@ -40,7 +40,7 @@ function JoinDialog({ onClose, onChoose }) {
     const handleKey = event => {
       if (event.key === 'Escape') onClose();
       if (event.key === 'Tab') {
-        const focusable = [...document.querySelectorAll('.sewak-join-dialog button')];
+        const focusable = [...document.querySelectorAll('.sewak-join-dialog button, .sewak-join-dialog a[href]')];
         if (!focusable.length) return;
         const first = focusable[0], last = focusable[focusable.length - 1];
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }

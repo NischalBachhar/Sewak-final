@@ -210,7 +210,7 @@ export default function CustomerCareDiscovery() {
             <p className="home-caregiver-services">{labels.slice(0, 2).join(" · ") || "See profile for service details"}{labels.length > 2 ? ` +${labels.length - 2} more` : ""}</p>
             <p className="home-caregiver-rating">{hasVerifiedRating(person) ? `${Number(person.rating).toFixed(1)} · ${person.reviewCount} verified reviews` : "No verified reviews yet"}</p>
             <div className="home-caregiver-rate"><small>Starting rate</small><strong>{configuredRate(person) ? <>{formatNpr(person.hourlyRate)}<small> / hour</small></> : "Rate not configured"}</strong></div>
-            <div className="caregiver-preview__actions"><Link className="caregiver-preview__profile" to={`/user/caregivers/${encodeURIComponent(person.id)}`}>View Profile</Link>{bookable ? <Link className="caregiver-preview__book" to={`/user/book/${encodeURIComponent(person.id)}`}>Book Now</Link> : <button className="caregiver-preview__book" type="button" disabled>Booking unavailable</button>}</div>
+            <div className="caregiver-preview__actions"><Link className="caregiver-preview__profile" to={`/user/caregivers/${encodeURIComponent(person.id)}`}>View Profile</Link>{bookable ? <Link className="caregiver-preview__book" to={`/user/book/${encodeURIComponent(person.id)}`}>Request care</Link> : <button className="caregiver-preview__book" type="button" disabled>Booking unavailable</button>}</div>
           </article>;
         })}</div>
         <p className="home-request-note">Booking sends a request. Dates and times require caregiver confirmation.</p>

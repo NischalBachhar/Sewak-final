@@ -181,3 +181,9 @@
 @media(prefers-reduced-motion:reduce) {
  .sewak-hero-scene,.sewak-category-card,.sewak-feature-media img,.sewak-feature-card {transition:none!important;animation:none!important;transform:none!important;}
 }
+
+/* Custom vector category illustrations */
+.sewak-category-svg{display:block;width:min(100%,184px);height:112px;object-fit:contain;transition:transform .18s ease;}
+.sewak-category-card:hover .sewak-category-svg{transform:translateY(-2px);}
+@media(max-width:720px){.sewak-category-svg{height:82px;}}
+@media(prefers-reduced-motion:reduce){.sewak-category-svg{transition:none!important;transform:none!important;}}
