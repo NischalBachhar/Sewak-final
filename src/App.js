@@ -15,6 +15,7 @@ import SavedCarePage from "./SavedCarePage";
 import CareJobsPage from "./CareJobsPage";
 import CareConversationPage from "./CareConversationPage";
 import CareInboxPage from "./CareInboxPage";
+import CareNotificationsPage from "./CareNotificationsPage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
 import { RoleCareHero } from "./components/CareHeroMedia";
@@ -412,6 +413,7 @@ function App() {
             <Route path="/user/saved" element={<SavedCarePage />} />
             <Route path="/user/jobs" element={<CareJobsPage role="user" />} />
             <Route path="/user/inbox" element={<CareInboxPage />} />
+            <Route path="/user/notifications" element={<CareNotificationsPage />} />
             <Route path="/user/messages/:kind/:contextId" element={<CareConversationPage />} />
             <Route
               path="/user/caregivers/:caregiverId"
@@ -462,6 +464,7 @@ function App() {
 
         {userRole === "orgadmin" && (
           <>
+            <Route path="/organization/notifications" element={<CareNotificationsPage />} />
             <Route
               path="/organization/profile"
               element={<OrganizationProfilePage />}
@@ -483,6 +486,7 @@ function App() {
           <>
             <Route path="/caregiver/opportunities" element={<CareJobsPage role="caregiver" />} />
             <Route path="/caregiver/inbox" element={<CareInboxPage />} />
+            <Route path="/caregiver/notifications" element={<CareNotificationsPage />} />
             <Route path="/caregiver/messages/:kind/:contextId" element={<CareConversationPage />} />
             <Route
               path="/caregiver/reportuser"
@@ -502,6 +506,8 @@ function App() {
         )}
 
         {userRole === "superadmin" && (
+          <>
+          <Route path="/superadmin/notifications" element={<CareNotificationsPage />} />
           <Route
             path="/superadmin/*"
             element={
@@ -512,6 +518,7 @@ function App() {
               </div>
             }
           />
+          </>
         )}
 
         <Route

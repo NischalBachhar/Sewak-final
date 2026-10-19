@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import logoSvg from "../assets/sewak-care-mark.svg";
 import "./Header.css";
 import { WorkspaceIcon } from "./WorkspaceShell";
+import CareNotificationsBell from "./CareNotificationsBell";
 
 export default function Header({ user, userRole, userDoc, onLogout, logoutPending, logoutError, onBrowseCaregivers, onMyBookings, notificationCount }) {
   const navigate = useNavigate();
@@ -100,6 +101,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
           </nav>
         )}
 
+        <CareNotificationsBell role={userRole} />
         {/* User Menu */}
         <div className="header-menu" ref={menuRef}>
           <button
