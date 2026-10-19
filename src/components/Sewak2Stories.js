@@ -51,6 +51,7 @@ export default function Sewak2Stories() {
     </div>
     <footer className="sewak2-stories__foot">
       <span>Caregiver profiles, verification details and prices always come from Sewak's actual listings.</span>
+      <a href="#services">Explore Services</a>
       <Link to="/get-started">Want to offer care? Join Sewak <span aria-hidden="true">→</span></Link>
     </footer>
   </section>;
