@@ -39,7 +39,8 @@ export default function HomePage() {
   const navigate=useNavigate();
   const {hash}=useLocation();
   useEffect(() => {
-    const mq=window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mq=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!mq) return undefined;
     setMotionAllowed(!mq.matches);
     const update=()=>setMotionAllowed(!mq.matches);
     mq.addEventListener?.('change',update);
@@ -66,9 +67,16 @@ export default function HomePage() {
     requestAnimationFrame(()=>document.getElementById('caregivers')?.scrollIntoView({behavior:motionAllowed?'smooth':'auto'}));
   };
   const categorySearch=card=>{
-    if(card.key==='house')navigate('/?category=household#caregivers');
-    else if(card.search)navigate('/?text='+encodeURIComponent(card.search)+'#caregivers');
-    else navigate('/#caregivers');
+    if(card.key==='house'){navigate('/?category=household#caregivers');return;}
+    if(card.key==='all'){navigate('/#caregivers');return;}
+    const terms={
+      children:/child|baby|babysit|nanny/i,
+      seniors:/elder|senior|old age|geriatric/i,
+      adults:/patient|adult|post.hospital|nursing/i,
+      support:/disabil|special need|mobility/i
+    };
+    const match=services.find(service=>terms[card.key]?.test(service.label||service.serviceName||''));
+    navigate(match ? '/?service='+encodeURIComponent(match.id)+'#caregivers' : '/?category=caregiver#caregivers');
   };
   const scrollFeatures=dir=>featuresRef.current?.scrollBy({left:dir*330,behavior:motionAllowed?'smooth':'auto'});
   return <div className="home-page sewak-reference-home">
