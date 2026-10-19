@@ -18,7 +18,7 @@ export default function CareConversationPage() {
  const validKind=['booking','job'].includes(kind);
  const query=new URLSearchParams({kind:kind||'',contextId:contextId||'',...(kind==='job'&&caregiverId?{caregiverId}:{})}).toString();
  useEffect(()=>{
-   if(!validKind||!contextId||kind==='job'&&!caregiverId){setState({loading:false,messages:[],error:'Select an authorized care conversation.'});return;}
+   if(!validKind || !contextId || (kind==='job' && !caregiverId)){setState({loading:false,messages:[],error:'Select an authorized care conversation.'});return;}
    let active=true;
    setState(old=>({...old,loading:true,error:''}));
    apiRequest('/api/care-messages?'+query).then(value=>{if(active)setState({loading:false,messages:value.messages||[],error:''});})
