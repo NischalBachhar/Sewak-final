@@ -21,14 +21,7 @@ export default function OrganizationProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [shouldNavigate, setShouldNavigate] = useState(false);
 
-  // Watch for profile completion and navigate
-  useEffect(() => {
-    if (shouldNavigate && userDoc?.profileComplete) {
-      navigate("/organization/dashboard");
-    }
-  }, [userDoc?.profileComplete, shouldNavigate, navigate]);
 
   useEffect(() => {
     let active = true;
@@ -87,8 +80,10 @@ export default function OrganizationProfilePage() {
       // Refresh user context to update profileComplete status
       await refreshUserDoc();
       
-      // Set flag to trigger navigation when userDoc updates
-      setShouldNavigate(true);
+      // Navigate explicitly after the server confirms profile completion.
+      // The app swaps route trees at this boundary, which would otherwise
+      // unmount this component before its effect can run.
+      navigate("/organization/dashboard", { replace: true });
     } catch (err) {
       console.error("Error saving profile:", { code: err?.code || "unknown" });
       setError(err.message || "Could not save profile. Please try again.");
