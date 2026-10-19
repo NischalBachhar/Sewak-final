@@ -49,6 +49,7 @@ test('customer homepage shows caregiver discovery before booking activity', asyn
   expect(screen.getByRole('heading', { name: 'Find & Book Care' })).toBeVisible();
   expect(screen.getAllByRole('region')).toEqual([
     screen.getByRole('region', { name: 'Find caregivers' }),
+    screen.getByRole('region', { name: 'Sewak care' }),
     screen.getByRole('region', { name: 'Your booking activity' }),
   ]);
 });
