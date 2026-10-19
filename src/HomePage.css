@@ -187,3 +187,23 @@
 .sewak-category-card:hover .sewak-category-svg{transform:translateY(-2px);}
 @media(max-width:720px){.sewak-category-svg{height:82px;}}
 @media(prefers-reduced-motion:reduce){.sewak-category-svg{transition:none!important;transform:none!important;}}
+
+/* Override the desktop-only embedded marketplace grid at each breakpoint.
+   The selector intentionally matches the desktop selector's specificity. */
+@media (max-width: 1120px) {
+  .sewak-reference-home .home-marketplace__search {grid-template-columns:repeat(4,minmax(0,1fr));}
+  .sewak-reference-home .home-marketplace__field--name {grid-column:span 2;}
+  .sewak-reference-home .home-marketplace__submit {grid-column:span 2;}
+}
+@media (max-width:720px) {
+  .sewak-reference-home .home-marketplace__search {grid-template-columns:repeat(2,minmax(0,1fr));padding:13px;gap:10px;}
+  .sewak-reference-home .home-marketplace__filter-toggle {display:inline-flex;justify-content:center;align-items:center;grid-column:span 2;}
+  .sewak-reference-home .home-marketplace__field--name {grid-column:span 2;}
+  .sewak-reference-home .home-marketplace__submit {grid-column:span 2;}
+  .sewak-reference-home .home-marketplace__advanced-fields {display:none;}
+  .sewak-reference-home .home-marketplace__advanced-fields.is-open {display:contents;}
+}
+@media (max-width:430px) {
+  .sewak-reference-home .home-marketplace__search {grid-template-columns:minmax(0,1fr);}
+  .sewak-reference-home .home-marketplace__field--name,.sewak-reference-home .home-marketplace__submit,.sewak-reference-home .home-marketplace__filter-toggle {grid-column:auto;}
+}
