@@ -110,7 +110,7 @@ try{
  browser=await chromium.launch({channel:'chrome',headless:true});
  const page=await browser.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
  page.setDefaultTimeout(45000);
- const views=[];
+ const views=[],accessibilityFindings=[];report.accessibilityFindings=accessibilityFindings;
  async function inspect(p,label,width){
   report.activeView={label,width,url:p.url()};writeFileSync(dir+'/report.json',JSON.stringify(report,null,2));
   const path=new URL(p.url()).pathname;
@@ -120,7 +120,7 @@ try{
   if(width===320||width===1440){
    await p.evaluate(axe.source);
    const violations=await p.evaluate(async()=> (await window.axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
-   assert.deepEqual(violations,[],label+' accessibility at '+width);
+   if(violations.length)accessibilityFindings.push({label,width,violations});
   }
   for(const photo of await p.locator('img[src*="sewak2-"]').all())await photo.scrollIntoViewIfNeeded();
   await p.waitForFunction(()=>[...document.querySelectorAll('img[src*="sewak2-"]')].every(img=>img.complete&&img.naturalWidth>0));
@@ -164,6 +164,7 @@ try{
  }
  report.verificationBrowser=await verifyVerificationViews(browser,{origin,worker,accounts:[{role:'caregiver',email:caregiver.email,password},{role:'admin',email:admin.email,password}]});
  assert.deepEqual(errors,[]);report.browser={publicWidths:report.widths,authenticatedRoles:roles,overflow:false,pageErrors:0,views,axeWidths:[320,1440]};
+ assert.deepEqual(accessibilityFindings,[],'Every live page must pass accessibility before QA can pass');
  const finalDeployment=(await cloudflare(root+'/deployments')).deployments[0];assert.equal(finalDeployment.versions[0].version_id,version,'Production changed during QA');
  report.checksPassed=true;
 }catch(error){report.failure={name:error.name,message:error.message};}
