@@ -10,9 +10,16 @@ export default function CareInboxPage() {
   const { userRole } = useAuth();
   const [state, setState] = useState(initial);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [query, setQuery] = useState('');
+  const [kind, setKind] = useState('all');
   const refresh = useCallback(() => setRefreshKey(key => key + 1), []);
   const caregiver = userRole === 'caregiver';
   const root = caregiver ? '/caregiver' : '/user';
+  const visibleConversations = state.conversations.filter(thread => {
+    const matchesKind = kind === 'all' || thread.kind === kind;
+    const searchText = [thread.partnerName, thread.title, thread.preview].filter(Boolean).join(' ').toLowerCase();
+    return matchesKind && searchText.includes(query.trim().toLowerCase());
+  });
   useEffect(() => {
     let alive = true;
     setState(value => ({ ...value, loading: true, error: '' }));
@@ -31,6 +38,11 @@ export default function CareInboxPage() {
         </div>
         <button type="button" onClick={refresh} disabled={state.loading}>Refresh messages</button>
       </header>
+      {!state.loading && !state.error && state.conversations.length > 0 && <div className="sewak2-inbox-controls" role="search" aria-label="Search private conversations">
+        <label>Search conversations<input type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search people, bookings or messages" maxLength={100} /></label>
+        <label>Type<select value={kind} onChange={event=>setKind(event.target.value)}><option value="all">All conversations</option><option value="booking">Bookings</option><option value="job">Care jobs</option></select></label>
+        <span role="status">{visibleConversations.length} of {state.conversations.length} conversations</span>
+      </div>}
       <section className="care-inbox-panel" aria-label="Your private conversations">
         {state.loading ? <p role="status">Loading your conversations…</p> :
           state.error ? <div role="alert"><p>Messages are unavailable: {state.error}</p>
@@ -40,7 +52,8 @@ export default function CareInboxPage() {
               <p>When you exchange messages about a booking or care job, they will appear here.</p>
               <Link to={caregiver ? '/caregiver/opportunities' : '/user'}>{caregiver ? 'Browse care jobs' : 'Find caregivers'} →</Link>
             </div> :
-            <ul className="care-inbox-list">{state.conversations.map(thread => {
+            visibleConversations.length === 0 ? <div className="care-inbox-empty"><h2>No matching conversations</h2><p>Try a different search or conversation type.</p><button type="button" onClick={()=>{setQuery('');setKind('all');}}>Clear filters</button></div> :
+            <ul className="care-inbox-list">{visibleConversations.map(thread => {
               const url = thread.kind === 'job'
                 ? `${root}/messages/job/${encodeURIComponent(thread.contextId)}${caregiver ? '' : '?caregiverId=' + encodeURIComponent(thread.caregiverId)}`
                 : `${root}/messages/booking/${encodeURIComponent(thread.contextId)}`;
