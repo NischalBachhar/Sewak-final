@@ -15,3 +15,6 @@ export function AuthProvider({ children }) {
   }}>{children}</AuthContext.Provider>;
 }
 export function useAuth() { const value = useContext(AuthContext); if (!value) throw new Error('useAuth must be used within AuthProvider'); return value; }
+
+/** Optional context for reusable public preview components, also rendered in isolation by tests. */
+export function useOptionalAuth() { return useContext(AuthContext); }

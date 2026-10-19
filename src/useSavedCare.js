@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from './AuthContext';
+import { useOptionalAuth } from './AuthContext';
 import { readSavedCare, savedCareEvent, savedCareKey, toggleSavedCare } from './savedCareStore';
 export default function useSavedCare() {
-  const { user, userRole } = useAuth();
+  const { user, userRole } = useOptionalAuth() || {};
   const uid = userRole === 'user' ? user?.uid : null;
   const [saved, setSaved] = useState(() => readSavedCare(uid));
   useEffect(() => {
