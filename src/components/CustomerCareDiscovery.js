@@ -21,18 +21,25 @@ const defaults = {
 const configuredRate = person => typeof person.hourlyRate === "number" && Number.isFinite(person.hourlyRate) && (person.hourlyRate > 0 || (person.hourlyRate === 0 && person.allowZeroRate === true));
 export default function CustomerCareDiscovery() {
   const { user } = useAuth();
+  const savedKey = 'sewak.savedCaregivers.v1.' + (user?.uid || 'guest');
   const [filters, setFilters] = useState(defaults);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [savedIds, setSavedIds] = useState(() => {
     try {
-      const stored = JSON.parse(window.localStorage.getItem('sewak.savedCaregivers.v1') || '[]');
+      const stored = JSON.parse(window.localStorage.getItem(savedKey) || '[]');
       return Array.isArray(stored) ? stored.filter(id => typeof id === 'string').slice(0, 100) : [];
     } catch { return []; }
   });
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(savedKey) || '[]');
+      setSavedIds(Array.isArray(stored) ? stored.filter(id => typeof id === 'string').slice(0, 100) : []);
+    } catch { setSavedIds([]); }
+  }, [savedKey]);
   const toggleSaved = id => {
     const next = savedIds.includes(id) ? savedIds.filter(saved => saved !== id) : [...savedIds, id].slice(-100);
     setSavedIds(next);
-    try { window.localStorage.setItem('sewak.savedCaregivers.v1', JSON.stringify(next)); } catch {}
+    try { window.localStorage.setItem(savedKey, JSON.stringify(next)); } catch {}
   };
   const [services, setServices] = useState([]);
   const [catalogError, setCatalogError] = useState(false);
