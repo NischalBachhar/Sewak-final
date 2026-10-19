@@ -1,0 +1,706 @@
+/*
+ * Sewak 2026 care-marketplace visual refresh.
+ * An original Sewak identity inspired by accessible care-marketplace patterns:
+ * calm greens, friendly editorial type, clear search, warm imagery and simple
+ * role-based workspaces. No Care.com assets, copy, or proprietary UI are used.
+ */
+:root { color-scheme: light; }
+html { scroll-padding-top: 90px; }
+body {
+  background: var(--brand-vanilla);
+  color: var(--brand-ink);
+  font-family: "Avenir Next", "Segoe UI", Arial, sans-serif;
+  line-height: 1.5;
+}
+button, input, select, textarea { font-family: inherit; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+a { text-underline-offset: 3px; }
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--brand-coral);
+  outline-offset: 3px;
+}
+:where(h1, h2, h3) { text-wrap: balance; }
+:where(.btn, .home-button, .customer-action, .browse-card-action) { transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.btn, .home-button, .customer-action, .browse-card-action {
+  border-radius: 999px;
+}
+.btn-primary, .customer-action--primary { background: var(--brand-coral); color: #fff; }
+.btn-outline { background: #fff; border-color: var(--brand-sand); color: var(--brand-coral-hover); }
+.app-card, .customer-panel, .home-caregiver, .browse-caregiver-card {
+  border-color: var(--brand-sand);
+}
+.app-title, .section-title, .dashboard-shell .section-title {
+  color: var(--brand-ink) !important;
+  letter-spacing: -.035em;
+}
+.app-shell { background: var(--brand-vanilla); }
+.app-card { border-radius: 24px; box-shadow: 0 14px 36px var(--color-shadow); }
+.form :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-radius: 12px;
+  min-height: 46px;
+  border-color: var(--color-input-border);
+  background: #fff;
+}
+.form :where(input, select, textarea):focus {
+  border-color: var(--brand-coral);
+  box-shadow: 0 0 0 3px var(--color-focus-soft);
+}
+
+/* Shared navigation */
+.public-header {
+  position: relative;
+  z-index: 400;
+  background: #fff;
+  border-bottom: 1px solid var(--brand-sand);
+}
+.public-header__inner {
+  max-width: 1480px;
+  min-height: 86px;
+  padding: 14px clamp(20px, 4vw, 64px);
+  gap: clamp(18px, 2.3vw, 34px);
+}
+.public-brand { gap: 11px; color: var(--brand-forest); }
+.public-brand img { width: 48px; height: 48px; border-radius: 15px; }
+.public-brand strong {
+  font: 800 27px/1 "Avenir Next", "Segoe UI", Arial, sans-serif;
+  letter-spacing: -.055em;
+}
+.public-brand small { font-size: 10px; letter-spacing: .01em; margin-top: 4px; }
+.public-nav { gap: clamp(14px, 2vw, 28px); }
+.public-nav a {
+  color: var(--brand-ink);
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+}
+.public-nav a:hover, .public-nav a.active {
+  color: var(--brand-coral);
+  border-color: var(--brand-coral);
+}
+.public-header__actions { gap: 9px; }
+.public-header__actions a {
+  border-radius: 999px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 750;
+  padding: 10px 20px;
+}
+.public-login { color: var(--brand-coral-hover); border-color: transparent !important; }
+.public-login:hover { background: var(--brand-vanilla); }
+.public-signup { background: var(--brand-coral); color: #fff; }
+.public-signup:hover { background: var(--brand-coral-hover); }
+.public-menu-toggle { display: none; width: 44px; height: 44px; border: 1px solid var(--brand-sand); border-radius: 13px; background: #fff; cursor: pointer; padding: 12px; }
+.public-menu-toggle span { display: block; height: 2px; margin: 4px 0; border-radius: 2px; background: var(--brand-forest); }
+.header {
+  background: #fff;
+  box-shadow: none;
+  border-bottom: 1px solid var(--brand-sand);
+}
+.header-container { max-width: 1480px; min-height: 74px; padding: 10px clamp(18px, 3.5vw, 52px); }
+.header-logo-img { border-radius: 13px; width: 43px; height: 43px; }
+.header-logo-text { color: var(--brand-forest); font-size: 25px; letter-spacing: -.045em; }
+.header-user-button { border-radius: 999px; background: var(--brand-vanilla); box-shadow: none; border-color: var(--brand-sand); }
+.header-user-role { border-radius: 999px; background: var(--brand-blush); color: var(--brand-coral-hover); }
+.header-dropdown { border-radius: 18px; padding: 5px; box-shadow: 0 18px 45px rgb(19 56 43 / 15%); }
+.dropdown-item { border-radius: 10px; font-weight: 600; }
+.header-customer-nav__item { border-radius: 999px; }
+.header-customer-nav__item.is-active { color: var(--brand-coral-hover); background: var(--brand-blush); }
+
+/* Public landing: search-first, with a distinct Sewak illustration */
+.home-page { background: var(--brand-vanilla); }
+.home-marketplace {
+  max-width: 1480px;
+  background: transparent;
+  padding: 24px clamp(20px, 4vw, 64px) 48px;
+}
+.home-marketplace__intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr);
+  align-items: stretch;
+  gap: 0;
+  min-height: 410px;
+  margin: 0 0 28px;
+  overflow: hidden;
+  border: 1px solid #dce8d9;
+  border-radius: 32px;
+  background: linear-gradient(120deg, #e9f5e3 0%, #eef6e9 60%, #f7f9ef 100%);
+}
+.home-marketplace__hero-copy {
+  min-width: 0;
+  padding: clamp(32px, 4.2vw, 68px) clamp(28px, 4vw, 62px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+.home-marketplace__eyebrow {
+  color: var(--brand-coral-hover);
+  letter-spacing: .12em;
+  font-size: 11px;
+  margin: 0 0 20px;
+}
+.home-marketplace__eyebrow span { font-size: 16px; margin-right: 5px; }
+.home-marketplace__intro h1 {
+  font: 600 clamp(43px, 5.1vw, 78px)/1.02 var(--font-display);
+  letter-spacing: -.055em;
+  color: var(--brand-forest);
+  max-width: 690px;
+  margin: 0 0 22px;
+}
+.home-marketplace__hero-copy > p:nth-of-type(2) {
+  color: #385d4d;
+  font-size: clamp(15px, 1.3vw, 18px);
+  line-height: 1.65;
+  max-width: 530px;
+}
+.home-marketplace__quick-categories { display: flex; flex-wrap: wrap; gap: 9px; margin: 23px 0 16px; }
+.home-marketplace__quick-categories a {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 42px;
+  padding: 9px 15px; border: 1px solid #b8d7bd; border-radius: 999px;
+  color: var(--brand-forest); background: #fff; font-size: 12px; font-weight: 750;
+  text-decoration: none;
+}
+.home-marketplace__quick-categories a:hover { border-color: var(--brand-coral); background: var(--brand-lime); }
+.home-marketplace__quick-categories span { font-size: 18px; line-height: 1; }
+.home-marketplace__intro .home-marketplace__hero-assurance {
+  color: #4c6c59; font-size: 12px; letter-spacing: .01em; margin: 0;
+}
+.home-marketplace__hero-visual {
+  position: relative;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: #e0f0dc;
+}
+.home-marketplace__hero-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 410px;
+  object-fit: cover;
+  object-position: center;
+}
+.home-marketplace__hero-visual figcaption {
+  position: absolute;
+  bottom: 23px;
+  left: 22px;
+  padding: 14px 18px;
+  border: 1px solid rgb(255 255 255 / 75%);
+  border-radius: 17px;
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 8px 30px rgb(19 56 43 / 12%);
+  color: var(--brand-forest);
+}
+.home-marketplace__hero-visual figcaption strong,
+.home-marketplace__hero-visual figcaption span { display: block; }
+.home-marketplace__hero-visual figcaption strong { font: 600 18px/1.25 var(--font-display); }
+.home-marketplace__hero-visual figcaption span { margin-top: 4px; color: var(--brand-cocoa); font-size: 11px; }
+.home-marketplace__search-heading {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 18px; margin-bottom: 13px;
+}
+.home-marketplace__search-heading strong {
+  display: block; color: var(--brand-forest);
+  font: 600 clamp(23px, 2.4vw, 32px)/1.2 var(--font-display);
+}
+.home-marketplace__search-heading span { display: block; color: var(--brand-cocoa); font-size: 13px; margin-top: 3px; }
+.home-marketplace__search-heading .home-marketplace__advanced { color: var(--brand-coral-hover); font-weight: 750; }
+.home-marketplace__search {
+  border: 1px solid var(--brand-sand);
+  border-radius: 22px;
+  padding: 18px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgb(19 56 43 / 8%);
+  gap: 12px;
+}
+.home-marketplace__field > span { font-size: 12px; color: var(--brand-forest); }
+.home-marketplace__field input, .home-marketplace__field select {
+  min-height: 50px; border-color: var(--color-input-border); border-radius: 12px; background: #fff;
+}
+.home-marketplace__submit { min-height: 50px; border-radius: 999px; }
+.home-marketplace__results-head { padding-top: 43px; margin-bottom: 12px; }
+.home-marketplace__results-head h2 {
+  font: 600 clamp(27px, 2.6vw, 37px)/1.15 var(--font-display);
+  color: var(--brand-forest);
+  letter-spacing: -.04em;
+}
+.home-marketplace__availability-note { color: var(--brand-cocoa); }
+.home-marketplace .caregiver-preview-card,
+.browse-caregiver-card, .home-caregiver {
+  border-radius: 21px;
+  background: #fff;
+  border: 1px solid var(--brand-sand);
+  box-shadow: 0 5px 20px rgb(19 56 43 / 5%);
+}
+.home-marketplace .caregiver-preview-card:hover,
+.browse-caregiver-card:hover, .home-caregiver:hover {
+  box-shadow: 0 13px 30px rgb(19 56 43 / 11%);
+}
+.home-marketplace .browse-caregiver-card__avatar { border-radius: 17px; }
+.home-marketplace__more { border-radius: 999px; padding-inline: 24px; }
+.home-values {
+  max-width: 1352px;
+  margin: 0 auto;
+  border: 1px solid var(--brand-sand);
+  border-radius: 22px;
+  background: #fff;
+  padding: 20px 30px;
+  gap: 20px;
+}
+.home-values > div { gap: 11px; }
+.home-values .home-icon { background: var(--brand-blush); color: var(--brand-coral); width: 42px; height: 42px; flex-basis: 42px; }
+.home-values strong { color: var(--brand-forest); font-size: 12px; line-height: 1.4; }
+.home-hero--secondary {
+  max-width: 1352px; margin-top: 32px; margin-bottom: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .8fr);
+  gap: clamp(26px, 5vw, 70px); padding: 44px clamp(20px, 3vw, 48px);
+  border: 0;
+}
+.home-hero--secondary h2 {
+  font: 600 clamp(37px, 4.3vw, 60px)/1.1 var(--font-display);
+  letter-spacing: -.045em; max-width: 600px;
+}
+.home-page em { color: var(--brand-coral); }
+.home-hero__story {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+  min-height: 290px; padding: clamp(25px, 4vw, 45px);
+  border-radius: 26px;
+  background: var(--brand-lime);
+  color: var(--brand-forest);
+}
+.home-hero__story-mark { font-size: 55px; line-height: 1; }
+.home-hero__story-kicker { font-size: 10px; font-weight: 800; letter-spacing: .12em; margin: 12px 0 8px; }
+.home-hero__story h3 { font: 600 clamp(26px, 2.7vw, 37px)/1.15 var(--font-display); letter-spacing: -.04em; }
+.home-hero__story > p:not(.home-hero__story-kicker) { max-width: 440px; font-size: 14px; line-height: 1.6; margin: 13px 0 17px; }
+.home-hero__story a { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-forest); font-weight: 800; font-size: 13px; }
+.home-hero__story a svg { width: 17px; height: 17px; }
+.home-section { max-width: 1352px; }
+.home-section h2 { color: var(--brand-forest); font-weight: 600; }
+.home-service { border-radius: 23px; padding: 26px; }
+.home-service:hover { border-color: var(--brand-coral); transform: translateY(-2px); box-shadow: 0 14px 28px var(--color-shadow); }
+.home-service .home-icon { border-radius: 15px; background: var(--brand-blush); color: var(--brand-coral); }
+.home-service a { color: var(--brand-coral-hover); }
+.home-how { background: #fff; }
+.home-steps li > span { background: var(--brand-lime); border-color: var(--brand-lime); color: var(--brand-forest); font: 700 16px/1 "Avenir Next", "Segoe UI", sans-serif; }
+.home-join {
+  max-width: 1352px; margin: 30px auto 0; padding: 40px clamp(26px, 4vw, 55px);
+  background: var(--brand-forest); border-radius: 28px;
+}
+.home-join h2, .home-join h2 em { color: #fff; }
+.home-join .home-eyebrow { color: var(--brand-lime); }
+.home-join p:not(.home-eyebrow) { color: #e4f4e7; }
+.home-join .home-button { color: var(--brand-forest); background: var(--brand-lime); border-color: var(--brand-lime); }
+.home-join .home-button:hover { background: #c4e78e; }
+.home-join .home-button--outline { color: #fff; background: transparent; border-color: #b1d4c1; }
+.home-join .home-button--outline:hover { background: #196650; }
+.home-join .home-text-link { color: var(--brand-lime); }
+.home-footer { max-width: 1480px; padding-block: 48px; }
+.home-footer__brand { color: var(--brand-forest); font: 800 28px/1 "Avenir Next", "Segoe UI", sans-serif; }
+
+/* Public discovery: filter clarity, readable results */
+.browse-page { padding: 0 0 70px; background: var(--brand-vanilla); }
+.browse-page__glow { opacity: .28; pointer-events: none; }
+.browse-page main { padding: 24px clamp(18px, 4vw, 64px) 0; }
+.browse-hero, .browse-preferences, .browse-results { width: min(100%, 1352px); }
+.browse-hero {
+  border-radius: 30px;
+  background: linear-gradient(115deg, #064c3c 0%, #0d6b51 100%);
+  box-shadow: none;
+  overflow: hidden;
+}
+.browse-hero h1 { font: 600 clamp(39px, 4.6vw, 65px)/1.04 var(--font-display); letter-spacing: -.05em; color: #fff; }
+.browse-hero h1 em { color: var(--brand-lime); }
+.browse-hero__copy { color: #ecf6ed; }
+.browse-eyebrow { color: var(--brand-lime); }
+.browse-eyebrow__dot { background: var(--brand-lime); }
+.browse-preferences {
+  background: #fff;
+  border: 1px solid var(--brand-sand);
+  border-radius: 25px;
+  padding: clamp(20px, 3vw, 36px);
+  margin-top: 24px;
+}
+.browse-section-heading h2 { font: 600 clamp(24px, 2.6vw, 35px)/1.2 var(--font-display); color: var(--brand-forest); }
+.browse-category-option {
+  background: #fff; border: 1px solid var(--brand-sand); border-radius: 18px;
+  box-shadow: none;
+}
+.browse-category-option:hover, .browse-category-option.is-active { background: #f0f8eb; border-color: var(--brand-coral); }
+.browse-category-option__icon { background: var(--brand-blush); color: var(--brand-coral); border-radius: 14px; }
+.browse-segmented-control { background: var(--brand-vanilla); border-radius: 999px; }
+.browse-segmented-control button { border-radius: 999px; }
+.browse-segmented-control button.is-active { background: var(--brand-coral); color: #fff; }
+.browse-results { margin-top: 28px; }
+.browse-list__heading h2, .browse-list__title-row h2 { color: var(--brand-forest); font-family: var(--font-display); }
+.browse-filter-panel, .browse-caregiver-card { background: #fff; border-color: var(--brand-sand); border-radius: 20px; }
+.browse-card-action { border-radius: 999px; }
+.browse-card-action:not(.browse-card-action--secondary) { background: var(--brand-coral); color: #fff; }
+
+/* Signed-in customer: same marketplace visual language, real data stays authoritative */
+.dashboard-shell--customer { background: var(--brand-vanilla); }
+.dashboard-shell--customer .app-card { max-width: 1300px; border-radius: 26px; }
+.customer-home { gap: 25px; }
+.customer-home .home-marketplace-heading {
+  position: relative;
+  border-radius: 26px;
+  padding: clamp(24px, 3.8vw, 42px);
+  background: linear-gradient(115deg, #e6f3df, #f6f9ef);
+  border: 1px solid #d5e7d5;
+}
+.customer-home-eyebrow { margin: 0 0 9px; color: var(--brand-coral); font-size: 11px; font-weight: 850; letter-spacing: .14em; }
+.customer-home .home-marketplace-heading h1 { font: 600 clamp(34px, 3.5vw, 48px)/1.08 var(--font-display); color: var(--brand-forest); letter-spacing: -.04em; }
+.customer-home .home-marketplace-heading > p:not(.customer-home-eyebrow) { max-width: 630px; color: #3f6253; line-height: 1.65; }
+.customer-home-find-link { display: inline-flex; align-items: center; gap: 10px; min-height: 42px; margin-top: 18px; padding: 9px 17px; border-radius: 999px; color: #fff; background: var(--brand-coral); text-decoration: none; font-weight: 750; font-size: 13px; }
+.customer-home-find-link:hover { background: var(--brand-coral-hover); }
+.home-filters, .home-booking-activity, .home-activity-grid > section, .customer-panel, .customer-summary__item {
+  border-color: var(--brand-sand); border-radius: 20px; background: #fff;
+}
+.home-filters :where(input, select) { border-radius: 11px; }
+.home-caregiver { border-radius: 20px; }
+.home-caregiver .caregiver-preview__book { border-radius: 999px; }
+.home-booking-activity h2, .home-activity-heading h2 { color: var(--brand-forest); }
+.customer-detail-shell { background: var(--brand-vanilla); }
+
+/* Caregiver, organization and admin: shared visual system without changing permissions */
+.dashboard-shell--caregiver, .dashboard-shell--admin, .dashboard-shell--organization { background: var(--brand-vanilla); }
+.sewak-workspace {
+  border-radius: 26px;
+  border: 1px solid var(--brand-sand);
+  box-shadow: 0 18px 44px rgb(19 56 43 / 7%);
+}
+.sewak-workspace__sidebar { background: #f5f8f1; border-right-color: var(--brand-sand); }
+.sewak-workspace__identity-icon { background: var(--brand-coral); border-radius: 14px; box-shadow: none; }
+.sewak-workspace__nav-item { border-radius: 13px; }
+.sewak-workspace__nav-item.is-active { color: var(--brand-forest); background: var(--brand-lime); }
+.sewak-workspace__nav-item:hover:not(.is-active) { background: #e8f2e6; }
+.sewak-workspace__sidebar-foot { border-radius: 17px; background: var(--brand-blush); }
+.sewak-workspace__intro { border-bottom-color: var(--brand-sand); }
+.sewak-workspace__intro h1 { color: var(--brand-forest); font: 600 clamp(28px, 3vw, 42px)/1.12 var(--font-display); letter-spacing: -.04em; }
+.sewak-workspace__eyebrow { color: var(--brand-coral); }
+.sewak-workspace__status-dot { background: var(--color-success); }
+.sewak-workspace__body :where(.card, .profile-section, .stat-card) { border-color: var(--brand-sand); border-radius: 18px; }
+.org-dashboard-header, .organization-workspace, .dashboard-admin-content { border-color: var(--brand-sand); }
+.dashboard-shell .card:hover { border-color: #a4c9b3; }
+
+/* Account access: airy split screen, prominent form and readable trust details */
+.auth-shell--login, .auth-shell--signup {
+  background: var(--brand-vanilla);
+  color: var(--brand-ink);
+}
+.auth-shell--login .login-experience {
+  border-radius: 28px;
+  padding: clamp(22px, 3vw, 42px);
+  background: #e9f5e3;
+}
+.auth-shell--login h1, .auth-shell--signup h1 { color: var(--brand-forest); font-family: var(--font-display); letter-spacing: -.04em; }
+.auth-shell--login .login-brand, .auth-shell--signup .signup-brand { color: var(--brand-forest); }
+.auth-shell--login .login-brand img, .auth-shell--signup .signup-brand img { border-radius: 14px; }
+.auth-shell--login .auth-card, .auth-shell--signup .auth-card {
+  border-color: var(--brand-sand);
+  border-radius: 26px;
+  box-shadow: 0 20px 48px rgb(19 56 43 / 8%);
+}
+.auth-shell--login .login-card-mark { border-radius: 16px; background: var(--brand-blush); }
+.auth-shell--login .auth-card h2, .auth-shell--signup .auth-card h2 { color: var(--brand-forest); }
+.auth-shell--login .form input, .auth-shell--signup .form input {
+  border-color: var(--color-input-border);
+  border-radius: 12px;
+}
+.auth-shell--login .auth-submit, .auth-shell--signup .auth-submit { border-radius: 999px; background: var(--brand-coral); color: #fff; }
+.auth-shell--signup .role-option { border-radius: 18px; }
+.auth-shell--signup .role-option.signup-role--selected { border-color: var(--brand-coral); background: #edf8e9; }
+.auth-shell--signup .signup-scene::before { background: radial-gradient(ellipse, #f4faed, #dcefd3 65%, transparent 72%); }
+
+/* Touch and responsive layouts */
+@media (max-width: 1150px) {
+  .public-header__inner { flex-wrap: nowrap; }
+  .public-nav { gap: 14px; }
+  .public-nav a { font-size: 12px; }
+  .public-header__actions a { padding-inline: 14px; }
+  .home-values { margin-inline: 24px; }
+}
+@media (max-width: 960px) {
+  .public-header__inner { min-height: 76px; padding: 12px 24px; flex-wrap: wrap; }
+  .public-menu-toggle { display: inline-block; }
+  .public-nav {
+    display: none; order: 3; width: 100%; gap: 0;
+    padding: 8px 0 5px; border-top: 1px solid var(--brand-sand);
+    flex-direction: column; align-items: stretch;
+  }
+  .public-nav.is-open { display: flex; }
+  .public-nav a { width: 100%; min-height: 44px; padding: 11px 10px; font-size: 14px; border-bottom: 0; border-radius: 9px; }
+  .public-nav a:hover, .public-nav a.active { background: var(--brand-blush); }
+  .home-marketplace__intro { min-height: 360px; }
+  .home-marketplace__hero-copy { padding: 32px; }
+  .home-marketplace__intro h1 { font-size: clamp(39px, 5.4vw, 59px); }
+  .home-marketplace__hero-visual img { min-height: 360px; }
+  .home-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-hero--secondary { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  html { scroll-padding-top: 76px; }
+  .public-header__inner { padding: 10px 16px; min-height: 68px; gap: 10px; }
+  .public-brand img { width: 40px; height: 40px; }
+  .public-brand strong { font-size: 24px; }
+  .public-brand small { display: none; }
+  .public-header__actions { margin-left: auto; }
+  .public-header__actions a { min-height: 40px; padding: 8px 13px; }
+  .public-login { display: none !important; }
+  .public-menu-toggle { width: 40px; height: 40px; padding: 10px; }
+  .home-marketplace { padding: 14px 16px 30px; }
+  .home-marketplace__intro { grid-template-columns: minmax(0, 1fr); border-radius: 23px; margin-bottom: 23px; }
+  .home-marketplace__hero-copy { padding: 34px 24px 23px; }
+  .home-marketplace__intro h1 { font-size: clamp(42px, 8vw, 61px); max-width: 540px; }
+  .home-marketplace__hero-visual { max-height: 285px; }
+  .home-marketplace__hero-visual img { min-height: 250px; max-height: 285px; object-position: center 35%; }
+  .home-marketplace__hero-visual figcaption { left: 13px; bottom: 13px; padding: 10px 12px; }
+  .home-marketplace__hero-visual figcaption strong { font-size: 15px; }
+  .home-marketplace__quick-categories { gap: 7px; }
+  .home-marketplace__quick-categories a { min-height: 40px; font-size: 11px; padding: 8px 11px; }
+  .home-marketplace__search-heading { align-items: flex-start; }
+  .home-marketplace__search-heading strong { font-size: 25px; }
+  .home-marketplace__search { border-radius: 18px; padding: 13px; }
+  .home-marketplace__results-head { padding-top: 32px; }
+  .home-values { margin: 0 16px; padding: 18px; gap: 16px; }
+  .home-hero--secondary { grid-template-columns: 1fr; padding: 34px 20px; gap: 20px; }
+  .home-hero__story { min-height: 230px; }
+  .home-join { margin-inline: 16px; border-radius: 23px; padding: 28px 24px; }
+  .browse-page main { padding: 16px 16px 0; }
+  .browse-hero { border-radius: 23px; }
+  .browse-preferences { border-radius: 20px; }
+  .auth-shell--login .login-experience { padding: 18px; border-radius: 20px; }
+  .auth-shell--login .auth-card, .auth-shell--signup .auth-card { border-radius: 20px; }
+  .header-container { min-height: 66px; }
+}
+@media (max-width: 480px) {
+  .home-marketplace__intro h1 { font-size: 42px; }
+  .home-marketplace__hero-copy > p:nth-of-type(2) { font-size: 14px; }
+  .home-marketplace__search-heading { display: block; }
+  .home-marketplace__search-heading .home-marketplace__advanced { margin-top: 5px; }
+  .home-values { grid-template-columns: minmax(0, 1fr); }
+  .home-values > div { gap: 12px; }
+  .home-footer { display: block; }
+  .home-footer nav { flex-wrap: wrap; margin-top: 12px; gap: 14px; }
+  .public-header__actions .public-signup { padding-inline: 11px; font-size: 12px; }
+  .customer-home .home-marketplace-heading { padding: 23px 18px; }
+  .sewak-workspace { border-radius: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-service, .home-marketplace .caregiver-preview-card,
+  .browse-caregiver-card, .home-caregiver, .home-marketplace__quick-categories a {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+
+/* Recorded Care.com reference direction: compact, media-led discovery masthead.
+   Existing Sewak imagery only; no third-party footage or brand assets. */
+.home-marketplace__intro {
+  position: relative;
+  isolation: isolate;
+  min-height: 255px;
+  max-height: 285px;
+  background: #163b30;
+  border: none;
+  border-radius: 0 0 24px 24px;
+  margin-bottom: 14px;
+}
+.home-marketplace__hero-visual { position: absolute; inset: 0; z-index: -2; }
+.home-marketplace__hero-visual img { min-height: 100%; height: 100%; filter: brightness(.40) saturate(.8); object-position: center 48%; }
+.home-marketplace__hero-visual::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg,rgba(3,29,23,.86),rgba(3,29,23,.63) 45%,rgba(3,29,23,.15)); }
+.home-marketplace__hero-visual figcaption { display: none; }
+.home-marketplace__hero-copy { position: relative; width: min(100%,770px); padding: 20px 36px; }
+.home-marketplace__eyebrow { color: var(--brand-lime); margin-bottom: 10px; }
+.home-marketplace__intro h1 { max-width: 600px; font: 600 clamp(32px,3.7vw,54px)/1.03 var(--font-display); letter-spacing:-.045em; margin-bottom: 10px; color: white; }
+.home-marketplace__hero-copy > p:nth-of-type(2) { font-size: 13px; line-height: 1.5; color: #f2f8f3; max-width: 600px; }
+.home-marketplace__quick-categories { margin: 13px 0 7px; }
+.home-marketplace__quick-categories a { border-color: rgba(255,255,255,.32); color: #fff; background: rgba(255,255,255,.12); backdrop-filter: blur(4px); min-height: 36px; font-size: 11px; }
+.home-marketplace__quick-categories a:hover { color: var(--brand-forest); background: var(--brand-lime); }
+.home-marketplace__intro .home-marketplace__hero-assurance { color:#e4f5e8; font-size:11px; }
+.home-marketplace__search-heading strong { font: 700 23px/1.15 "Avenir Next","Segoe UI",Arial,sans-serif; }
+.home-marketplace__search-heading { margin-bottom:8px; }
+.home-marketplace__search { padding:12px 14px; border-radius:16px; }
+.home-marketplace__field input,.home-marketplace__field select { min-height:42px; }
+.home-marketplace__submit { min-height:42px; color:var(--brand-forest); background:var(--brand-lime); border-color:var(--brand-lime); }
+.home-marketplace__submit:hover { background:#c3e68c; border-color:#c3e68c; }
+.home-marketplace__results-head { padding-top: 14px; }
+.home-marketplace__results-head h2 { font: 700 23px/1.2 "Avenir Next","Segoe UI",Arial,sans-serif; }
+.home-marketplace__availability-note { margin-bottom:7px; }
+.home-marketplace .caregiver-preview-card { padding:12px; }
+.home-marketplace .browse-caregiver-card__tags { margin-block:8px; }
+.home-marketplace .browse-caregiver-card__avatar { width:56px;height:56px; }
+.home-marketplace .browse-card-action { min-height:40px; }
+@media (min-width: 721px) {
+  .home-marketplace { padding-top:0; padding-bottom:20px; }
+  .home-marketplace__intro { margin-inline:calc(-1 * clamp(20px,4vw,64px)); padding-inline:clamp(20px,4vw,64px); max-height:275px; }
+}
+@media (max-width:720px) {
+  .home-marketplace { padding-top:0; }
+  .home-marketplace__intro { min-height:210px; max-height:none; margin-inline:-16px; border-radius:0 0 20px 20px; }
+  .home-marketplace__hero-copy { padding:18px 20px; }
+  .home-marketplace__intro h1 { font-size:clamp(30px,7.5vw,42px); }
+  .home-marketplace__hero-visual { max-height:none; }
+  .home-marketplace__hero-visual img { max-height:none; min-height:100%; height:100%; }
+  .home-marketplace__search { padding:10px; }
+  .home-marketplace__results-head { padding-top:10px; }
+}
+@media (max-width:430px) {
+  .home-marketplace__eyebrow { font-size:9px; }
+  .home-marketplace__intro h1 { font-size:32px; }
+  .home-marketplace__hero-copy > p:nth-of-type(2) { font-size:12px; }
+  .home-marketplace__quick-categories a { font-size:10px; }
+  .home-marketplace__intro .home-marketplace__hero-assurance { display:none; }
+}
+
+/* Accessible dark hero and expanded care navigation */
+.home-marketplace__intro .home-marketplace__hero-assurance { color: #eefbef !important; }
+.home-marketplace__hero-copy > p:nth-of-type(2) { color: #ffffff !important; }
+.home-marketplace__eyebrow { color: #e3f99f !important; }
+.home-marketplace__hero-visual img { filter: brightness(.27) saturate(.65); }
+.home-marketplace__hero-visual::after { background: linear-gradient(90deg,rgba(1,20,14,.95),rgba(1,20,14,.88) 45%,rgba(1,20,14,.58)); }
+.dashboard-shell--customer .app-card { max-width: min(96vw, 1640px); }
+.public-nav { gap: clamp(8px,1.4vw,19px); }
+@media (min-width:961px) { .public-nav a { font-size:12px; } }
+@media (max-width: 960px) { .public-nav { display: none; } .public-nav.is-open { display:flex; } }
+
+/* Original/owned motion-media support for the public and all four signed-in roles.
+   When no licensed MP4 is configured, the Sewak illustration is a safe fallback. */
+.sewak-care-media { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0b3428; }
+.sewak-care-media img, .sewak-care-media video { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.sewak-care-media video { opacity: 0; transition: opacity .5s ease; pointer-events: none; }
+.sewak-care-media video.is-ready { opacity: 1; }
+.home-marketplace__hero-visual .sewak-care-media img { min-height: 100%; max-height: none; height: 100%; }
+.home-marketplace__hero-visual .sewak-care-media video { filter: brightness(.68) saturate(.9); }
+.sewak-role-hero {
+  position: relative; width: min(calc(100% - 40px), 1420px);
+  height: 142px; margin: 14px auto 3px; isolation: isolate;
+  overflow: hidden; border-radius: 22px; background: #064c3c;
+  border: 1px solid #275f4e; color: #fff;
+}
+.sewak-role-hero .sewak-care-media { position: absolute; inset: 0; z-index: -2; }
+.sewak-role-hero .sewak-care-media img { object-position: center 42%; filter: brightness(.38) saturate(.8); }
+.sewak-role-hero::before {
+  position: absolute; content: ""; inset: 0; z-index: -1;
+  background: linear-gradient(90deg, rgb(5 45 34 / .95), rgb(5 45 34 / .65) 60%, rgb(5 45 34 / .25));
+  pointer-events: none;
+}
+.sewak-role-hero__body { display: flex; height: 100%; padding: 19px clamp(20px,4vw,48px); flex-direction: column; align-items: flex-start; justify-content: center; }
+.sewak-role-hero__body > span { font-size: 10px; font-weight: 800; color: var(--brand-lime); letter-spacing: .14em; }
+.sewak-role-hero__body h2 { margin: 6px 0 8px; font: 600 clamp(23px, 2.8vw, 35px)/1.12 var(--font-display); color: #fff; }
+.sewak-role-hero__body a { color: var(--brand-lime); font-weight: 750; font-size: 12px; text-decoration: none; }
+.sewak-role-hero__body a:hover { text-decoration: underline; }
+@media (max-width: 720px) {
+  .sewak-role-hero { height: 122px; width: calc(100% - 24px); margin-top: 10px; border-radius: 17px; }
+  .sewak-role-hero__body h2 { font-size: clamp(21px, 5vw, 28px); }
+}
+@media (prefers-reduced-motion: reduce) { .sewak-care-media video { display: none; } }
+
+/* Notifications */
+.header-notification-link { flex:0 0 auto; position:relative; width:42px; height:42px; border-radius:50%; background:#e6f3df; color:#08664f; border:1px solid #dce6df; display:grid; place-items:center; cursor:pointer; }
+.header-notification-link:hover { background:#d7f1a3; }
+.header-notification-link svg { width:22px; height:22px; }
+.header-notification-link span { position:absolute; right:-4px; top:-6px; font-size:10px; font-weight:800; color:white; background:#ab2d3f; min-width:19px; min-height:19px; padding:2px; border-radius:99px; }
+.care-notices { width:min(100%,1080px); margin:20px auto 78px; padding:0 18px; }
+.care-notices__header { padding:32px; background:#e6f3df; border-radius:23px; display:flex; justify-content:space-between; align-items:center; gap:20px; }
+.care-notices__header p { font-size:11px; font-weight:800; letter-spacing:.1em; color:#08664f; }
+.care-notices__header h1 { color:#064c3c; font:600 clamp(31px,4vw,48px)/1.1 Georgia,serif; margin:9px 0; }
+.care-notices__header span { font-size:14px; color:#385c4b; }
+.care-notices__header a { font-weight:800; font-size:13px; color:#08664f; }
+.care-notices__panel { margin-top:16px; background:#fff; border:1px solid #dce6df; border-radius:21px; padding:16px; }
+.care-notices__toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px 18px; border-bottom:1px solid #e9eee9; }
+.care-notices__toolbar strong { color:#064c3c; }
+.care-notices button { padding:9px 16px; min-height:38px; cursor:pointer; border:1px solid #8eaea1; background:#fff; color:#08664f; font-weight:750; border-radius:999px; }
+.care-notices button:disabled { opacity:.55; cursor:default; }
+.care-notices__panel ul { list-style:none; padding:0; margin:0; }
+.care-notices__panel li { display:flex; gap:13px; padding:17px 10px; border-bottom:1px solid #e7ede7; align-items:flex-start; }
+.care-notices__panel li.is-unread { background:#f4faef; border-radius:12px; }
+.care-notices__bullet { width:9px; height:9px; margin-top:9px; border-radius:50%; background:#d0d8d0; flex:0 0 9px; }
+.care-notices__panel li.is-unread .care-notices__bullet { background:#08664f; }
+.care-notices__panel li>div:nth-child(2) { flex:1; min-width:0; display:grid; gap:6px; }
+.care-notices__panel small { font-size:10px; letter-spacing:.08em; color:#48705a; text-transform:uppercase; font-weight:800; }
+.care-notices__panel li strong { font-size:15px; color:#064c3c; }
+.care-notices__panel li p { font-size:13px; color:#52655d; margin:0; }
+.care-notices__panel li time { font-size:11px; color:#647469; }
+.care-notices__actions { display:grid; gap:10px; justify-items:end; }
+.care-notices__actions a { font-size:12px; font-weight:800; color:#08664f; }
+.care-notices__empty { text-align:center; padding:40px 14px; }
+.care-notices__empty h2 { color:#064c3c; }
+.care-notices__empty p { color:#52655d; margin:12px 0; }
+.care-notices__empty a { color:#08664f; font-weight:800; }
+@media(max-width:650px){.care-notices__header { display:block; padding:24px; }.care-notices__header a{display:inline-block; margin-top:14px;}.care-notices__panel li{flex-wrap:wrap;}.care-notices__actions{margin-left:20px;display:flex;gap:18px;}}
+
+/* Working caregiver availability */
+.care-timeoff-page{width:min(100%,1150px);margin:20px auto 80px;padding:0 18px}
+.care-timeoff-page>header{padding:28px 34px;background:#e6f3df;border-radius:24px}
+.care-timeoff-page>header p{color:#08664f;font-size:11px;font-weight:800;letter-spacing:.12em}
+.care-timeoff-page>header h1{font:600 clamp(32px,4vw,48px)/1.1 Georgia,serif;color:#064c3c;margin:10px 0}
+.care-timeoff-page>header span{display:block;max-width:660px;color:#456558;font-size:14px}
+.care-timeoff-page>header a{display:inline-block;margin-top:16px;color:#08664f;font-size:13px;font-weight:800}
+.care-timeoff-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:20px}
+.care-timeoff-card{background:white;border:1px solid #dce6df;border-radius:20px;padding:28px;min-width:0}
+.care-timeoff-card h2{color:#064c3c;font-size:24px;margin:0 0 18px}
+.care-timeoff-card form>label,.care-timeoff-card form .care-timeoff-hours label{display:grid;gap:7px;font-weight:750;font-size:13px;color:#244e3c}
+.care-timeoff-card input{min-height:46px;width:100%;border:1px solid #9caea3;border-radius:12px;padding:10px;background:white}
+.care-timeoff-hours{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0 18px}
+.care-timeoff-card button{background:#08664f;color:white;border:0;border-radius:99px;padding:10px 18px;min-height:42px;font-weight:750;cursor:pointer}
+.care-timeoff-card button:disabled{opacity:.55;cursor:default}
+.care-timeoff-help{margin-top:18px;color:#52655d;font-size:12px;line-height:1.55}
+.care-timeoff-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.care-timeoff-head button{background:white;border:1px solid #abc5b8;color:#08664f}
+.care-timeoff-card ul{padding:0;margin:0;list-style:none}
+.care-timeoff-card li{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px 0;border-bottom:1px solid #e6eee6}
+.care-timeoff-card li div{display:grid;gap:5px}
+.care-timeoff-card li strong{font-size:14px;color:#064c3c}
+.care-timeoff-card li span{font-size:12px;color:#52655d}
+.care-timeoff-card li button{background:white;color:#08664f;border:1px solid #abc5b8}
+.care-timeoff-notice{margin-top:15px;color:#08664f;font-weight:750}
+@media(max-width:720px){.care-timeoff-grid{grid-template-columns:minmax(0,1fr)}.care-timeoff-card{padding:20px}.care-timeoff-page>header{padding:24px}}
+
+/* Original subtle motion for Sewak's illustrated fallback (never autoplay
+   aggressively or override the operating system reduced-motion preference). */
+@keyframes sewak-ambient-pan {
+  0% { transform: scale(1.01) translate3d(0,0,0); }
+  100% { transform: scale(1.07) translate3d(-1%,0,0); }
+}
+@keyframes sewak-ambient-light {
+  0%,100% { opacity: .12; }
+  50% { opacity: .28; }
+}
+.sewak-care-media img {
+  animation: sewak-ambient-pan 22s ease-in-out infinite alternate;
+  transform-origin: center center;
+}
+.sewak-care-media::after {
+  content:""; pointer-events:none; position:absolute; inset:0;
+  background: radial-gradient(circle at 70% 35%,rgba(215,241,163,.14),transparent 55%);
+  animation:sewak-ambient-light 10s ease-in-out infinite;
+}
+.booking-slot-status { grid-column:1/-1; color:#315f48; font-size:13px; font-weight:700; margin:12px 0; }
+@media(prefers-reduced-motion:reduce) {
+  .sewak-care-media img, .sewak-care-media::after { animation:none !important; transform:none !important; }
+}
+
+
+/* 320px handset QA: reserve space for branded home, alerts and account menu. */
+@media(max-width:360px){
+  .header-container { padding-inline:8px !important; gap:5px; min-width:0; }
+  .header-logo { flex:0 0 auto; gap:5px; min-width:0; }
+  .header-logo-img { width:33px; height:33px; }
+  .header-logo-text { font-size:19px; }
+  .header-notification-link { width:35px; height:35px; }
+  .header-notification-link svg { width:19px; height:19px; }
+  .header-menu { flex:0 0 auto; min-width:0; }
+  .header-user-name { display:none; }
+  .header-user-button,
+  .header--user .header-user-button,
+  .header--caregiver .header-user-button,
+  .header--superadmin .header-user-button {
+    gap:3px; padding:6px 7px; min-width:0;
+  }
+  .header-user-avatar svg { width:19px; height:19px; }
+  .header-user-button >span:last-child { margin-left:0 !important; font-size:12px !important; }
+  .sewak-workspace__sidebar { min-width:0; }
+  .sewak-workspace__nav { min-width:0; width:100%; max-width:100%; overflow-x:auto; }
+}

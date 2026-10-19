@@ -32,10 +32,28 @@ export async function organizationFields(repo: Repository, body: Data, uid: stri
 // The account type is independent of approval. Credentials, account, application
 // and organization are committed by the caller in one guarded D1 transaction.
 export async function registrationWrites(repo: Repository, profile: Data, body: Data): Promise<Write[]> {
-  badInput(['user','orgadmin'].includes(body.selectedRole), 'Choose Customer or Organization.');
+  badInput(['user','caregiver','orgadmin'].includes(body.selectedRole), 'Choose Customer, Caregiver or Organization.');
   const uid = profile.uid, now = new Date().toISOString();
   const next = { ...profile, registrationComplete: true };
   if (body.selectedRole === 'user') return [{ path: 'users/' + uid, data: next }];
+  if (body.selectedRole === 'caregiver') {
+    // Independent caregiver applications begin private and unapproved.
+    requireThat(repo.env.APP_WRITES_ENABLED === 'true', 'Caregiver registration is temporarily unavailable.', 503, 'maintenance');
+    requireThat(!await repo.data('vendors/' + uid), 'This caregiver profile already exists.');
+    return [
+      { path: 'users/' + uid, data: { ...next, role: 'caregiver', isApproved: false, profileComplete: false } },
+      { path: 'vendors/' + uid, data: {
+        uid, vendorId: uid, name: profile.name, email: profile.email,
+        category: 'caregiver', workType: 'parttime', shifts: [], servicesOffered: [],
+        location: '', experience: 0, isIndependent: true,
+        isApproved: false, isAvailable: false, isSuspended: false, isBlacklisted: false,
+        verified: false, backgroundChecked: false, isCertified: false, createdAt: now,
+      } },
+      { path: 'adminAuditLogs/' + crypto.randomUUID(), data: {
+        actorUid: uid, targetUid: uid, action: 'independent_caregiver_registration', createdAt: now,
+      } },
+    ];
+  }
   requireThat(repo.env.APP_WRITES_ENABLED === 'true', 'Organization applications are temporarily read-only.', 503, 'maintenance');
   requireThat(!await repo.data('organizations/' + uid), 'This organization is already configured.');
   const fields = await organizationFields(repo, body, uid);

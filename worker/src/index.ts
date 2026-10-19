@@ -1,4 +1,10 @@
 import { verificationRoute, verificationMaintenance } from './verification.ts';
+import { careJobsRoute } from './care-jobs.ts';
+import { careMessagesRoute } from './care-messages.ts';
+import { careInboxRoute } from './care-inbox.ts';
+import { notificationsRoute, scheduledBookingReminders } from './notifications.ts';
+import { careScheduleRoute } from './care-schedule.ts';
+import { membershipRoute } from './membership.ts';
 import { authenticateSession, authRoute, enforceCsrf } from './cloudflare-auth.ts';
 export { PasswordHasher } from './passwords.ts';
 import { runAction } from './actions.ts';
@@ -18,7 +24,7 @@ async function jsonBody(request: Request): Promise<Data> {
 }
 export function createWorker(authenticate: (request: Request, env: Env) => Promise<Identity | null> = authenticateSession) {
   return {
-    async scheduled(_controller: ScheduledController, env: Env, context: ExecutionContext) { context.waitUntil(verificationMaintenance(env)); },
+    async scheduled(_controller: ScheduledController, env: Env, context: ExecutionContext) { context.waitUntil(Promise.all([verificationMaintenance(env),scheduledBookingReminders(env)])); },
     async fetch(request: Request, env: Env): Promise<Response> {
       const url = new URL(request.url);
       const authPath = /^\/(?:api\/)?auth\/(me|login|register|logout|bootstrap|activate|sessions|revoke-sessions|change-password|complete-registration)$/.test(url.pathname);
@@ -51,6 +57,24 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
         enforceCsrf(request,identity);
         if (authPath) return Response.json(await authRoute(request,env,headers,request.method==='POST'?await jsonBody(request):{},identity),{headers});
         const repo = new Repository(env), actor = await repo.actor(identity);
+        if (url.pathname === '/api/membership' && ['GET','POST'].includes(request.method)) {
+          return Response.json(await membershipRoute(request,repo,actor,request.method==='POST'?await jsonBody(request):{}),{headers});
+        }
+        if (url.pathname === '/api/care-schedule' && ['GET','POST'].includes(request.method)) {
+          return Response.json(await careScheduleRoute(request,url,repo,actor,request.method==='POST'?await jsonBody(request):{}),{headers});
+        }
+        if (url.pathname === '/api/care-notifications' && ['GET','POST'].includes(request.method)) {
+          return Response.json(await notificationsRoute(request,repo,actor,request.method==='POST'?await jsonBody(request):{}),{headers});
+        }
+        if (url.pathname === '/api/care-inbox' && request.method === 'GET') {
+          return Response.json(await careInboxRoute(repo,actor),{headers});
+        }
+        if (url.pathname === '/api/care-messages' && ['GET','POST'].includes(request.method)) {
+          return Response.json(await careMessagesRoute(request,url,repo,actor,request.method==='POST'?await jsonBody(request):{}),{headers});
+        }
+        if (url.pathname === '/api/care-jobs' || url.pathname.startsWith('/api/care-jobs/')) {
+          return Response.json(await careJobsRoute(request,url,repo,actor,request.method==='POST'?await jsonBody(request):{}),{headers});
+        }
         if (url.pathname.startsWith('/api/verification/')) {
           const value = await verificationRoute(request,repo,actor,request.method==='POST'?await jsonBody(request):{});
           return value instanceof Response ? value : Response.json(value,{headers});

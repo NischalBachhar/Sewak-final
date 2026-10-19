@@ -2,6 +2,10 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 export function routeMetadata(pathname) {
+  if (pathname === "/get-started") return { title: "Get started | Sewak", description: "Choose whether to find care or join the Sewak care marketplace.", public: true };
+  if (pathname === "/care-services") return { title: "Care & household services | Sewak", description: "Browse Nepal care services and find available caregivers or household professionals.", public: true };
+  if (pathname === "/safety") return { title: "Safety guidance | Sewak", description: "Review Sewak verification details and practical tips for choosing care safely.", public: true };
+  if (pathname === "/pricing") return { title: "Care pricing | Sewak", description: "Understand caregiver rates, booking requests, and supported payment methods.", public: true };
   if (["/", "/browse"].includes(pathname)) return { title: "Sewak — Care, close to home", description: "Browse caregivers and household support in Nepal. Review services and request care for your family.", public: true };
   if (/^\/caregivers\/[^/]+$/.test(pathname)) return { title: "Caregiver profile | Sewak", description: "Review this caregiver’s services, availability and verified feedback on Sewak.", public: true };
   return { title: "Your care account | Sewak", description: "Manage your Sewak account and care requests.", public: false };

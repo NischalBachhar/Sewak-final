@@ -1,0 +1,25 @@
+.sewak-membership-page{width:min(1200px,100%);margin:24px auto 76px;padding:0 clamp(16px,3vw,32px);color:#173c32}
+.sewak-membership-page>header{padding:clamp(26px,4vw,45px);background:#e6f3df;border-radius:28px}
+.sewak-membership-page>header span{font-size:11px;color:#08664f;font-weight:800;letter-spacing:.12em}
+.sewak-membership-page h1{font:600 clamp(32px,4vw,54px)/1.15 Georgia,serif;color:#064c3c;margin:14px 0}
+.sewak-membership-page>header p{max-width:750px;line-height:1.65;color:#52655d}
+.sewak-membership-alert{margin:22px 0;padding:17px 22px;background:#fff;border:1px solid #9caea3;border-radius:17px}
+.sewak-membership-alert p{margin-top:6px;color:#52655d;font-size:13px}
+.sewak-membership-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.sewak-membership-cards article{padding:clamp(22px,3vw,34px);background:#fff;border:2px solid #dce6df;border-radius:24px}
+.sewak-membership-cards article.is-selected{border-color:#08664f;background:#f5fbf0}
+.sewak-membership-tag{font-size:11px;font-weight:850;letter-spacing:.06em;color:#08664f}
+.sewak-membership-cards h2{font:600 clamp(28px,3vw,37px)/1.2 Georgia,serif;margin:12px 0;color:#064c3c}
+.sewak-membership-cards h3{font-size:15px;font-weight:700}
+.sewak-membership-price{font-size:28px;font-weight:850;color:#064c3c;margin:18px 0}
+.sewak-membership-price small{display:block;font-size:11px;font-weight:500;color:#52655d}
+.sewak-membership-cards ul{padding:0;list-style:none;display:grid;gap:14px;margin:20px 0 27px}
+.sewak-membership-cards li{font-size:14px;line-height:1.55}
+.sewak-membership-cards button{min-height:46px;border:0;background:#08664f;color:#fff;border-radius:999px;padding:11px 20px;font-size:13px;font-weight:750;cursor:pointer}
+.sewak-membership-cards button:disabled{background:#dce6df;color:#52655d;cursor:not-allowed}
+.sewak-membership-ack{display:flex;gap:12px;align-items:flex-start;padding:18px 4px;max-width:780px;font-size:14px;font-weight:650}
+.sewak-membership-ack input{width:19px;height:19px;flex:0 0 auto;accent-color:#08664f}
+.sewak-membership-result{background:#e6f3df;padding:13px 18px;border-radius:12px;color:#064c3c}
+.sewak-membership-foot{display:flex;flex-wrap:wrap;gap:23px;margin-top:27px}
+.sewak-membership-foot a{color:#08664f;font-weight:750;font-size:14px}
+@media(max-width:720px){.sewak-membership-cards{grid-template-columns:1fr}.sewak-membership-page>header{padding:25px 18px}.sewak-membership-page h1{font-size:34px}}

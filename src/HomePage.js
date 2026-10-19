@@ -28,6 +28,12 @@ export default function HomePage() {
     <PublicHeader />
     <main id="main-content">
       <HomeCaregiverMarketplace />
+      <div className="home-values" aria-label="The Sewak care experience">
+        <div><span className="home-icon"><LoginIcon name="heart" /></span><strong>Care for every generation</strong></div>
+        <div><span className="home-icon"><LoginIcon name="shield" /></span><strong>Review profile details</strong></div>
+        <div><span className="home-icon"><LoginIcon name="clock" /></span><strong>Request a flexible schedule</strong></div>
+        <div><span className="home-icon"><LoginIcon name="home" /></span><strong>Manage care in one place</strong></div>
+      </div>
       <section className="home-hero home-hero--secondary" aria-labelledby="home-title">
         <div className="home-hero__copy">
           <p className="home-eyebrow">People · Care · Everyday connection</p>
@@ -36,7 +42,7 @@ export default function HomePage() {
           <div className="home-actions"><a className="home-button" href="#caregivers"><LoginIcon name="heart" />Find Care<LoginIcon name="arrow" /></a><a className="home-button home-button--outline" href="#services">Explore Services</a></div>
           <p className="home-hero__note">For your family. For your home. For a little peace of mind.</p>
         </div>
-        <figure className="home-hero__visual"><img src="/images/care-for-every-generation.webp" width="1536" height="1024" loading="lazy" decoding="async" alt="Illustration of Nepali caregivers supporting a child, older family members and an adult wheelchair user, with household help at home." /><figcaption>Care, closer to home.</figcaption></figure>
+        <div className="home-hero__story" aria-label="Care with Sewak"><div className="home-hero__story-mark" aria-hidden="true">♡</div><p className="home-hero__story-kicker">A LITTLE HELP MAKES A BIG DIFFERENCE</p><h3>More time for what matters most.</h3><p>From everyday household help to support for loved ones, explore care that works around your life.</p><Link to="/browse">Explore local care <LoginIcon name="arrow" /></Link></div>
       </section>
       <section id="services" className="home-section" aria-labelledby="services-title">
         <div className="home-section-heading"><div><p className="home-eyebrow">A helping hand, your way</p><h2 id="services-title">Support that fits your life.</h2></div><p>Explore Sewak’s current service catalog. Availability and pricing depend on the care professional you choose.</p></div>

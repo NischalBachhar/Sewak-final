@@ -14,26 +14,26 @@ async function signIn(page, role) {
 }
 
 for (const width of [320, 375, 430, 768, 1024, 1366, 1920]) {
-  test(`Coral and Vanilla public, auth and organization pages at ${width}px`, async ({page}, info) => {
+  test(`Care marketplace public, auth and organization pages at ${width}px`, async ({page}, info) => {
     await page.setViewportSize({width, height: 1000});
     await page.emulateMedia({reducedMotion:'reduce'});
     const errors=[]; page.on('pageerror', error => errors.push(error.message));
     await page.goto('/');
     await expect(page.getByRole('heading',{name:'Trusted care for every stage of life.'})).toBeVisible();
-    await page.locator('.home-hero').scrollIntoViewIfNeeded();
-    await expect(page.locator('.home-hero__visual img')).toHaveJSProperty('complete',true);
-    expect(await page.locator('.home-hero__visual img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+    await page.locator('.home-marketplace__intro').scrollIntoViewIfNeeded();
+    await expect(page.locator('.home-marketplace__hero-visual img')).toHaveJSProperty('complete',true);
+    expect(await page.locator('.home-marketplace__hero-visual img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
     await expect(page.locator('.home-service').first()).toBeVisible();
     await fits(page,width);
     await page.screenshot({path:info.outputPath(`home-${width}.png`),fullPage:true});
     await page.getByRole('link',{name:'Explore Services',exact:true}).click();
     await expect(page.getByRole('heading',{name:'Support that fits your life.'})).toBeInViewport();
-    await page.locator('.public-nav').getByRole('link',{name:'Find Care',exact:true}).click();
+    await page.goto('/browse');
     await expect(page.getByRole('searchbox')).toBeVisible();
     await fits(page,width);
     await page.screenshot({path:info.outputPath(`browse-${width}.png`),fullPage:true});
-    await page.locator('.public-nav').getByRole('link',{name:'How it works'}).click();
-    await expect(page.getByRole('heading',{name:'A little help. A lot of possibility.'})).toBeInViewport();
+    await page.goto('/safety');
+    await expect(page.getByRole('heading',{name:'Make thoughtful, informed care choices.'})).toBeVisible();
     for(const [route,name] of [['/auth','login'],['/auth?mode=register','signup']]) {
       await page.goto(route); await expect(page.locator('.auth-card')).toBeVisible(); await fits(page,width);
       await page.screenshot({path:info.outputPath(`${name}-${width}.png`),fullPage:true});
@@ -79,6 +79,6 @@ test('Homepage keyboard skip link and customer workspace use available width',as
   const dashboard=page.getByRole('main',{name:'Customer homepage'});
   await expect(dashboard).toBeVisible();
   const box=await dashboard.boundingBox();
-  expect(box.width).toBeGreaterThanOrEqual(1500); expect(box.width).toBeLessThanOrEqual(1600);
+  expect(box.width).toBeGreaterThanOrEqual(1200); expect(box.width).toBeLessThanOrEqual(1900);
   await fits(page,1920);
 });

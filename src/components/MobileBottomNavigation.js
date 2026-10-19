@@ -6,6 +6,7 @@ const CUSTOMER_ITEMS = [
   { label: "Home", icon: "\u2302", path: "/user/home" },
   { label: "Browse", icon: "\u2315", path: "/user" },
   { label: "Bookings", icon: "\u25a3", path: "/user/mybookings" },
+  { label: "Inbox", icon: "\u2709", path: "/user/inbox" },
   { label: "Account", icon: "\u25ce", path: "/user/profile" },
 ];
 
@@ -13,7 +14,7 @@ const CAREGIVER_ITEMS = [
   { label: "Home", icon: "\u2302", path: "/caregiver?tab=home" },
   { label: "Jobs", icon: "\u25a3", path: "/caregiver?tab=jobs" },
   { label: "Schedule", icon: "\u25f7", path: "/caregiver?tab=schedule" },
-  { label: "Earnings", icon: "\u20a8", path: "/caregiver?tab=earnings" },
+  { label: "Inbox", icon: "\u2709", path: "/caregiver/inbox" },
   { label: "Profile", icon: "\u25ce", path: "/caregiver?tab=profile" },
 ];
 

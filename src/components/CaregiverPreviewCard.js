@@ -4,6 +4,7 @@ import { hasVerifiedRating } from '../bookingModel';
 import { formatNpr } from '../config/brand';
 import { VerificationBadge } from './CareExperience';
 import RequestAvailability from './RequestAvailability';
+import useSavedCare from '../useSavedCare';
 import { caregiverBookingReason } from '../caregiverDiscovery';
 import '../BrowsePage.css';
 import './CaregiverPreview.css';
@@ -32,6 +33,7 @@ const normalizeServiceId = (s) =>
 
 export default function CaregiverPreviewCard({ caregiver, services, onSelect, onViewProfile, requireLogin, compact = false }) {
   const bookingReason = caregiverBookingReason(caregiver);
+  const { saved, toggle, enabled } = useSavedCare();
   const reasonId = useId();
   const getInitials = (name) =>
     (name || "C")
@@ -76,6 +78,7 @@ export default function CaregiverPreviewCard({ caregiver, services, onSelect, on
 
   return (
     <article className={`browse-caregiver-card${compact ? " caregiver-preview-card" : ""}`}>
+      {enabled && <div className="saved-care-card-control"><button type="button" className="sawak-save-button" aria-pressed={saved.includes(caregiver.id)} aria-label={(saved.includes(caregiver.id) ? 'Remove ' : 'Save ') + (caregiver.name || 'caregiver') + (saved.includes(caregiver.id) ? ' from saved caregivers' : ' to saved caregivers')} onClick={() => toggle(caregiver.id)}>{saved.includes(caregiver.id) ? '♥ Saved' : '♡ Save'}</button></div>}
       <div className="browse-caregiver-card__top">
         <div className="browse-caregiver-card__avatar">
           {caregiver.profileImage ? (

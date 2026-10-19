@@ -80,12 +80,12 @@ export default function SignupRegistrationForm({ values, onChange, onSubmit, loa
       <div className="signup-roles">
         <p id="registration-role-label">I want to register as</p>
         <div className="role-selection" role="group" aria-labelledby="registration-role-label">
-          {[['user','Customer','Find and book trusted caregivers for your family.','home'],['orgadmin','Organization/Company','Manage your caregivers and provide care through Sewak.','organization']].map(([role,label,description,icon]) => <label key={role} className={`role-option${values.selectedRole === role ? ' signup-role--selected' : ''}`}>
+          {[['user','Customer','Find and book trusted caregivers for your family.','home'],['orgadmin','Organization/Company','Manage your caregivers and provide care through Sewak.','organization'],['caregiver','Caregiver / Care professional','Apply as an independent professional. You will need approval before appearing in search.','user']].map(([role,label,description,icon]) => <label key={role} className={`role-option${values.selectedRole === role ? ' signup-role--selected' : ''}`}>
             <input type="radio" name="role" value={role} checked={values.selectedRole === role} onChange={() => { onChange('selectedRole', role); setErrors({}); clearError(); }} />
             <span className="signup-role-icon"><SignupIcon name={icon} /></span><span className="signup-role-copy"><strong>{label}</strong><span>{description}</span></span><span className="signup-role-check" aria-hidden="true"><SignupIcon name="check" /></span>
           </label>)}
         </div>
-        <div className="signup-role-context" aria-live="polite">{org ? 'Organization access follows application review.' : 'A helping hand for the people you love.'}</div>
+        <div className="signup-role-context" aria-live="polite">{org ? 'Organization access follows application review.' : values.selectedRole === 'caregiver' ? 'Your public profile stays hidden until the Sewak team approves it.' : 'A helping hand for the people you love.'}</div>
       </div>
     </fieldset>
     {org && <fieldset className="signup-step-fields" hidden={step !== 2} disabled={loading || step !== 2} aria-label="Organization details">

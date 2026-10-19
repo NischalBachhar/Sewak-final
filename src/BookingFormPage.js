@@ -4,6 +4,7 @@ import { collection, documentId, getDocs, query, where } from "./d1Client";
 import { calculateQuote, kathmanduDate, validateBooking } from "./bookingValidation";
 import { clearAttempt, createCashBooking, recoverBooking } from "./bookingService";
 import { db } from "./d1Client";
+import { apiRequest } from "./apiClient";
 
 import { useAuth } from "./AuthContext";
 import { formatNpr } from "./config/brand";
@@ -57,6 +58,7 @@ export default function BookingFormPage({ caregiver, onBooked }) {
   const [city, setCity] = useState(userDoc?.city || "");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [slotAvailability, setSlotAvailability] = useState({checking:false,available:null});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successBooking, setSuccessBooking] = useState(null);
@@ -65,6 +67,18 @@ export default function BookingFormPage({ caregiver, onBooked }) {
   const [confirmedQuote, setConfirmedQuote] = useState(null);
   const submittingRef = useRef(false);
   const [recovering, setRecovering] = useState(false);
+  useEffect(() => {
+    if (!caregiver?.id || !date || !/^\d{2}:\d{2}$/.test(time) || !(Number(durationHours)>0 && Number(durationHours)<=24)) {
+      setSlotAvailability({checking:false,available:null}); return undefined;
+    }
+    let active=true;
+    setSlotAvailability({checking:true,available:null});
+    const query=new URLSearchParams({caregiverId:caregiver.id,day:date,time,hours:String(Number(durationHours))});
+    apiRequest("/api/care-schedule?"+query.toString())
+      .then(result=>{if(active)setSlotAvailability({checking:false,available:result.available===true});})
+      .catch(()=>{if(active)setSlotAvailability({checking:false,available:null});});
+    return ()=>{active=false;};
+  },[caregiver?.id,date,time,durationHours]);
   useEffect(() => {
     let active = true;
     const ids = caregiver?.servicesOffered?.slice(0, 20) || [];
@@ -114,6 +128,7 @@ export default function BookingFormPage({ caregiver, onBooked }) {
   };
 
   const nextStep = () => {
+    if (step===1 && slotAvailability.available===false) { setError("That time conflicts with your caregiver’s schedule. Choose a different time."); return; }
     const issue = validateBooking(input, caregiver).find((item) => item.step <= step);
     if (issue) { showValidation(issue); return; }
     setError(""); setStep((current) => Math.min(current + 1, 3));
@@ -121,6 +136,7 @@ export default function BookingFormPage({ caregiver, onBooked }) {
   const submitBooking = async (event) => {
     event.preventDefault();
     if (step !== STEP_COPY.length - 1) { nextStep(); return; }
+    if (slotAvailability.available===false) { setError("That care time is unavailable. Please choose another time."); setStep(1); return; }
     if (submittingRef.current) return;
     const issue = validateBooking(input, caregiver)[0];
     if (issue) { showValidation(issue); return; }
@@ -193,6 +209,9 @@ export default function BookingFormPage({ caregiver, onBooked }) {
           <label>Duration (hours) *<input id="booking-duration" type="number" min="1" max="24" value={durationHours} onChange={(event) => setDurationHours(event.target.value)} /></label>
           <label>Frequency<select id="booking-recurrence" value={recurrence} onChange={(event) => setRecurrence(event.target.value)}><option value="one_time">One-time care</option><option value="recurring">Recurring care (confirm with caregiver)</option></select></label>
         </div>
+        <p className="booking-slot-status" role="status">
+          {slotAvailability.checking ? "Checking the caregiver’s schedule…" : slotAvailability.available===false ? "This period overlaps unavailable or already confirmed care. Choose a different time." : slotAvailability.available===true ? "No schedule conflict found. Your booking still requires caregiver acceptance." : "Choose a date and start time to check scheduling conflicts."}
+        </p>
         {isPartTimeCaregiver ? (
           <fieldset className="booking-form-payment" aria-describedby="preferred-time-windows-help">
             <legend>Preferred time windows</legend>

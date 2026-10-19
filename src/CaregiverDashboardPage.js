@@ -809,6 +809,7 @@ export default function CaregiverDashboardPage() {
                     flexWrap: "wrap",
                   }}
                 >
+                  <button type="button" className="btn btn-outline" onClick={() => navigate("/caregiver/messages/booking/" + encodeURIComponent(b.id))}>Message customer</button>
                   {b.status === "pending" && (
                     <>
                       <button

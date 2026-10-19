@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "../logoSewak.jpeg";
+import logo from "../assets/sewak-care-mark.svg";
 import careIllustration from "../assets/login-care.svg";
 
 // Small, local line icons keep the sign-in page independent of an icon package.

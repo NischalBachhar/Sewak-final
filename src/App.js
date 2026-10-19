@@ -10,8 +10,17 @@ import CaregiverListPage from "./CaregiverListPage";
 import PublicCaregiverProfilePage from "./PublicCaregiverProfilePage";
 import BrowsePage from "./BrowsePage";
 import HomePage from "./HomePage";
+import CareInfoPage from "./CareInfoPage";
+import SavedCarePage from "./SavedCarePage";
+import CareJobsPage from "./CareJobsPage";
+import CareConversationPage from "./CareConversationPage";
+import CareInboxPage from "./CareInboxPage";
+import CareNotificationsPage from "./CareNotificationsPage";
+import CaregiverAvailabilityPage from "./CaregiverAvailabilityPage";
+import CareMembershipPage from "./CareMembershipPage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
+import { RoleCareHero } from "./components/CareHeroMedia";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
 import "./App.css";
 import "./DashboardExperience.css";
@@ -298,6 +307,10 @@ function App() {
     return (
       <Routes>
         <Route path="/browse" element={<BrowsePage />} />
+        <Route path="/get-started" element={<CareInfoPage page="start" />} />
+        <Route path="/care-services" element={<CareInfoPage page="services" />} />
+        <Route path="/safety" element={<CareInfoPage page="safety" />} />
+        <Route path="/pricing" element={<CareInfoPage page="pricing" />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route
           path="/caregivers/:caregiverId"
@@ -372,7 +385,14 @@ function App() {
         onMyBookings={handleMyBookings}
         notificationCount={notificationCount}
       />
+      {((userRole === "caregiver" && ["/caregiver", "/caregiver/dashboard", "/caregiver/home"].includes(location.pathname)) ||
+        (userRole === "orgadmin" && ["/organization", "/organization/dashboard"].includes(location.pathname)) ||
+        (userRole === "superadmin" && ["/superadmin", "/superadmin/overview"].includes(location.pathname))) && <RoleCareHero role={userRole} />}
       <Routes>
+        <Route path="/get-started" element={<CareInfoPage page="start" withHeader={false} />} />
+        <Route path="/care-services" element={<CareInfoPage page="services" withHeader={false} />} />
+        <Route path="/safety" element={<CareInfoPage page="safety" withHeader={false} />} />
+        <Route path="/pricing" element={<CareInfoPage page="pricing" withHeader={false} />} />
         <Route path="/payment-callback" element={<PaymentCallbackPage />} />
         <Route
           path="/caregivers/:caregiverId"
@@ -392,6 +412,12 @@ function App() {
               }
             />
             <Route path="/user/profile" element={<div className="customer-detail-shell"><UserProfilePage /></div>} />
+            <Route path="/user/saved" element={<SavedCarePage />} />
+            <Route path="/user/membership" element={<CareMembershipPage />} />
+            <Route path="/user/jobs" element={<CareJobsPage role="user" />} />
+            <Route path="/user/inbox" element={<CareInboxPage />} />
+            <Route path="/user/notifications" element={<CareNotificationsPage />} />
+            <Route path="/user/messages/:kind/:contextId" element={<CareConversationPage />} />
             <Route
               path="/user/caregivers/:caregiverId"
               element={<div className="customer-detail-shell"><PublicCaregiverProfilePage signedIn /></div>}
@@ -441,6 +467,7 @@ function App() {
 
         {userRole === "orgadmin" && (
           <>
+            <Route path="/organization/notifications" element={<CareNotificationsPage />} />
             <Route
               path="/organization/profile"
               element={<OrganizationProfilePage />}
@@ -460,6 +487,11 @@ function App() {
 
         {userRole === "caregiver" && (
           <>
+            <Route path="/caregiver/opportunities" element={<CareJobsPage role="caregiver" />} />
+            <Route path="/caregiver/inbox" element={<CareInboxPage />} />
+            <Route path="/caregiver/notifications" element={<CareNotificationsPage />} />
+            <Route path="/caregiver/availability" element={<CaregiverAvailabilityPage />} />
+            <Route path="/caregiver/messages/:kind/:contextId" element={<CareConversationPage />} />
             <Route
               path="/caregiver/reportuser"
               element={<CaregiverReportUserPage />}
@@ -478,6 +510,8 @@ function App() {
         )}
 
         {userRole === "superadmin" && (
+          <>
+          <Route path="/superadmin/notifications" element={<CareNotificationsPage />} />
           <Route
             path="/superadmin/*"
             element={
@@ -488,6 +522,7 @@ function App() {
               </div>
             }
           />
+          </>
         )}
 
         <Route

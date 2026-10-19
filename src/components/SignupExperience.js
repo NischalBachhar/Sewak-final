@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "../logoSewak.jpeg";
+import logo from "../assets/sewak-care-mark.svg";
 import { LoginIcon } from "./LoginExperience";
 
 export function SignupIcon({ name }) {

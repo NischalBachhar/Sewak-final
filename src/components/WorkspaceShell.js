@@ -93,6 +93,7 @@ export default function WorkspaceShell({
               {typeof count === "number" && count > 0 ? <em>{count > 99 ? "99+" : count}</em> : null}
             </button>
           ))}
+          {role === "caregiver" && <a className="sewak-workspace__nav-item" href="/caregiver/opportunities"><WorkspaceIcon type="jobs" /><span>Find care jobs</span><span aria-hidden="true">→</span></a>}
         </nav>
         <div className="sewak-workspace__sidebar-foot">
           <span className="sewak-workspace__sidebar-foot-icon" aria-hidden="true">♥</span>

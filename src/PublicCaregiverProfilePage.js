@@ -1,5 +1,6 @@
 import { requestAvailability, caregiverBookingReason } from './caregiverDiscovery';
 import ProfileImage from "./components/ProfileImage";
+import useSavedCare from './useSavedCare';
 import React, { useEffect, useMemo, useState } from "react";
 import { collection, doc, getDoc, getDocs, query, where } from "./d1Client";
 import { useNavigate, useParams } from "react-router-dom";
@@ -41,6 +42,7 @@ const publicProfileLoadError = (loadError) => {
 export default function PublicCaregiverProfilePage({ signedIn = false }) {
   const { caregiverId } = useParams();
   const navigate = useNavigate();
+  const { saved, toggle, enabled } = useSavedCare();
   const [caregiver, setCaregiver] = useState(null);
   const [services, setServices] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -226,6 +228,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
             <span>Starting from</span>
             <strong>{formatNpr(caregiver.hourlyRate)}/hr</strong>
           </p>
+          {enabled && <button type="button" className="sawak-save-button" aria-pressed={saved.includes(caregiver.id)} onClick={() => toggle(caregiver.id)}>{saved.includes(caregiver.id) ? '♥ Saved' : '♡ Save caregiver'}</button>}
           <button
             className="caregiver-profile-book"
             type="button"

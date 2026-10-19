@@ -6,7 +6,7 @@ import {
   orderBy,
   query,
 } from "./d1Client";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { db } from "./d1Client";
 
 import { formatNpr } from "./config/brand";
@@ -168,6 +168,7 @@ export default function BookingDetailPage() {
           <p>{booking.serviceLabel} · {bookingScheduleLabel(booking)}</p>
         </div>
         <StatusBadge status={booking.status} />
+        <Link className="care-conversation-booking-link" to={'/user/messages/booking/'+encodeURIComponent(booking.id)}>Message caregiver →</Link>
       </header>
 
       <section className="booking-detail-next" aria-labelledby="booking-next-heading">
