@@ -1,6 +1,7 @@
 import { verificationRoute, verificationMaintenance } from './verification.ts';
 import { careJobsRoute } from './care-jobs.ts';
 import { careMessagesRoute } from './care-messages.ts';
+import { careInboxRoute } from './care-inbox.ts';
 import { authenticateSession, authRoute, enforceCsrf } from './cloudflare-auth.ts';
 export { PasswordHasher } from './passwords.ts';
 import { runAction } from './actions.ts';
@@ -53,6 +54,9 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
         enforceCsrf(request,identity);
         if (authPath) return Response.json(await authRoute(request,env,headers,request.method==='POST'?await jsonBody(request):{},identity),{headers});
         const repo = new Repository(env), actor = await repo.actor(identity);
+        if (url.pathname === '/api/care-inbox' && request.method === 'GET') {
+          return Response.json(await careInboxRoute(repo,actor),{headers});
+        }
         if (url.pathname === '/api/care-messages' && ['GET','POST'].includes(request.method)) {
           return Response.json(await careMessagesRoute(request,url,repo,actor,request.method==='POST'?await jsonBody(request):{}),{headers});
         }

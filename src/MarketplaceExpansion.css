@@ -127,3 +127,41 @@
 .care-conversation-note { font-size:12px; color:#52655d; margin-top:15px; }
 .care-job-applicants article a,.care-job-card__actions>a { color:#08664f; font-size:13px; font-weight:750; display:inline-flex; min-height:35px; align-items:center; margin-right:15px; }
 .care-conversation-booking-link { display:inline-flex; min-height:40px; align-items:center; padding:9px 17px; background:#08664f; color:white; font-size:13px; font-weight:750; border-radius:999px; text-decoration:none; }
+
+
+/* Conversation inbox — original Sewak design, matching booking and job messaging. */
+.care-inbox-page { width: min(100%, 1080px); margin: 20px auto 76px; padding: 0 clamp(16px, 3vw, 32px); }
+.care-inbox-intro { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: clamp(24px, 3.5vw, 38px); background: #e6f3df; border: 1px solid #dce6df; border-radius: 24px; }
+.care-inbox-intro p { font-size: 11px; font-weight: 800; color: #08664f; letter-spacing: .12em; }
+.care-inbox-intro h1 { color: #064c3c; font: 600 clamp(35px, 4vw, 52px)/1.1 Georgia, serif; margin: 8px 0; }
+.care-inbox-intro span { color: #385c4b; font-size: 14px; line-height: 1.5; }
+.care-inbox-intro button, .care-inbox-panel button { color: #fff; background: #08664f; border: 0; border-radius: 999px; padding: 11px 18px; font: 750 13px inherit; min-height: 43px; cursor: pointer; white-space: nowrap; }
+.care-inbox-intro button:disabled { opacity: .55; cursor: wait; }
+.care-inbox-panel { margin-top: 16px; padding: 14px; min-height: 190px; background: white; border: 1px solid #dce6df; border-radius: 21px; }
+.care-inbox-panel > p[role="status"], .care-inbox-panel > div[role="alert"] { padding: 30px; color: #52655d; }
+.care-inbox-empty { text-align: center; padding: 36px 20px; color: #52655d; }
+.care-inbox-empty h2 { color: #064c3c; font-size: 22px; margin-bottom: 9px; }
+.care-inbox-empty p { font-size: 14px; margin-bottom: 15px; }
+.care-inbox-empty a { color: #08664f; font-weight: 800; }
+.care-inbox-list { list-style: none; padding: 0; margin: 0; }
+.care-inbox-list li + li { border-top: 1px solid #e9eee9; }
+.care-inbox-thread { display: flex; gap: 16px; align-items: center; padding: 18px 16px; color: #163d2e; text-decoration: none; border-radius: 12px; }
+.care-inbox-thread:hover, .care-inbox-thread:focus-visible { background: #f1f8ed; }
+.care-inbox-avatar { width: 50px; height: 50px; flex: 0 0 50px; display: grid; place-items: center; border-radius: 16px; color: #064c3c; font-size: 22px; font-weight: 800; background: #d7f1a3; }
+.care-inbox-thread-body { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.care-inbox-thread-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.care-inbox-thread-title strong { font-size: 16px; color: #064c3c; }
+.care-inbox-thread-title small { color: #08664f; background: #e6f3df; border-radius: 999px; padding: 4px 9px; font-size: 10px; font-weight: 750; }
+.care-inbox-context { font-size: 13px; }
+.care-inbox-preview { font-size: 13px; color: #52655d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.care-inbox-thread-end { display: grid; justify-items: end; gap: 13px; color: #52655d; flex: 0 0 auto; }
+.care-inbox-thread-end time { font-size: 11px; }
+.care-inbox-note { font-size: 12px; color: #52655d; margin-top: 14px; }
+@media (max-width: 620px) {
+ .care-inbox-intro { display: block; }
+ .care-inbox-intro button { margin-top: 16px; }
+ .care-inbox-thread { padding: 14px 8px; gap: 10px; }
+ .care-inbox-avatar { width: 42px; height: 42px; flex-basis: 42px; }
+ .care-inbox-thread-end { gap: 9px; }
+ .care-inbox-preview { max-width: 180px; }
+}

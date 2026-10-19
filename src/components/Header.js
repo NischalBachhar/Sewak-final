@@ -90,6 +90,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
             >Find Care</button>
             <button type="button" className={"header-customer-nav__item" + (location.pathname === "/user/saved" ? " is-active" : "")} aria-current={location.pathname === "/user/saved" ? "page" : undefined} onClick={() => handleNavigate("/user/saved")}>Saved</button>
             <button type="button" className={"header-customer-nav__item" + (location.pathname === "/user/jobs" ? " is-active" : "")} aria-current={location.pathname === "/user/jobs" ? "page" : undefined} onClick={() => handleNavigate("/user/jobs")}>Post a job</button>
+            <button type="button" className={"header-customer-nav__item" + (location.pathname.startsWith("/user/inbox") || location.pathname.startsWith("/user/messages/") ? " is-active" : "")} aria-current={location.pathname === "/user/inbox" ? "page" : undefined} onClick={() => handleNavigate("/user/inbox")}>Messages</button>
             <button
               type="button"
               className={"header-customer-nav__item header-customer-nav__item--bookings" + (location.pathname.startsWith("/user/mybookings") || location.pathname.startsWith("/user/bookings/") ? " is-active" : "")}
@@ -233,6 +234,7 @@ export default function Header({ user, userRole, userDoc, onLogout, logoutPendin
                 )}
 
                 {userRole === "caregiver" && <button type="button" className="dropdown-item" onClick={() => handleNavigate("/caregiver/opportunities")}>Find care jobs</button>}
+                {(userRole === "caregiver" || userRole === "user") && <button type="button" className="dropdown-item" onClick={() => handleNavigate(userRole === "caregiver" ? "/caregiver/inbox" : "/user/inbox")}>Messages</button>
                 {userRole === "user" && <button type="button" className="dropdown-item" onClick={() => handleNavigate("/user/jobs")}>Post a care job</button>}
                 {userRole === "user" && <button type="button" className="dropdown-item" onClick={() => handleNavigate("/user/saved")}>Saved caregivers</button>}
                 {/* Organization navigation lives in its dedicated sidebar/mobile workspace. */}
