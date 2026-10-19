@@ -1,18 +1,79 @@
-.public-header { background: var(--brand-white); border-bottom: 1px solid var(--brand-sand); }
-.public-header__inner { max-width: var(--workspace-width); margin: auto; padding: 18px clamp(20px, 4vw, 64px); display: flex; align-items: center; justify-content: space-between; gap: 28px; }
-.public-brand { display: flex; align-items: center; gap: 10px; color: var(--brand-coral-hover); text-decoration: none; flex-shrink: 0; }
-.public-brand img { object-fit: contain; border-radius: 50%; }
-.public-brand strong { display: block; font: bold 32px/1 var(--font-display); }
-.public-brand small { display: block; margin-top: 5px; color: var(--brand-cocoa); font-size: 11px; }
-.public-nav { display: flex; gap: clamp(16px, 2.5vw, 36px); align-items: center; }
-.public-nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--brand-ink); font-size: 14px; font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; }
-.public-nav a.active, .public-nav a:hover { color: var(--brand-coral); border-color: var(--brand-coral); }
-.public-header__actions { display: flex; gap: 10px; align-items: center; }
-.public-header__actions a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 10px 21px; border: 1px solid var(--brand-coral); border-radius: 10px; font-size: 14px; font-weight: 650; text-decoration: none; white-space: nowrap; }
-.public-login { color: var(--brand-coral); }
-.public-signup { color: var(--color-on-brand); background: var(--brand-coral); }
-.public-signup:hover { background: var(--brand-coral-hover); }
-.skip-link { position: fixed; top: 8px; left: 8px; z-index: 1200; transform: translateY(-200%); padding: 12px; background: var(--brand-white); color: var(--brand-coral); }
-.skip-link:focus { transform: none; }
-@media (max-width: 1000px) { .public-header__inner { flex-wrap: wrap; gap: 10px; padding: 14px 24px 0; } .public-nav { order: 3; width: 100%; justify-content: center; } }
-@media (max-width: 480px) { .public-header__inner { padding: 12px 16px 0; } .public-brand img { width: 34px; height: 34px; } .public-brand strong { font-size: 25px; } .public-brand small { display: none; } .public-header__actions { gap: 6px; } .public-header__actions a { padding: 8px 12px; font-size: 12px; } .public-nav { gap: 0; justify-content: space-between; } .public-nav a { font-size: 12px; } }
+/* Redesigned Sewak public navigation; transparent only on cinematic homepage. */
+.sewak-public-header {position:relative;z-index:100;background:#fff;border-bottom:1px solid #dae4da;}
+.sewak-public-header .public-header__inner {position:relative;width:100%;max-width:1500px;margin:auto;min-height:75px;padding:12px clamp(18px,4vw,65px);display:flex;align-items:center;justify-content:space-between;gap:25px;}
+.sewak-public-header .public-brand {display:inline-flex;align-items:center;gap:9px;flex:none;color:#0f5d40;text-decoration:none;}
+.sewak-public-header .public-brand img {width:35px;height:35px;border-radius:10px;object-fit:contain;}
+.sewak-public-header .public-brand strong {font:800 23px/1 ui-sans-serif,system-ui,"Segoe UI",sans-serif;letter-spacing:-.06em;}
+.sewak-public-header .public-brand strong span {color:#36855d;font-weight:650;}
+.sewak-primary-nav {display:flex;align-items:center;gap:clamp(8px,1.1vw,22px);margin-left:auto;}
+.sewak-nav-holder {position:relative;}
+.sewak-nav-trigger {display:inline-flex;align-items:center;gap:6px;min-height:43px;background:transparent;color:#1a4532;border:0;border-radius:10px;padding:9px 10px;white-space:nowrap;font-size:12px;font-weight:750;cursor:pointer;}
+.sewak-nav-trigger:hover,.sewak-nav-trigger.is-active {background:#ecf4eb;color:#086842;}
+.sewak-chevron {font-size:17px;line-height:1;margin-top:-6px;font-weight:500;}
+.sewak-mega {position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);display:grid;grid-template-columns:minmax(330px,1fr) 175px;gap:22px;width:min(730px,90vw);padding:26px;border:1px solid #dfebe0;border-radius:17px;background:white;color:#183f31;box-shadow:0 20px 55px rgba(4,29,18,.24);z-index:200;}
+.sewak-mega-main {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;}
+.sewak-mega-main>p,.sewak-mega-aside>p {grid-column:1/-1;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#1b7850;font-weight:850;margin:0 0 7px;}
+.sewak-mega-main>a {display:flex;flex-direction:column;gap:4px;border-radius:10px;padding:11px;text-decoration:none;}
+.sewak-mega-main>a:hover {background:#edf7eb;}
+.sewak-mega-main>a small {font-size:10px;font-weight:750;color:#5d9874;}
+.sewak-mega-main>a strong {font-size:14px;color:#123f2d;line-height:1.25;}
+.sewak-mega-main>a span {color:#66766b;font-size:11px;line-height:1.45;}
+.sewak-mega-aside {border-left:1px solid #e7eee7;padding-left:21px;}
+.sewak-mega-aside>a {display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0;padding:11px 4px;color:#204c38;text-decoration:none;font-size:12px;font-weight:700;}
+.sewak-mega-aside>a:hover {color:#079053;}
+.sewak-mega-aside>a>span {font-size:15px;}
+.sewak-public-header .public-header__actions {display:flex;align-items:center;gap:7px;flex:none;}
+.sewak-public-header .public-login {border:0;background:transparent;color:#174735;font-size:12px;font-weight:750;text-decoration:none;min-height:40px;padding:9px 12px;display:inline-flex;align-items:center;}
+.sewak-public-header .public-login:hover {text-decoration:underline;}
+.sewak-public-header .public-signup {border:0;border-radius:100px;background:#d5f59b;color:#1d4930;min-height:41px;padding:11px 20px;font-size:12px;font-weight:850;cursor:pointer;white-space:nowrap;transition:background .2s;}
+.sewak-public-header .public-signup:hover {background:#b7e971;}
+.sewak-public-header .public-menu-toggle {display:none;width:42px;height:42px;border:1px solid #cbdccd;background:#fff;border-radius:10px;cursor:pointer;padding:10px;}
+.sewak-public-header .public-menu-toggle span {display:block;background:#20533a;height:2px;border-radius:2px;margin:4px 0;}
+.sewak-public-header .sewak-mobile-login {display:none;}
+/* Blend navigation with the hero just as in the recording; ensure the menu stays on top of images. */
+.sewak-reference-home .sewak-public-header {position:absolute;inset:0 0 auto;z-index:80;background:linear-gradient(0deg,transparent,rgba(1,19,12,.38));border:0;}
+.sewak-reference-home .sewak-public-header .public-brand,.sewak-reference-home .sewak-public-header .public-brand strong span,.sewak-reference-home .sewak-public-header .public-login,.sewak-reference-home .sewak-public-header .sewak-nav-trigger {color:#fff;}
+.sewak-reference-home .sewak-public-header .sewak-nav-trigger:hover,.sewak-reference-home .sewak-public-header .sewak-nav-trigger.is-active {background:rgba(255,255,255,.16);}
+.sewak-reference-home .sewak-public-header .public-signup {background:#d5f59b;color:#194832;}
+.sewak-reference-home .sewak-public-header .sewak-mega {color:#163a2b;}
+.sewak-reference-home .sewak-public-header .sewak-mega .sewak-mega-main>a strong {color:#143f2c;}
+.sewak-join-backdrop {position:fixed;inset:0;z-index:2100;background:rgba(5,16,12,.69);backdrop-filter:blur(5px);display:grid;place-items:center;padding:20px;}
+.sewak-join-dialog {position:relative;width:min(100%,470px);border-radius:22px;background:#faf8f2;padding:38px 31px 30px;text-align:center;box-shadow:0 33px 90px rgba(0,0,0,.3);color:#213d2e;animation:sewak-join-appear .22s ease both;}
+.sewak-join-close {position:absolute;top:12px;right:13px;width:39px;height:39px;border:0;border-radius:50%;background:transparent;font-size:28px;color:#446052;cursor:pointer;}
+.sewak-join-close:hover {background:#e5eee0;}
+.sewak-join-eyebrow {font-size:10px;letter-spacing:.15em;color:#217b4c;font-weight:900;margin:0 0 11px;}
+.sewak-join-dialog h2 {font-size:29px;letter-spacing:-.04em;margin:0 0 9px;}
+.sewak-join-dialog>p:not(.sewak-join-eyebrow) {font-size:13px;color:#667268;line-height:1.5;}
+.sewak-join-options {display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:26px 0 14px;}
+.sewak-join-options button {display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;border:1px solid #dbe5d7;border-radius:15px;background:#fff;padding:20px 12px 14px;cursor:pointer;color:#153e2d;transition:transform .16s,box-shadow .16s,border-color .16s;}
+.sewak-join-options button:hover {transform:translateY(-2px);border-color:#76b88e;box-shadow:0 11px 24px rgba(10,57,36,.1);}
+.sewak-join-illustration {display:grid;place-items:center;width:76px;height:74px;border-radius:19px;background:#dcf5ea;font-size:52px;color:#08734b;margin-bottom:9px;}
+.sewak-join-illustration--org {background:#fff0ca;color:#7d6b27;}
+.sewak-join-options strong {font-size:15px;}
+.sewak-join-options small {color:#657467;font-size:11px;line-height:1.4;}
+.sewak-join-options button>span:last-child {font-weight:800;color:#127248;font-size:18px;}
+.sewak-join-dialog .sewak-join-small {font-size:11px!important;border-radius:10px;padding:13px;background:#dff7f1;color:#246e5c!important;margin:14px 0 22px;}
+.sewak-join-signin {margin:0;}
+.sewak-join-signin a {color:#0b6546;font-weight:850;}
+@keyframes sewak-join-appear {from {opacity:0;transform:translateY(12px) scale(.985);}to {opacity:1;transform:translateY(0) scale(1);}}
+.skip-link {position:fixed;top:8px;left:8px;z-index:2200;transform:translateY(-200%);padding:12px;background:white;color:#185f3f;}
+.skip-link:focus {transform:translateY(0);}
+@media(max-width:1100px){.sewak-primary-nav {gap:5px;}.sewak-nav-trigger {font-size:11px;padding:8px 7px;}.sewak-public-header .public-header__inner {gap:12px;}.sewak-public-header .public-signup {padding-inline:13px;}}
+@media(max-width:960px){
+ .sewak-public-header .public-header__inner {min-height:66px;flex-wrap:wrap;padding:10px 17px;gap:10px;}
+ .sewak-public-header .public-menu-toggle {display:block;order:3;}
+ .sewak-primary-nav {display:none;order:5;width:100%;margin:0;flex-direction:column;align-items:stretch;gap:0;padding:11px;border:1px solid #d5e3d4;border-radius:16px;background:#fff;box-shadow:0 15px 40px rgba(3,23,13,.19);}
+ .sewak-primary-nav.is-open {display:flex;}
+ .sewak-primary-nav .sewak-nav-trigger {width:100%;min-height:46px;justify-content:space-between;padding:10px 13px;border-radius:8px;color:#204834!important;font-size:14px;}
+ .sewak-primary-nav .sewak-nav-trigger:hover {background:#eef7ed!important;}
+ .sewak-nav-holder {width:100%;}
+ .sewak-mega {position:static;transform:none;grid-template-columns:1fr;width:100%;box-shadow:none;border:0;border-radius:10px;padding:14px;gap:13px;}
+ .sewak-mega-main {grid-template-columns:1fr 1fr;}
+ .sewak-mega-aside {padding:0;border-left:0;border-top:1px solid #ebefea;padding-top:12px;}
+ .sewak-public-header .sewak-mobile-login {display:block;font-weight:750;color:#195139;padding:12px;}
+ .sewak-reference-home .sewak-public-header .sewak-mega .sewak-mega-main>a strong {color:#163e2b;}
+ .sewak-public-header .public-login {display:none;}
+ .sewak-public-header .public-header__actions {margin-left:auto;}
+}
+@media(max-width:500px){.sewak-public-header .public-brand strong {font-size:21px;}.sewak-public-header .public-brand img {width:32px;height:32px;}.sewak-join-dialog {padding:35px 17px 20px;}.sewak-join-options {gap:8px;}.sewak-join-options button {padding:16px 7px 12px;}.sewak-mega-main {grid-template-columns:1fr;}}
+@media(prefers-reduced-motion:reduce){.sewak-join-dialog,.sewak-join-options button {animation:none!important;transition:none!important;}}

@@ -1,0 +1,222 @@
+/* Sewak's new, role-wide care-marketplace interface.
+   Safe presentation overrides: all business/security flows remain backed by existing APIs. */
+:root {
+  --brand-coral: #086142;
+  --brand-coral-hover: #06472f;
+  --brand-ink: #1a3328;
+  --brand-cocoa: #5a675e;
+  --brand-vanilla: #f8f7f3;
+  --brand-blush: #e8f6df;
+  --brand-sand: #e0e5df;
+  --brand-forest: #064b34;
+  --brand-lime: #d5f59b;
+  --color-input-border: #b6c4b9;
+  --shadow-card: 0 5px 19px rgb(15 40 25 / 5%);
+  --radius-card: 16px;
+  --font-display: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+html {scroll-behavior:smooth;}
+body {margin:0;background:#faf9f6;color:#1a3328;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;}
+:where(button,input,select,textarea) {font:inherit;}
+:where(a,button,input,select,textarea,[tabindex]):focus-visible {outline:3px solid #5aa373;outline-offset:3px;}
+:where(h1,h2,h3,h4) {color:#19382d;letter-spacing:-.027em;text-wrap:balance;}
+:where(button,a) {touch-action:manipulation;}
+:where(.btn,.customer-action,.customer-shortcut,.browse-primary-action,.browse-card-action) {border-radius:999px;transition:background-color .16s,box-shadow .16s;}
+.btn-primary,.customer-action--primary,.browse-primary-action {background:#086142;color:white;border-color:#086142;box-shadow:none;}
+.btn-primary:hover:not(:disabled),.customer-action--primary:hover {background:#06472f;}
+.btn-outline {color:#075a3c;border-color:#9fb7a3;background:white;}
+.app-shell,.dashboard-shell,.customer-detail-shell {background:#faf9f6;}
+.dashboard-shell {min-height:calc(100svh - 70px);}
+.dashboard-shell :where(.app-card,.card,.profile-section,.empty-state,.stat-card,.org-dashboard-header) {
+  border-radius:16px;background:white;border-color:#e1e6dd;box-shadow:0 4px 16px rgba(11,39,22,.045);
+}
+.dashboard-shell :where(.app-card,.card,.profile-section):hover {border-color:#cbdcc8;}
+.dashboard-shell h1,.dashboard-shell h2,.dashboard-shell h3 {color:#1a382b;}
+.dashboard-shell .section-title,.dashboard-shell .card-title {color:#1a382b!important;font-weight:800!important;}
+.dashboard-shell .btn,.dashboard-shell .choice-buttons button,.dashboard-shell .toggle-btn {min-height:44px;}
+.header {background:#fff;border-bottom:1px solid #e2e8de;box-shadow:none;position:relative;z-index:80;}
+.header-container {min-height:70px;max-width:1480px;padding:8px clamp(18px,3.5vw,56px);}
+.header-logo-text {font:800 24px/1.2 Inter,system-ui,sans-serif;letter-spacing:-.045em;color:#0c5337;}
+.header-logo-img {height:42px;width:42px;border-radius:12px;}
+.header .header-user-button {border-radius:999px;background:#f3f7f0;border:1px solid #e0e6de;box-shadow:none;}
+.header .header-user-avatar {border-radius:50%;background:#dff2d5;color:#0e613e;}
+.header .header-user-role {border-radius:999px;background:#dbefda;color:#126641;}
+.header .header-dropdown {border-radius:15px;box-shadow:0 18px 44px rgba(8,47,26,.12);padding:5px;}
+.header .dropdown-item {border-radius:9px;}
+.header-customer-nav {gap:6px;}
+.header-customer-nav__item {border-radius:999px;padding:10px 14px;}
+.header-customer-nav__item.is-active {background:#d8efda;color:#0a5b3c;}
+.header-customer-nav__item:hover {background:#edf6ea;}
+.mobile-bottom-nav {background:#fff;border-top:1px solid #dce5db;}
+.mobile-bottom-nav__item.is-active {color:#0a6140;}
+
+/* Actual customer homepage: search & caregivers are the first workspace content */
+.dashboard-shell--customer {padding:25px clamp(16px,3vw,42px) 76px;background:#faf9f6;}
+.dashboard-shell--customer>.app-card {width:100%;max-width:1340px;margin:0 auto;padding:0;background:transparent;border:0;border-radius:0;box-shadow:none;}
+.sewak-customer-home {display:grid;gap:25px;width:100%;}
+.sewak-customer-intro {padding:clamp(24px,3vw,40px) clamp(24px,3vw,41px);border:1px solid #d6e6d5;border-radius:22px;background:linear-gradient(113deg,#e9f6df 0%,#f2f8ec 62%,#fbfaf6 100%);display:flex;justify-content:space-between;align-items:center;gap:22px;}
+.sewak-customer-eyebrow {margin:0 0 10px!important;color:#287b50!important;font-size:10px!important;letter-spacing:.14em;font-weight:900!important;}
+.sewak-customer-intro h1 {font-size:clamp(32px,3.7vw,50px);max-width:675px;margin:0 0 12px;font-weight:820;line-height:1.08;letter-spacing:-.054em;}
+.sewak-customer-intro>div>p:not(.sewak-customer-eyebrow) {margin:0;color:#506453;max-width:590px;font-size:14px;line-height:1.65;}
+.sewak-customer-intro-actions {display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px;flex:0 0 auto;}
+.sewak-customer-primary,.sewak-customer-secondary {display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:11px 20px;text-decoration:none;font-size:12px;font-weight:800;border-radius:999px;white-space:nowrap;}
+.sewak-customer-primary {background:#09623f;color:#fff;}
+.sewak-customer-secondary {color:#0c5539;background:#fff;border:1px solid #bcd5bd;}
+.sewak-customer-primary:hover {background:#044a32;}
+.sewak-customer-discovery {width:100%;min-width:0;}
+.sewak-customer-search-head {display:flex;align-items:flex-end;justify-content:space-between;gap:19px;margin:5px 0 15px;}
+.sewak-customer-search-head h2 {margin:0 0 7px;font-weight:820;font-size:clamp(25px,2.7vw,36px);letter-spacing:-.045em;}
+.sewak-customer-search-head p:not(.sewak-customer-eyebrow) {font-size:13px;color:#536759;margin:0;}
+.sewak-customer-filter-toggle {border-radius:999px;padding:10px 19px;min-height:45px;flex:0 0 auto;border:1px solid #b7cfb9;background:white;color:#0d5f40;cursor:pointer;font-size:12px;font-weight:800;}
+.sewak-customer-filter-toggle span {margin-left:7px;font-size:17px;}
+.sewak-customer-filter-toggle:hover {background:#eaf6e5;}
+.sewak-customer-discovery .home-filters {display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:13px;background:#fff;border:1px solid #dfe8df;padding:18px;border-radius:17px;box-shadow:0 5px 17px rgba(9,47,27,.045);}
+.sewak-customer-discovery .home-filters>label {display:flex;flex-direction:column;gap:7px;color:#24543a;font-size:12px;font-weight:800;}
+.dashboard-shell .sewak-customer-discovery .home-filters :where(input:not([type=checkbox]),select) {border:1px solid #b9caba;border-radius:11px;background:#fff;min-height:49px;font-size:14px;padding:10px 12px;max-width:100%;}
+.sewak-customer-advanced {display:none;grid-column:1/-1;}
+.sewak-customer-advanced.is-open {display:grid;grid-template-columns:minmax(220px,1fr) 2fr;gap:12px;padding:15px 0 0;border-top:1px solid #edf0ea;margin-top:4px;}
+.sewak-customer-advanced .home-price {display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end;}
+.sewak-customer-advanced .home-price legend {grid-column:1/-1;}
+.sewak-customer-advanced .home-filter-extras {display:flex;grid-column:auto;gap:14px;flex-wrap:wrap;align-items:center;}
+.sewak-customer-advanced .home-filter-extras .home-verified {flex-direction:row;align-items:center;}
+.sewak-customer-advanced .home-filter-extras button {min-height:40px;border-radius:999px;padding:7px 15px;}
+.sewak-saved-note {margin:14px 2px 0;color:#67796a;font-size:12px;font-weight:600;}
+.sewak-customer-discovery .home-results-heading {margin:6px 0 16px;font-size:13px;}
+.sewak-customer-discovery .home-results-heading p {color:#597064;}
+.sewak-customer-discovery .home-caregiver-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
+.sewak-customer-discovery .home-caregiver {position:relative;display:flex;flex-direction:column;gap:13px;padding:23px;border:1px solid #dde8dd;border-radius:17px;background:#fff;box-shadow:none;transition:transform .15s,box-shadow .15s;}
+.sewak-customer-discovery .home-caregiver:hover {transform:translateY(-2px);box-shadow:0 10px 23px rgba(6,49,24,.08);}
+.sewak-customer-discovery .home-caregiver-photo {width:79px;height:79px;flex:0 0 79px;border-radius:16px;object-fit:cover;}
+.sewak-customer-discovery .home-caregiver-initial {font-size:28px;background:#def1d8;}
+.sewak-customer-discovery .home-caregiver-identity {align-items:center;gap:13px;}
+.sewak-customer-discovery .home-caregiver-identity>div {flex:1;min-width:0;}
+.sewak-customer-discovery .home-caregiver h2 {font-size:18px;font-weight:820;letter-spacing:-.04em;margin:0 0 4px;}
+.sewak-customer-discovery .home-caregiver-category {font-size:12px;font-weight:700;color:#417057;}
+.sewak-customer-discovery .home-caregiver-rating {color:#87621c;font-weight:700;}
+.sewak-customer-discovery .home-caregiver-services {font-size:12px;font-weight:700;color:#355f43;}
+.sewak-customer-discovery .home-caregiver-checks {gap:6px;}
+.sewak-customer-discovery .home-caregiver-rate {border-top:1px solid #e8eee5;padding-top:14px;}
+.sewak-customer-discovery .home-caregiver-rate strong {font-size:19px;color:#103b2b;}
+.sewak-customer-discovery .caregiver-preview__actions {gap:8px;}
+.sewak-customer-discovery .caregiver-preview__book,.sewak-customer-discovery .caregiver-preview__profile {border-radius:999px;min-height:46px;font-size:12px;font-weight:800;}
+.sewak-caregiver-save {border:1px solid #d4e4d4;width:37px;height:37px;flex:0 0 37px;display:grid;place-items:center;background:#fff;color:#40765b;border-radius:50%;font-size:24px;line-height:1;cursor:pointer;}
+.sewak-caregiver-save.is-saved {background:#def4da;color:#0c6543;}
+.sewak-caregiver-save:hover {border-color:#1c8055;background:#ecf7e6;}
+.sewak-care-activity {border:0;margin:13px 0 0;padding:26px;border-radius:20px;background:white;border:1px solid #e1e9df;}
+.sewak-care-activity .home-activity-heading h2 {font-size:26px;font-weight:800;letter-spacing:-.04em;}
+.sewak-care-activity .home-activity-grid {gap:20px;}
+.sewak-care-activity .home-activity-grid section {border:1px solid #e4eae1;background:#fff;padding:16px;border-radius:13px;}
+.sewak-care-activity .home-activity-grid h3 {margin:0 0 12px;color:#234c35;font-size:15px;}
+.sewak-care-activity .home-booking-row {padding:14px 0;}
+.sewak-care-activity .home-booking-row strong {font-size:14px;}
+
+/* Public find-care page */
+.browse-page {background:#faf9f6;min-height:100vh;}
+.browse-page main {padding:26px clamp(18px,3vw,50px) 75px;}
+.browse-page .browse-hero {background:linear-gradient(112deg,#054f38,#19744c);box-shadow:none;border:0;border-radius:22px;padding:40px clamp(24px,4vw,51px);}
+.browse-page .browse-hero::after,.browse-page .browse-page__glow {display:none;}
+.browse-page .browse-hero h1 {font:800 clamp(38px,4.1vw,60px)/1.05 Inter,system-ui,sans-serif;letter-spacing:-.05em;max-width:620px;}
+.browse-page .browse-hero h1 em {font-family:inherit;color:#d5f59b;font-weight:800;}
+.browse-page .browse-hero__copy {font-size:15px;color:#e9f5e9;}
+.browse-page .browse-preferences {border-radius:17px;border:1px solid #dee6da;box-shadow:none;padding:28px;background:#fff;}
+.browse-page .browse-section-heading h2,.browse-page .browse-list__title-row h2 {font:800 clamp(25px,2.5vw,35px)/1.2 Inter,system-ui,sans-serif;letter-spacing:-.04em;}
+.browse-page .browse-category-option {border-radius:13px;border:1px solid #d8e6dc;box-shadow:none;}
+.browse-page .browse-category-option.is-active,.browse-page .browse-category-option:hover {border-color:#5ba67a;background:#e9f7e6;}
+.browse-page .browse-category-option__icon {border-radius:12px;background:#e2f1dd;color:#1c7b50;}
+.browse-page .browse-filter-panel,.browse-page .browse-caregiver-card {background:#fff;border:1px solid #dee5dd;border-radius:17px;box-shadow:none;}
+.browse-page .browse-caregiver-card:hover {box-shadow:0 10px 25px rgba(11,61,31,.09);}
+.browse-page .browse-card-action,.browse-page .browse-primary-action {border-radius:999px;}
+.browse-page .browse-card-action:not(.browse-card-action--secondary) {background:#086142;color:white;}
+.browse-page .browse-caregiver-card__avatar {border-radius:14px;}
+.browse-page .browse-schedule-row button {border-radius:999px;}
+/* Caregiver profile, real booking and account journeys */
+.caregiver-profile-page {max-width:1230px;padding:30px clamp(17px,3vw,45px) 110px;}
+.caregiver-profile-hero {border-radius:20px;box-shadow:none;background:white;border:1px solid #e1e9e1;}
+.caregiver-profile-hero h1 {font-size:clamp(29px,3.4vw,47px);font-weight:830;letter-spacing:-.045em;}
+.caregiver-profile-avatar {border:3px solid #e3f1e0;border-radius:17px;box-shadow:none;}
+.caregiver-profile-section {border-radius:17px;border:1px solid #e2e9e0;box-shadow:none;}
+.caregiver-profile-page .btn-primary {border-radius:999px;min-height:48px;}
+.caregiver-profile-page .request-availability {border-radius:999px;}
+.booking-form {gap:19px;}
+.booking-form-panel,.booking-form-success {border:1px solid #e0e6db;border-radius:17px;background:white;box-shadow:none;padding:clamp(20px,3vw,35px);}
+.booking-form-panel h2,.booking-form-success h2 {font-weight:800;font-size:clamp(25px,2.8vw,34px);letter-spacing:-.045em;}
+.booking-form-panel :where(input,select,textarea) {border-radius:10px;min-height:47px;border:1px solid #b5c7b8;background:#fff;}
+.booking-form-panel .btn-primary {min-height:48px;border-radius:999px;}
+.booking-form-review>div {border-bottom-color:#e1e9e1;}
+.booking-stepper,.booking-steps {border-color:#e0e8e0;}
+.customer-bookings__status-tab,.customer-bookings__status-tab--active {border-radius:999px;}
+.customer-booking-card {border-radius:17px;border:1px solid #e0e8df;background:white;box-shadow:none;}
+
+/* Care provider, agency and superadmin get the same visual language, not copied consumer hero */
+.dashboard-shell--caregiver,.dashboard-shell--admin,.dashboard-shell--organization {background:#f7f8f4;}
+.sewak-workspace {border:1px solid #e0e7df;border-radius:19px;box-shadow:0 10px 25px rgba(8,56,29,.06);}
+.sewak-workspace__sidebar {background:#f3f7f0;border-right:1px solid #dee8db;padding-top:25px;}
+.sewak-workspace__identity-icon {background:#0a6140;border-radius:12px;box-shadow:none;}
+.sewak-workspace__nav-item {min-height:43px;border-radius:10px;font-weight:700;color:#446650;}
+.sewak-workspace__nav-item.is-active {background:#d6f3cc;color:#084b31;}
+.sewak-workspace__nav-item:hover {background:#e5f2de;}
+.sewak-workspace__intro {border-color:#e2e8df;}
+.sewak-workspace__intro h1 {font:800 clamp(30px,3vw,42px)/1.1 Inter,system-ui,sans-serif;letter-spacing:-.047em;}
+.sewak-workspace__intro-status {background:#e4f5dc;border-color:#c9e9c8;color:#176243;border-radius:999px;}
+.sewak-workspace__body {background:#fff;}
+.sewak-workspace__body :where(.card,.profile-section,.stat-card,.dashboard-admin-content) {border:1px solid #e4e9e0;border-radius:15px;background:white;box-shadow:none;}
+.org-dashboard-header {border:1px solid #e0e7df;border-radius:17px;box-shadow:none;background:white;}
+.organization-workspace {background:#f8f9f6;}
+.sewak-admin-analytics__caption {color:#5a7364;}
+.admin-dashboard-page,.org-dashboard {color:#1e3b2b;}
+.dashboard-shell .status-badge {border-radius:999px;}
+.dashboard-shell table {border-collapse:separate;border-spacing:0;}
+.dashboard-shell table th {font-size:12px;color:#456754;background:#f4f8f1;}
+.dashboard-shell table td {font-size:13px;border-bottom:1px solid #e7ece5;}
+.dashboard-shell .sewak-dialog-panel {border-radius:19px;border:1px solid #cddccf;box-shadow:0 23px 65px rgba(0,37,17,.24);}
+
+/* Sign-in & registration: confident access flows, no decorative orbit clutter */
+.auth-shell--login,.auth-shell--signup {background:#faf9f6;}
+.auth-shell--login .login-experience {background:#e8f5df;border-radius:20px;padding:clamp(24px,3vw,45px);}
+.auth-shell--login h1,.auth-shell--signup h1 {font:800 clamp(36px,3.3vw,49px)/1.1 Inter,system-ui,sans-serif;letter-spacing:-.055em;color:#183b2a;}
+.auth-shell--login .login-brand,.auth-shell--signup .signup-brand {font-family:Inter,system-ui,sans-serif;font-weight:800;}
+.auth-shell--login .auth-card,.auth-shell--signup .auth-card {border:1px solid #e0e9dc;background:#fff;border-radius:20px;box-shadow:0 8px 25px rgba(12,58,31,.06);}
+.auth-shell--login .auth-card h2,.auth-shell--signup .auth-card h2 {font-weight:800;letter-spacing:-.04em;}
+.auth-shell--login .login-card-mark {border-radius:14px;background:#dff2d5;}
+.auth-shell--login .auth-submit,.auth-shell--signup .auth-submit {min-height:50px;border-radius:999px;}
+.auth-shell--login .form input,.auth-shell--signup .form input {border-radius:11px;border-color:#b6c9ba;min-height:50px;}
+.auth-shell--signup .signup-scene {display:none;}
+.auth-shell--signup .signup-description {font-size:15px;line-height:1.6;}
+.auth-shell--signup .role-option {border-radius:14px;}
+.auth-shell--signup .role-option.signup-role--selected {background:#eaf7e4;border-color:#72b288;}
+.auth-shell--signup .signup-progress {border-radius:12px;}
+/* Existing controls remain accessible to keyboard and touch. */
+@media(max-width:1050px) {
+ .sewak-customer-intro {display:block;}
+ .sewak-customer-intro-actions {justify-content:flex-start;margin-top:21px;}
+ .sewak-customer-discovery .home-caregiver-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+ .sewak-customer-discovery .home-filters {grid-template-columns:repeat(2,1fr);}
+ .sewak-customer-discovery .home-filters>label:last-of-type {grid-column:1/-1;}
+ .sewak-customer-advanced.is-open {grid-template-columns:1fr;}
+}
+@media(max-width:680px) {
+ .dashboard-shell--customer {padding:14px 13px 82px;}
+ .sewak-customer-intro {padding:25px 19px;border-radius:17px;}
+ .sewak-customer-intro h1 {font-size:34px;}
+ .sewak-customer-intro-actions {gap:8px;}
+ .sewak-customer-primary,.sewak-customer-secondary {min-height:44px;padding:10px 15px;}
+ .sewak-customer-search-head {align-items:start;flex-direction:column;}
+ .sewak-customer-discovery .home-filters {grid-template-columns:1fr;padding:13px;gap:10px;}
+ .sewak-customer-discovery .home-filters>label:last-of-type {grid-column:auto;}
+ .sewak-customer-discovery .home-caregiver-grid {grid-template-columns:1fr;}
+ .sewak-customer-advanced.is-open {grid-template-columns:1fr;}
+ .sewak-customer-advanced .home-filter-extras {display:grid;}
+ .sewak-customer-discovery .home-caregiver-photo {width:70px;height:70px;flex-basis:70px;}
+ .sewak-customer-discovery .home-caregiver {padding:18px;}
+ .sewak-care-activity {padding:20px 15px;}
+ .sewak-care-activity .home-activity-grid {grid-template-columns:1fr;gap:12px;}
+ .sewak-care-activity .home-activity-heading h2 {font-size:23px;}
+ .browse-page main {padding:16px 13px 50px;}
+ .browse-page .browse-hero {padding:32px 21px;border-radius:17px;}
+ .browse-page .browse-preferences {padding:20px 16px;}
+ .caregiver-profile-page {padding:19px 13px 88px;}
+ .booking-form-panel,.booking-form-success {padding:19px 16px;}
+ .auth-shell--login .login-experience {padding:17px;}
+ .sewak-workspace {border-radius:14px;}
+}
+@media(prefers-reduced-motion:reduce) {*,*::before,*::after {scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}}

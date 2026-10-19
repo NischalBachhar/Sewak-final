@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import logoSvg from "../logoSewak.jpeg";
+import logoSvg from "../assets/sewak-care-mark.svg";
 import "./Header.css";
 import { WorkspaceIcon } from "./WorkspaceShell";
 

@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 test.beforeAll(seed);
-const directory = path.resolve('docs/design/homepage-booking-first');
+const directory = path.resolve('docs/design/reference-marketplace');
 async function noOverflow(page, width) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
 }
@@ -15,16 +15,18 @@ async function capture(page, label) {
 }
 
 for (const width of [320, 375, 430, 768, 1024, 1366, 1440, 1920]) {
-  test('Homepage booking-first layout ' + width + 'px', async ({ page }) => {
+  test('Homepage reference-video marketplace accessibility ' + width + 'px', async ({ page }) => {
     const height = 1000;
     await page.setViewportSize({ width, height });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto('/');
-    const marketplace = page.getByRole('region', { name: 'Find and book a caregiver' });
+    await expect(page.locator('.sewak-cinematic-hero')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /Connecting families with/ })).toBeVisible();
+    await expect(page.getByRole('search', { name: 'Start finding care' })).toBeVisible();
+    const marketplace = page.getByRole('region', { name: 'Caregivers accepting requests' });
     await expect(marketplace).toBeVisible();
-    await expect(marketplace.getByRole('heading', { level: 1 })).toHaveText('Find and book a caregiver');
     await expect(marketplace.getByRole('search', { name: 'Find caregivers on Sewak' })).toBeVisible();
     await expect(marketplace.locator('.caregiver-preview-card')).toHaveCount(1);
     await expect(marketplace).toContainText('Test Caregiver');
@@ -33,13 +35,14 @@ for (const width of [320, 375, 430, 768, 1024, 1366, 1440, 1920]) {
     const position = await page.evaluate(() => {
       const first = document.querySelector('#main-content').firstElementChild;
       const box = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
-      return { first: first.id, card: box('.home-marketplace .caregiver-preview-card'), hero: box('.home-hero'), services: box('#services') };
+      return { first: first.className, search: box('.sewak-hero-search'), card: box('.home-marketplace .caregiver-preview-card'), hero: box('.sewak-cinematic-hero'), categories: box('.sewak-category-area'), services: box('#services') };
     });
-    expect(position.first).toBe('caregivers');
-    expect(position.card.top).toBeLessThan(height);
-    expect(position.card.top).toBeLessThan(position.hero.top);
-    expect(position.hero.top).toBeLessThan(position.services.top);
-    await expect(page.locator('.home-service')).toHaveCount(6);
+    expect(position.first).toContain('sewak-cinematic-hero');
+    expect(position.search.top).toBeLessThan(height);
+    expect(position.hero.top).toBeLessThan(position.categories.top);
+    expect(position.categories.top).toBeLessThan(position.card.top);
+    expect(position.card.top).toBeLessThan(position.services.top);
+    await expect(page.locator('.sewak-category-card')).toHaveCount(6);
     await noOverflow(page, width);
     await page.evaluate(axe.source);
     const violations = await page.evaluate(async () => (await window.axe.run(document, {
@@ -47,18 +50,18 @@ for (const width of [320, 375, 430, 768, 1024, 1366, 1440, 1920]) {
     })).violations.map(item => ({ id: item.id, targets: item.nodes.map(node => node.target) })));
     expect(violations).toEqual([]);
     expect(errors).toEqual([]);
-    await capture(page, 'caregiver-first-' + width);
+    await capture(page, 'care-marketplace-' + width);
   });
 }
 
 test('Homepage service cards open same-page caregivers with that service selected', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
-  const services = page.locator('.home-service a');
+  const services = page.locator('.sewak-service-link');
   await expect(services.first()).toHaveAttribute('href', /^\/\?service=.+#caregivers$/);
   await services.first().click();
   await expect(page).toHaveURL(/\/\?service=.+#caregivers$/);
-  await expect(page.getByRole('region', { name: 'Find and book a caregiver' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Caregivers accepting requests' })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Service' })).not.toHaveValue('');
 });
 
@@ -69,7 +72,7 @@ test('Homepage filters genuine profiles without visiting another search page', a
     if (request.url().endsWith('/api/query') && request.postDataJSON()?.path === 'publicCaregivers') queries.push(request.postDataJSON());
   });
   await page.goto('/');
-  const marketplace = page.getByRole('region', { name: 'Find and book a caregiver' });
+  const marketplace = page.getByRole('region', { name: 'Caregivers accepting requests' });
   await expect(marketplace).toContainText('Test Caregiver');
   await marketplace.getByRole('searchbox', { name: 'Caregiver or area' }).fill('Test Caregiver');
   await marketplace.getByRole('combobox', { name: 'Service' }).selectOption('e2e-care');
@@ -87,7 +90,7 @@ test('Homepage filters genuine profiles without visiting another search page', a
 
 test('Homepage booking action preserves selected caregiver through sign-in', async ({ page }) => {
   await page.goto('/');
-  const marketplace = page.getByRole('region', { name: 'Find and book a caregiver' });
+  const marketplace = page.getByRole('region', { name: 'Caregivers accepting requests' });
   await marketplace.getByRole('button', { name: /Sign in to book/ }).click();
   await expect(page).toHaveURL(/\/auth$/);
   expect(await page.evaluate(() => localStorage.getItem('pendingBookingCaregiverId'))).toBe('e2e-caregiver');
@@ -101,7 +104,7 @@ test('Homepage caregiver loading failure is retryable without imaginary profiles
       route.fulfill({ json: { items: [], total: 0, nextCursor: null } });
   });
   await page.goto('/');
-  const marketplace = page.getByRole('region', { name: 'Find and book a caregiver' });
+  const marketplace = page.getByRole('region', { name: 'Caregivers accepting requests' });
   await expect(marketplace).toContainText('Caregiver profiles could not be loaded');
   failed = false;
   await marketplace.getByRole('button', { name: 'Try again' }).click();
@@ -110,12 +113,12 @@ test('Homepage caregiver loading failure is retryable without imaginary profiles
 
 test('Homepage catalog still expands and remains behind caregiver booking', async ({ page }) => {
   await page.goto('/');
-  const services = page.locator('.home-service');
-  await expect(services).toHaveCount(6);
-  const toggle = page.locator('.home-services-toggle');
+  const services = page.locator('.sewak-service-link');
+  await expect(services).toHaveCount(8);
+  const toggle = page.locator('.sewak-service-more');
   await toggle.click();
   await expect(services).toHaveCount(16);
-  await expect(toggle).toHaveText('Show fewer services');
+  await expect(toggle).toContainText('Show fewer services');
   await toggle.click();
-  await expect(services).toHaveCount(6);
+  await expect(services).toHaveCount(8);
 });

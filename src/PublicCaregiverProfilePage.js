@@ -293,6 +293,14 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
         </div>
 
         <aside className="caregiver-profile-aside">
+          <section className="sewak-profile-request-panel" aria-labelledby="sewak-profile-request-title">
+            <p className="sewak-profile-request-eyebrow">YOUR NEXT STEP</p>
+            <h2 id="sewak-profile-request-title">Request care with {caregiver.name || "this caregiver"}</h2>
+            <div className="sewak-profile-request-rate"><span>Starting rate</span><strong>{formatNpr(caregiver.hourlyRate)}<small> / hour</small></strong></div>
+            <div className="sewak-profile-request-info"><span aria-hidden="true">◷</span><p>{availability}. Choose a service and schedule on the next step.</p></div>
+            <button type="button" className="sewak-profile-request-button" onClick={handleBook} disabled={Boolean(bookingReason)} aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}>{signedIn ? "Request care" : "Sign in to request care"} <span aria-hidden="true">→</span></button>
+            <p className="sewak-profile-request-foot">A request is not a confirmed booking. Your caregiver must accept the date and time.</p>
+          </section>
           <CaregiverTrustSummary
             caregiverName={caregiver.name}
             verificationItems={[...getCaregiverVerification(caregiver), {key:'police',label:'Police Clearance Verified',state:caregiver.verificationSource==='audited_v1'?caregiver.policeClearanceVerificationStatus:'not_submitted'}]}
