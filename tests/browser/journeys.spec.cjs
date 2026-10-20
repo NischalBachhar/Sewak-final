@@ -1,6 +1,37 @@
 const {test,expect}=require('./test.cjs');
 const {seed,db,createTestAccount}=require('./seed.cjs');
 test.beforeAll(seed);
+async function registerCustomerForProfile(page,suffix){
+ const email=`signup-profile-${suffix}@example.test`;
+ await page.goto('/auth?mode=register&role=user');
+ await page.getByLabel('Full name',{exact:true}).fill('Synthetic onboarding customer');
+ await page.getByLabel('Email',{exact:true}).fill(email);
+ await page.getByLabel('Password',{exact:true}).fill('Local-test-only-123!');
+ await page.getByRole('radio',{name:/Customer/}).check();
+ await page.getByRole('button',{name:'Sign up',exact:true}).click();
+ await expect(page).toHaveURL(/\/user\/profile$/);
+ await page.getByLabel('Phone Number *',{exact:true}).fill('9800000000');
+ await page.getByLabel('Address *',{exact:true}).fill('Synthetic onboarding address');
+ await page.getByRole('combobox',{name:'City *',exact:true}).selectOption('Kathmandu');
+ return email;
+}
+for(const width of [390,1440])test(`customer signup completes required profile and reaches dashboard at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});const email=await registerCustomerForProfile(page,String(width));
+ await page.getByRole('button',{name:'Save Profile',exact:true}).click();
+ await expect(page).toHaveURL(/\/user\/home$/);await expect(page.locator('.home-discovery')).toBeVisible();
+ await page.reload();await expect(page.locator('.home-discovery')).toBeVisible();
+ const account=(await db.collection('users').get()).docs.find(doc=>doc.data().email===email);
+ expect(account.data()).toMatchObject({role:'user',profileComplete:true,phone:'9800000000',city:'Kathmandu'});
+});
+test('customer signup retains incomplete profile after a failed profile save',async({page})=>{
+ const email=await registerCustomerForProfile(page,'save-failure');
+ await page.route('**/api/commit',route=>route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({error:{code:'permission-denied',message:'Profile save rejected for this test.'}})}));
+ await page.getByRole('button',{name:'Save Profile',exact:true}).click();
+ await expect(page.getByText('Profile save rejected for this test.',{exact:true})).toBeVisible();
+ await expect(page).toHaveURL(/\/user\/profile$/);await expect(page.getByLabel('Phone Number *',{exact:true})).toHaveValue('9800000000');
+ const account=(await db.collection('users').get()).docs.find(doc=>doc.data().email===email);
+ expect(account.data().profileComplete).toBe(false);
+});
 async function signIn(page,role){
  await page.goto('/auth');await page.getByLabel('Email',{exact:true}).fill(`e2e-${role}@example.test`);await page.getByLabel('Password',{exact:true}).fill('Local-test-only-123!');await page.getByRole('button',{name:'Sign in',exact:true}).click();
  await expect(page).not.toHaveURL(/\/auth/);
