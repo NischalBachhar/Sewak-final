@@ -22,7 +22,6 @@ export default function UserProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [shouldNavigate, setShouldNavigate] = useState(false);
 
   // Profile picture upload
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -68,13 +67,6 @@ export default function UserProfilePage() {
     loadProfile();
     return () => { active = false; };
   }, [user]);
-
-  // Watch for profile completion and navigate
-  useEffect(() => {
-    if (shouldNavigate && userDoc?.profileComplete) {
-      navigate("/user");
-    }
-  }, [userDoc?.profileComplete, shouldNavigate, navigate]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -159,8 +151,10 @@ export default function UserProfilePage() {
       // Refresh user context to update profileComplete status
       await refreshUserDoc();
       
-      // Set flag to trigger navigation when userDoc updates
-      setShouldNavigate(true);
+      // Completing onboarding changes App's route tree and remounts this page.
+      // Navigate after the confirmed refresh instead of keeping a pending flag
+      // in component state that is discarded by that remount.
+      navigate("/user/home", { replace: true });
     } catch (err) {
       console.error("Error saving profile:", { code: err?.code || "unknown" });
       setError(err.message || "Could not save profile. Please try again.");
@@ -365,8 +359,9 @@ export default function UserProfilePage() {
 
         {/* Profile Information Form */}
         <form onSubmit={handleSave} className="form">
-          <label>Full Name *</label>
+          <label htmlFor="customer-profile-name">Full Name *</label>
           <input
+            id="customer-profile-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -374,8 +369,9 @@ export default function UserProfilePage() {
             placeholder="Your full name"
           />
 
-          <label>Phone Number *</label>
+          <label htmlFor="customer-profile-phone">Phone Number *</label>
           <input
+            id="customer-profile-phone"
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -384,8 +380,9 @@ export default function UserProfilePage() {
             maxLength={10}
           />
 
-          <label>Address *</label>
+          <label htmlFor="customer-profile-address">Address *</label>
           <input
+            id="customer-profile-address"
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}

@@ -8,6 +8,7 @@ for(const [label,route,role,ready] of [
   ['login','/auth',null,'.auth-card'],
   ['signup','/auth?mode=register',null,'.auth-card'],
   ['customer','/user/home','customer','.home-discovery'],
+  ['customer profile','/user/profile','customer','.customer-detail-shell form'],
   ['customer discovery','/user','customer','.browse-list'],
   ['booking history','/user/mybookings','customer','.customer-bookings'],
   ['booking','/user/book/e2e-caregiver','customer','.booking-form-panel'],
