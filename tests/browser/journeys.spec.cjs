@@ -179,9 +179,13 @@ test('browser photo compression uploads bounded binary images and replaces the e
  await page.getByRole('button',{name:'Save Profile',exact:true}).click();const response=await upload;expect(response.status()).toBe(200);const image=await response.json();expect(image.size).toBeLessThanOrEqual(200000);expect(Math.max(image.width,image.height)).toBeLessThanOrEqual(512);
  expect(response.request().headers()['content-type']).toMatch(/^image\/(webp|jpeg)$/);
  await expect(page).not.toHaveURL(/\/user\/profile/);
+ // Finish the destination header's image request before leaving that document.
+ // Otherwise the response waiter can capture a /user/home fetch that the next
+ // navigation aborts, instead of the new profile page's authenticated fetch.
+ await page.waitForLoadState('networkidle');
  expect((await db.doc('users/e2e-customer').get()).data().profile_image_id).toBe('profile_e2e-customer');
  expect((await db.doc('users/e2e-customer').get()).data().city).toBe('Hetauda');
- const mediaRead=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/media/profile_e2e-customer'&&r.request().method()==='GET');
+ const mediaRead=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/media/profile_e2e-customer'&&r.request().method()==='GET'&&new URL(r.request().headers().referer||r.url()).pathname==='/user/profile');
  await page.goto('/user/profile');const mediaResponse=await mediaRead;
  expect(mediaResponse.status()).toBe(200);expect(mediaResponse.headers()['content-type']).toMatch(/^image\/(webp|jpeg)$/);
  expect((await mediaResponse.request().allHeaders()).cookie).toMatch(/__Host-sewak_session=swk_/);
