@@ -138,14 +138,15 @@ try{
    await page.goto(origin+path);await inspect(page,label,width);
   }
  }
- await page.emulateMedia({reducedMotion:'no-preference'});await page.goto(origin+'/');
- const video=page.locator('video').first();await video.waitFor();
- await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
- await page.getByRole('button',{name:'Pause background video',exact:true}).first().click();assert.equal(await video.evaluate(v=>v.paused),true);
- await page.getByRole('button',{name:'Play background video',exact:true}).first().click();
- await page.waitForFunction(()=>document.querySelector('video')?.paused===false);
- await page.emulateMedia({reducedMotion:'reduce'});await video.waitFor({state:'detached'});
- report.media={...report.media,liveActionVideo:true,pauseResume:true,reducedMotion:true,sameOrigin:true};
+ for(const width of [320,390,1440]){
+  await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'no-preference'});await page.goto(origin+'/');
+  const video=page.locator('video').first();await video.scrollIntoViewIfNeeded();
+  await page.waitForFunction(()=>{const clip=document.querySelector('video');return clip?.readyState>=2&&clip.paused===false;});
+  await page.getByRole('button',{name:'Pause background video',exact:true}).first().click();assert.equal(await video.evaluate(v=>v.paused),true);
+  await page.getByRole('button',{name:'Play background video',exact:true}).first().click();await page.waitForFunction(()=>document.querySelector('video')?.paused===false);
+  await page.emulateMedia({reducedMotion:'reduce'});await video.waitFor({state:'detached'});
+ }
+ report.media={...report.media,liveActionVideo:true,pauseResume:true,reducedMotion:true,sameOrigin:true,publicPlaybackWidths:[320,390,1440]};
  const roles=[];
  for(const [u,paths] of [[customer,['/user/home','/user','/user/mybookings','/user/inbox','/user/notifications']],[caregiver,['/caregiver','/caregiver/jobs','/caregiver/inbox','/caregiver/notifications']],[org,['/organization','/organization?tab=caregivers','/organization?tab=bookings','/organization/notifications']],[admin,['/superadmin','/superadmin/caregivers','/superadmin/organizations','/superadmin/accounts']]]){
   const context=await browser.newContext();const rolePage=await context.newPage();rolePage.setDefaultTimeout(45000);
