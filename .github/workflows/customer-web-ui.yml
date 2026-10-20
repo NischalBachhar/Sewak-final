@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "src/**"
+      - "tests/browser/**"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/customer-web-ui.yml"
