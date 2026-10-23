@@ -78,7 +78,7 @@ for (const width of [320, 360, 375, 390, 414, 430, 768, 1024, 1440]) {
     await page.getByRole('button',{name:'Back',exact:true}).click();
     await page.getByRole('radio', { name: /Customer/ }).check();
     await page.screenshot({ path: testInfo.outputPath(`signup-${width}.png`), fullPage: true });
-    // The Sewak 2.0 photographic signup experience replaced the old
+    // The Sewak photographic signup experience replaced the old
     // illustrated figures. Verify the actual new media and content respect
     // reduced motion instead of waiting for removed legacy elements.
     for (const selector of ['.sewak2-signup-image img', '.signup-brand', '.signup-trust']) {

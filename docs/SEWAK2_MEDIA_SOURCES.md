@@ -1,4 +1,4 @@
-# Sewak 2.0 media register and release requirements
+# Sewak media register and release requirements
 
 This branch intentionally does NOT copy Care.com's code, photos, recordings, trademarks, or proprietary UI.
 
@@ -39,4 +39,4 @@ The source page and Pexels license were rechecked on 19 October 2026. The downlo
 - Check width 320/390/768/1024/1440/1920, tap targets, labels, focus, reduced-motion, slow network, and image/video fallback.
 - Review Cloudflare CSP and external media reliability. Do not merge/deploy before these conditions are satisfied.
 
-The merged Sewak 2.0 design is retained. See the production release report for version-matched local and live validation results and operational limits.
+The merged Sewak design is retained. See the production release report for version-matched local and live validation results and operational limits.

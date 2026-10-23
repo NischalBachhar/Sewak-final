@@ -1,4 +1,4 @@
-/* Sewak 2.0 visual foundation. Loaded AFTER legacy CSS to supersede the old green-only UI.
+/* Sewak visual foundation. Loaded AFTER legacy CSS to supersede the old green-only UI.
    Original Sewak presentation, using accessible marketplace patterns; not Care.com assets. */
 :root {
   --brand-coral: #0b5647;

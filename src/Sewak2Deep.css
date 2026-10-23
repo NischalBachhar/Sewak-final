@@ -1,4 +1,4 @@
-/* Sewak 2.0 signed-in detail screens: messaging, jobs, bookings, notifications,
+/* Sewak signed-in detail screens: messaging, jobs, bookings, notifications,
    reviews and management. Existing authorization and business rules are untouched. */
 :where(.care-inbox-page,.care-jobs-page,.care-notices,.customer-bookings,.booking-detail-page){
   color:#183a30;font-family:"Avenir Next","Segoe UI",Arial,sans-serif;
@@ -90,7 +90,7 @@
 .sewak2-jobs-filters [role="status"]{font-size:12px;color:#5c7164;padding-bottom:14px}
 @media(max-width:680px){.sewak2-jobs-filters{padding:12px}.sewak2-jobs-filters [role="status"]{padding-bottom:2px}}
 
-/* Sewak 2.0 browser QA follow-up: readability and true mobile booking-first layout.
+/* Sewak browser QA follow-up: readability and true mobile booking-first layout.
    Override the legacy negative hero margins without hiding overflow or disabling axe. */
 .home-page .home-marketplace__intro {
   margin-inline:0 !important;

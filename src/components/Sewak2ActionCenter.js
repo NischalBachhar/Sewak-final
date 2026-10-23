@@ -40,7 +40,7 @@ export default function Sewak2ActionCenter({role, onAction, metrics=[]}) {
   if(!cards || typeof onAction!=='function') return null;
   return <section className={'sewak2-hub sewak2-hub--'+role} aria-label="Quick actions">
     <div className="sewak2-hub__head">
-      <div><p className="sewak2-hub__eyebrow">YOUR SEWAK 2.0 WORKSPACE</p><h2>{role==='user'?'Care starts here.':role==='caregiver'?'Make every workday count.':role==='organization'?'A simpler way to run care.':'Your next action matters.'}</h2>
+      <div><p className="sewak2-hub__eyebrow">YOUR SEWAK WORKSPACE</p><h2>{role==='user'?'Care starts here.':role==='caregiver'?'Make every workday count.':role==='organization'?'A simpler way to run care.':'Your next action matters.'}</h2>
         <p>Choose what you need. All changes are made through your existing secure account workflows.</p>
       </div>
       <span className="sewak2-hub__flower" aria-hidden="true">✳</span>
