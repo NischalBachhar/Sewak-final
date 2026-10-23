@@ -1,51 +1,70 @@
 {
-  "verifiedAt": "2026-10-23T14:52:00.850Z",
-  "status": "branding-deployed-and-ui-verified-post-auth-blocked",
+  "verifiedAt": "2026-10-23T15:19:41.565Z",
+  "status": "branding-correction-deployed-and-live-verified-post-auth-pending-rate-window",
   "brand": "Sewak",
   "workspaceLabel": "YOUR SEWAK WORKSPACE",
-  "roles": [
-    "customer",
-    "caregiver",
-    "organization",
-    "superadmin"
-  ],
-  "deployedCommit": "f633c1834429bbc04d4e2080925e3b79c3f7268a",
-  "activeWorkerVersion": "13633993-5a96-4d60-8e95-b08b32c3e132",
+  "deployedCommit": "07f0d155028a90424f9999a9bd9c9feda84c773b",
+  "activeWorkerVersion": "11fd4aeb-ae23-462c-9bc8-6f29c877216f",
   "trafficPercent": 100,
   "worker": "sewak-final",
   "url": "https://sewak-final.nischalbachhar9.workers.dev",
-  "activatedVersionCreatedAt": "2026-10-23T14:34:59.227187Z",
-  "pr": 51,
+  "activatedVersionCreatedAt": "2026-10-23T15:14:54.754601Z",
+  "pr": 52,
   "ci": {
-    "head": "8738a1bec75d8328aa56dfe04a158cfd3eaa0522",
-    "authentication": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39968532398",
-    "visual": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39968532237",
-    "customerUi": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39968532252",
+    "customerUi": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39974666030",
     "allPassed": true,
-    "verifiedAt": "2026-10-23T14:34:33.120Z"
+    "authentication": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39974665944",
+    "head": "c11caf315ba807656d6513b357e8219769c2cf1a",
+    "visual": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39974665934",
+    "verifiedAt": "2026-10-23T15:14:28.5607059Z"
   },
   "validation": {
+    "workerTypecheck": true,
     "lint": true,
-    "unitTests": 113,
+    "browserCases": 28,
     "productionBuild": true,
-    "guardedDryRun": true,
+    "frontendUnitTests": 113,
+    "d1Tests": 163,
+    "protectedDryRun": true,
     "releaseScan": true,
     "liveAssetHashes": 26,
     "preDeploymentAuthChecks": 54,
     "preDeploymentAuthPassed": true,
-    "organizationViews": [
+    "preDeploymentAuthCompletedAt": "2026-10-23T15:03:49.676Z",
+    "liveWorkspaceViews": [
       {
+        "role": "caregiver",
         "width": 1440,
-        "label": "YOUR SEWAK WORKSPACE",
-        "horizontalOverflow": false
+        "brand": "Sewak",
+        "identityVisible": true,
+        "horizontalOverflow": false,
+        "pageErrors": []
       },
       {
+        "role": "caregiver",
         "width": 390,
-        "label": "YOUR SEWAK WORKSPACE",
-        "horizontalOverflow": false
+        "brand": "Sewak",
+        "identityVisible": false,
+        "horizontalOverflow": false,
+        "pageErrors": []
+      },
+      {
+        "role": "superadmin",
+        "width": 1440,
+        "brand": "Sewak",
+        "identityVisible": true,
+        "horizontalOverflow": false,
+        "pageErrors": []
+      },
+      {
+        "role": "superadmin",
+        "width": 390,
+        "brand": "Sewak",
+        "identityVisible": false,
+        "horizontalOverflow": false,
+        "pageErrors": []
       }
     ],
-    "pageErrors": 0,
     "databases": {
       "DB": {
         "integrity": "ok",
@@ -69,22 +88,26 @@
     "temporaryDiagnosticSessionsClosed": true
   },
   "postDeploymentAuth": {
-    "pass": false,
-    "checksReached": 35,
-    "failedCheck": {
-      "label": "mobile password login",
-      "status": 503
-    },
-    "failure": {
-      "name": "AssertionError",
-      "message": "mobile password login: HTTP 503 unavailable — The service is temporarily unavailable. Please retry later.\n\n503 !== 200\n"
-    },
-    "cleanupVerified": true,
-    "applicationRecordsUnchanged": true,
-    "completedAt": "2026-10-23T14:46:16.424Z"
+    "pass": null,
+    "status": "not-run-insufficient-natural-registration-quota",
+    "observedRegistrationHits": 9,
+    "registrationHourlyLimit": 10,
+    "accountsRequired": 4,
+    "eligibleAt": "2026-10-23T15:45:40Z",
+    "rateLimitsModified": false
   },
-  "limits": [
-    "The previously observed intermittent authentication HTTP 503 persists. The branding UI and data preservation were verified, but full post-deployment Auth validation is blocked. Authentication handlers and database contracts were not changed.",
-    "Internal component, CSS and asset identifiers remain stable. The displayed brand and textual references use Sewak."
-  ]
+  "remainingIssues": [
+    "The previously observed intermittent Auth HTTP503 remains unresolved. The first pre-deployment registration attempt failed with HTTP503; a later full registration-based run passed 54 checks. All failed evidence and cleanup results are retained.",
+    "Full registration-based Auth QA has not been rerun on this new Worker version because the normal hourly registration window has only one attempt remaining. The supplemental seeded UI observation supplies no registration coverage."
+  ],
+  "previousBrandingRelease": {
+    "pr": 51,
+    "commit": "f633c1834429bbc04d4e2080925e3b79c3f7268a",
+    "workerVersion": "13633993-5a96-4d60-8e95-b08b32c3e132",
+    "scope": "Quick-action workspace label; the separate caregiver and superadmin sidebar brand card was missed and is corrected by PR52.",
+    "postAuthPass": false,
+    "postAuthChecksReached": 35,
+    "failedCheck": "mobile password login HTTP503"
+  },
+  "internalIdentifiersPreserved": true
 }
