@@ -1,8 +1,10 @@
 # Sewak deployment safeguards
 
-Production is `sewak-final` in account `860970f755498a4fe10e16c2fa99ce55`. Use `wrangler.production.toml`, `sewak-db`, `sewak-media`, and audience `sewak-production`. Staging is `sewak`, uses `wrangler.toml`, isolated `sewak-staging-*` databases, audience `sewak-staging`, and stays read-only. Never rename the staging deployment to production with `--name`.
+Sewak 2.0 production source, active-version evidence and remaining limitations are recorded in [the current release report](SEWAK2-PRODUCTION-RELEASE.md).
 
-The guarded operator validates exact Worker, account, both D1 names and IDs, audience, and write mode before any network mutation. Unsupported/duplicate arguments and environment/CI overrides fail closed. After upload it checks current settings and the active 100% deployment's version bindings. A name match alone is insufficient.
+Production is `sewak-final` in account `860970f755498a4fe10e16c2fa99ce55`. Use `wrangler.production.toml`, `sewak-db`, `sewak-media`, `sewak-verification-evidence`, and audience `sewak-production`. Staging is `sewak`, uses `wrangler.toml`, isolated `sewak-staging-*` databases, audience `sewak-staging`, and stays read-only. Never rename the staging deployment to production with `--name`.
+
+The guarded operator validates exact Worker, account, all three D1 names and IDs, audience, and write mode before any network mutation. Unsupported/duplicate arguments and environment/CI overrides fail closed. After upload it checks current settings and the active 100% deployment's version bindings. A name match alone is insufficient.
 
 The PR #43 marketplace release additionally requires the reviewed additive schema plan in `scripts/migrate-marketplace.mjs` and the marketplace readiness check inside `deploy-worker.mjs`. See [the release record](MARKETPLACE-PRODUCTION-RELEASE.md) for current backup evidence, QA and migration/deployment status. A dry run packages code; an actual upload rejects missing remote marketplace schemas.
 
@@ -10,6 +12,7 @@ Build and dry-run from the repository root (PowerShell uses `npm.cmd`):
 
 ```powershell
 $env:CLOUDFLARE_ACCOUNT_ID='860970f755498a4fe10e16c2fa99ce55'
+$env:REACT_APP_CANONICAL_ORIGIN='https://sewak-final.nischalbachhar9.workers.dev'
 npm.cmd run build:release
 node scripts/scan-release.mjs
 npm.cmd run deploy:cloudflare -- --worker sewak-final --dry-run

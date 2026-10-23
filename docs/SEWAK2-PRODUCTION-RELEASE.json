@@ -1,0 +1,195 @@
+{
+  "verifiedAt": "2026-10-23T13:11:19.924Z",
+  "status": "deployed-and-live-verified-with-unresolved-intermittent-auth-503",
+  "deployedCommit": "b63ede4824d0bf8d67571a4d130ba7417d9f0129",
+  "deployedVersionCreatedAt": "2026-10-20T02:00:10.61341Z",
+  "sewak2Merge": "31f16ddd30f367ce6a187ecdc3847f7c7086ccea",
+  "releaseFixPr": 50,
+  "worker": "sewak-final",
+  "activeVersion": "c8c4a8e3-5221-4205-bb5f-3d3e0ac43db8",
+  "trafficPercent": 100,
+  "productionUrl": "https://sewak-final.nischalbachhar9.workers.dev",
+  "applicationWritesEnabled": true,
+  "cron": "*/15 * * * *",
+  "productionMigrationsApplied": 0,
+  "temporaryDiagnosticSessionsClosed": true,
+  "localChecks": {
+    "lint": true,
+    "workerTypecheck": true,
+    "frontendUnitTests": 113,
+    "d1Tests": 163,
+    "browserCases": 202,
+    "crossBrowserAuthCases": 18,
+    "productionBuild": true,
+    "protectedDryRun": true,
+    "releaseScan": true,
+    "photoSecurityConsecutivePasses": 3,
+    "onboardingProductionBuildPreflight": 2,
+    "latestAffectedCases": 77,
+    "publicVideoWidths": [
+      320,
+      360,
+      390,
+      720,
+      1440
+    ]
+  },
+  "githubActions": {
+    "head": "8e05be0f88532f20207f6b4eeace816c517a1f7a",
+    "authentication": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39354461547",
+    "visual": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39354462188",
+    "customerUi": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39354461601",
+    "allPassed": true,
+    "verifiedAt": "2026-10-20T01:45:52.681Z"
+  },
+  "liveChecks": {
+    "integrity": {
+      "DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      },
+      "MEDIA_DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      },
+      "EVIDENCE_DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      }
+    },
+    "registrationAuthChecks": 54,
+    "registrationFixtureSetup": "registration-api",
+    "authCleanupVerified": true,
+    "marketplaceApiChecks": 37,
+    "bookingLifecycle": {
+      "realApiCreation": true,
+      "caregiverAcceptance": true,
+      "caregiverDecline": true,
+      "realProviderContacted": false,
+      "charged": false
+    },
+    "browserViews": 126,
+    "viewportWidths": [
+      320,
+      390,
+      768,
+      1024,
+      1440,
+      1920
+    ],
+    "axeWidths": [
+      320,
+      1440
+    ],
+    "authenticatedRoles": [
+      "user",
+      "caregiver",
+      "orgadmin",
+      "superadmin"
+    ],
+    "pageErrors": 0,
+    "overflow": false,
+    "verification": {
+      "roles": 2,
+      "widths": [
+        320,
+        390,
+        1440
+      ],
+      "pageErrors": 0,
+      "dataLoaded": true
+    },
+    "media": {
+      "originalVideoBytesMatch": true,
+      "liveActionVideo": true,
+      "pauseResume": true,
+      "reducedMotion": true,
+      "sameOrigin": true,
+      "publicPlaybackWidths": [
+        320,
+        390,
+        1440
+      ]
+    },
+    "publicMedia": [
+      {
+        "width": 320,
+        "autoplay": true,
+        "muted": true,
+        "playsInline": true,
+        "pauseResume": true,
+        "reducedMotion": true,
+        "photosLoaded": true,
+        "overflow": false
+      },
+      {
+        "width": 390,
+        "autoplay": true,
+        "muted": true,
+        "playsInline": true,
+        "pauseResume": true,
+        "reducedMotion": true,
+        "photosLoaded": true,
+        "overflow": false
+      },
+      {
+        "width": 1440,
+        "autoplay": true,
+        "muted": true,
+        "playsInline": true,
+        "pauseResume": true,
+        "reducedMotion": true,
+        "photosLoaded": true,
+        "overflow": false
+      }
+    ],
+    "signupForm": true,
+    "customerProfileCompletion": true,
+    "profileFormAccessibility": true,
+    "profileFormAccessibilityViews": [
+      {
+        "width": 390,
+        "loadedForm": true,
+        "violations": 0,
+        "overflow": false
+      },
+      {
+        "width": 1440,
+        "loadedForm": true,
+        "violations": 0,
+        "overflow": false
+      }
+    ],
+    "liveProfilePhotoUpload": true,
+    "browserLogin": true,
+    "browserLogout": true,
+    "liveReminderPreferencePersistence": true,
+    "verifiedReleaseAssets": 26
+  },
+  "preservation": {
+    "applicationTableHashesCompared": 54,
+    "preexistingRecordsUnchanged": true,
+    "bindingsAndSecretReferencesUnchanged": true,
+    "syntheticCleanupVerified": true
+  },
+  "audit": {
+    "runtime": 0,
+    "worker": 0,
+    "frontendDevelopment": 94,
+    "productionBundleMatches": 0,
+    "frontendDevelopmentBySeverity": {
+      "high": 63,
+      "moderate": 28,
+      "low": 3,
+      "critical": 0
+    },
+    "reviewedAt": "2026-10-23T12:43:05.530Z"
+  },
+  "limits": [
+    "Three earlier full Auth QA attempts returned HTTP 503: mobile login after 35 checks, password change after 37 checks, and failed-login attempt 8 after 48 checks. Each cleaned all fixtures and preserved original records. The cause remains unconfirmed. A focused password-change diagnostic and a full 54-check registration run passed under filtered live logging before the final upload. After the pause, a bounded failed-login diagnostic returned ten expected HTTP 401 responses followed by HTTP 429. The intermittent error category was not reproduced in the captured diagnostics. Fresh full Auth QA also passed on the final active version. The failed reports are retained as an unresolved intermittent authentication issue. After the multi-day pause, an additional QA attempt stopped on Cloudflare D1 API 500 / 7500 during test-profile preparation; its registration succeeded and cleanup preserved original records. Fresh integrity and the subsequent complete QA run passed.",
+    "The full frontend development/toolchain audit retains 94 reviewed findings (63 high, 28 moderate, 3 low). Runtime and Worker audits are zero; affected packages are absent from 13 production JavaScript source maps.",
+    "Email and Web Push delivery remain unconfigured; in-app notifications were verified. Existing cash and demo membership behavior is retained.",
+    "Responsive validation used browser viewports and mobile Chrome emulation; physical native devices were not tested and no existing user passwords were used. Existing credential and application records were preserved; individual existing users were not interactively signed in with their passwords."
+  ],
+  "operatorFollowup": "PR #47 fixes accessible names on booking/admin filters and synchronizes role hero video readiness with native media events. PR #48 fixes the customer onboarding redirect after the confirmed profile save and session refresh, with mobile/desktop and rejected-save regressions. PR #49 correlates photo-test responses with the current document and adds that security journey to CI without removing assertions. PR #50 makes the mobile public video pause control reachable, gives it a 44-pixel target, and adds pointer/keyboard/reduced-motion checks across five widths. The release report follow-up changes documentation only."
+}
