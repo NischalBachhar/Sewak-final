@@ -76,7 +76,7 @@ export default function WorkspaceShell({
         <div className="sewak-workspace__identity">
           <div className="sewak-workspace__identity-icon" aria-hidden="true">S</div>
           <div>
-            <strong>Sewak <span>2.0</span></strong>
+            <strong>Sewak</strong>
             <small>{isAdmin ? "Platform operations" : "Care professional studio"}</small>
           </div>
         </div>

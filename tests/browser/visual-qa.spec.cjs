@@ -71,6 +71,11 @@ for (const width of [320, 375, 390, 430, 768, 1024, 1366, 1440, 1920]) {
         for (const [label, route, selector] of ROLE_ROUTES[role]) {
           await page.goto(route);
           await expect(page.locator(selector).first(), role + '/' + label).toBeVisible({ timeout: 25000 });
+          // Check rendered text so branding split across nested JSX is covered.
+          await expect(page.locator('body')).not.toContainText(/sewak\s*2\s*\.\s*0/i);
+          if (role !== 'customer') {
+            await expect(page.locator('.sewak-workspace__identity strong')).toHaveText('Sewak');
+          }
           await assertUsableViewport(page, width, role + '/' + label);
           // Screenshots are recorded even when no seeded bookings exist.
           await page.screenshot({
