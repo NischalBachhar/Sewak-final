@@ -1,6 +1,6 @@
 # Sewak deployment safeguards
 
-Sewak production source, active-version evidence and remaining limitations are recorded in [the current release report](SEWAK2-PRODUCTION-RELEASE.md).
+The current Sewak naming update, active version and blocked post-Auth check are recorded in [the branding release record](SEWAK-BRANDING-RELEASE.md). Earlier broader validation and retained limitations are in [the prior release report](SEWAK2-PRODUCTION-RELEASE.md).
 
 Production is `sewak-final` in account `860970f755498a4fe10e16c2fa99ce55`. Use `wrangler.production.toml`, `sewak-db`, `sewak-media`, `sewak-verification-evidence`, and audience `sewak-production`. Staging is `sewak`, uses `wrangler.toml`, isolated `sewak-staging-*` databases, audience `sewak-staging`, and stays read-only. Never rename the staging deployment to production with `--name`.
 

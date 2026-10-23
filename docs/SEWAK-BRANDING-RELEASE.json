@@ -1,0 +1,90 @@
+{
+  "verifiedAt": "2026-10-23T14:52:00.850Z",
+  "status": "branding-deployed-and-ui-verified-post-auth-blocked",
+  "brand": "Sewak",
+  "workspaceLabel": "YOUR SEWAK WORKSPACE",
+  "roles": [
+    "customer",
+    "caregiver",
+    "organization",
+    "superadmin"
+  ],
+  "deployedCommit": "f633c1834429bbc04d4e2080925e3b79c3f7268a",
+  "activeWorkerVersion": "13633993-5a96-4d60-8e95-b08b32c3e132",
+  "trafficPercent": 100,
+  "worker": "sewak-final",
+  "url": "https://sewak-final.nischalbachhar9.workers.dev",
+  "activatedVersionCreatedAt": "2026-10-23T14:34:59.227187Z",
+  "pr": 51,
+  "ci": {
+    "head": "8738a1bec75d8328aa56dfe04a158cfd3eaa0522",
+    "authentication": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39968532398",
+    "visual": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39968532237",
+    "customerUi": "https://github.com/NischalBachhar/Sewak-final/actions/runs/39968532252",
+    "allPassed": true,
+    "verifiedAt": "2026-10-23T14:34:33.120Z"
+  },
+  "validation": {
+    "lint": true,
+    "unitTests": 113,
+    "productionBuild": true,
+    "guardedDryRun": true,
+    "releaseScan": true,
+    "liveAssetHashes": 26,
+    "preDeploymentAuthChecks": 54,
+    "preDeploymentAuthPassed": true,
+    "organizationViews": [
+      {
+        "width": 1440,
+        "label": "YOUR SEWAK WORKSPACE",
+        "horizontalOverflow": false
+      },
+      {
+        "width": 390,
+        "label": "YOUR SEWAK WORKSPACE",
+        "horizontalOverflow": false
+      }
+    ],
+    "pageErrors": 0,
+    "databases": {
+      "DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      },
+      "MEDIA_DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      },
+      "EVIDENCE_DB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0
+      }
+    },
+    "originalTableHashesCompared": 54,
+    "originalApplicationRecordsUnchanged": true,
+    "bindingsAndSecretReferencesUnchanged": true,
+    "applicationWritesEnabled": true,
+    "productionMigrationsApplied": 0,
+    "syntheticCleanupVerified": true,
+    "temporaryDiagnosticSessionsClosed": true
+  },
+  "postDeploymentAuth": {
+    "pass": false,
+    "checksReached": 35,
+    "failedCheck": {
+      "label": "mobile password login",
+      "status": 503
+    },
+    "failure": {
+      "name": "AssertionError",
+      "message": "mobile password login: HTTP 503 unavailable — The service is temporarily unavailable. Please retry later.\n\n503 !== 200\n"
+    },
+    "cleanupVerified": true,
+    "applicationRecordsUnchanged": true,
+    "completedAt": "2026-10-23T14:46:16.424Z"
+  },
+  "limits": [
+    "The previously observed intermittent authentication HTTP 503 persists. The branding UI and data preservation were verified, but full post-deployment Auth validation is blocked. Authentication handlers and database contracts were not changed.",
+    "Internal component, CSS and asset identifiers remain stable. The displayed brand and textual references use Sewak."
+  ]
+}
