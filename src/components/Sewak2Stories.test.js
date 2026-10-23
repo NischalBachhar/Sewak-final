@@ -7,7 +7,7 @@ jest.mock('react-router-dom', () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
 }));
 
-describe('Sewak 2.0 photographic care discovery', () => {
+describe('Sewak photographic care discovery', () => {
   test('provides service category links without claiming providers or rates', () => {
     render(<Sewak2Stories />);
     expect(screen.getByRole('heading', { name: /your kind of care/i })).toBeInTheDocument();

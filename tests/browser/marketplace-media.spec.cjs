@@ -13,7 +13,7 @@ for(const [role,path]of [['customer','/user/home'],['caregiver','/caregiver'],['
  await page.emulateMedia({reducedMotion:'reduce'});await expect(video).toHaveCount(0);
 });
 
-test('self-hosted Sewak 2 media preserves the static fallback when delivery fails',async({page})=>{
+test('self-hosted Sewak media preserves the static fallback when delivery fails',async({page})=>{
  const external=[];
  page.on('request',request=>{if(/images\.unsplash\.com|videos\.pexels\.com/.test(request.url()))external.push(request.url());});
  await page.route('**/videos/**',route=>route.abort('failed'));

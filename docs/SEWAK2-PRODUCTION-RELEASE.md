@@ -1,6 +1,6 @@
-# Sewak 2.0 production release - 23 October 2026
+# Sewak production release - 23 October 2026
 
-Status: **deployed and live verified; earlier intermittent Auth HTTP 503 remains unresolved**. The merged Sewak 2.0 redesign is on the existing production URL.
+Status: **deployed and live verified; earlier intermittent Auth HTTP 503 remains unresolved**. The merged Sewak redesign is on the existing production URL.
 
 - Deployed application commit: `b63ede4824d0bf8d67571a4d130ba7417d9f0129`, including PR #45 (`31f16ddd30f367ce6a187ecdc3847f7c7086ccea`) and release fixes in PR #46, PR #47, PR #48, PR #49 and PR #50.
 - Active Worker: `sewak-final`, version `c8c4a8e3-5221-4205-bb5f-3d3e0ac43db8`, at 100% traffic.

@@ -10,7 +10,7 @@ const roleCases = [
   ['admin','Review verification','verification'],
 ];
 
-test.each(roleCases)('Sewak 2.0 %s action routes to the owning dashboard', (role, label, action) => {
+test.each(roleCases)('Sewak %s action routes to the owning dashboard', (role, label, action) => {
   const onAction=jest.fn();
   render(<Sewak2ActionCenter role={role} onAction={onAction} metrics={[{label:'Pending',value:2}]} />);
   expect(screen.getByRole('region',{name:'Quick actions'})).toBeInTheDocument();
