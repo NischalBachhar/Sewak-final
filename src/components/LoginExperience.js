@@ -23,7 +23,7 @@ export default function LoginExperience() {
       <div className="login-brand"><img src={logo} alt="" width="44" height="44" /><span>Sewak<span className="login-brand-caption">Care, closer to home.</span></span></div>
       <div className="login-intro">
         <p className="login-eyebrow">A helping hand. A little peace of mind.</p>
-        <h1 id="login-experience-title">Good care starts with <span>great people.</span></h1>
+        <h2 id="login-experience-title">Good care starts with <span>great people.</span></h2>
         <p className="login-description">Welcome back. Your caregivers, bookings and conversations are just a sign-in away.</p>
       </div>
       <div className="login-visual">

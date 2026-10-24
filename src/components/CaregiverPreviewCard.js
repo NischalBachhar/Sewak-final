@@ -1,186 +1,53 @@
 import React, { useId } from 'react';
-import ProfileImage from './ProfileImage';
+import { useNavigate } from 'react-router-dom';
 import { hasVerifiedRating } from '../bookingModel';
 import { formatNpr } from '../config/brand';
-import { VerificationBadge } from './CareExperience';
-import RequestAvailability from './RequestAvailability';
-import useSavedCare from '../useSavedCare';
 import { caregiverBookingReason } from '../caregiverDiscovery';
-import '../BrowsePage.css';
-import './CaregiverPreview.css';
+import { serviceFamily } from '../serviceCatalog';
+import useSavedCare from '../useSavedCare';
+import ProfileImage from './ProfileImage';
+import RequestAvailability from './RequestAvailability';
+import { VerificationBadge } from './CareExperience';
 
-// Helper – extract readable service name from vendors data
-const getServiceNameFromVendorData = (serviceString) => {
-  if (!serviceString) return "";
-  const parts = serviceString.split(" ");
-  if (parts.length >= 2) {
-    return parts
-      .slice(1)
-      .join(" ")
-      .replace(/_/g, " ")
-      .split(" ")
-      .map((word) => word[0].toUpperCase() + word.slice(1))
-      .join(" ");
-  }
-  return serviceString;
-};
-
-// Normalize servicesOffered entries (your vendors store IDs or labels)
-const normalizeServiceId = (s) =>
-  (s || "")
-    .trim()
-    .toLowerCase();
-
-export default function CaregiverPreviewCard({ caregiver, services, onSelect, onViewProfile, requireLogin, compact = false }) {
-  const bookingReason = caregiverBookingReason(caregiver);
-  const { saved, toggle, enabled } = useSavedCare();
+export default function CaregiverPreviewCard({ caregiver, services = [], onSelect, onViewProfile, requireLogin, compact = false }) {
+  const navigate = useNavigate();
+  const reason = caregiverBookingReason(caregiver);
   const reasonId = useId();
-  const getInitials = (name) =>
-    (name || "C")
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase();
-
-  const getServiceLabel = (serviceId) => {
-    if (!serviceId) return "";
-    const normalizedId = normalizeServiceId(serviceId);
-    const match = (services || []).find(
-      (service) =>
-        normalizeServiceId(service.id) === normalizedId ||
-        normalizeServiceId(service.label) === normalizedId ||
-        normalizeServiceId(service.serviceName) === normalizedId,
-    );
-    return match?.label || match?.serviceName || getServiceNameFromVendorData(serviceId);
-  };
-
-  const serviceLabels = (caregiver.servicesOffered || [])
-    .map((service) => getServiceLabel(service))
-    .filter(Boolean);
+  const { saved, toggle, enabled } = useSavedCare();
+  const initials = (caregiver.name || 'C').split(' ').map(part => part[0]).join('').slice(0, 2);
   const rating = hasVerifiedRating(caregiver) ? Number(caregiver.rating) : null;
-  const schedule =
-    caregiver.workType === "fulltime"
-      ? "Full time"
-      : caregiver.workType === "parttime"
-        ? "Part time"
-        : "—";
-
-  const handleBookClick = () => {
-    if (bookingReason) return;
-    if (requireLogin) {
-      localStorage.setItem("pendingBookingCaregiverId", caregiver.id);
-      window.location.href = "/auth";
-      return;
-    }
-
-    onSelect && onSelect(caregiver);
+  const serviceLabels = [...new Set((caregiver.servicesOffered || []).map(id => {
+    const service = services.find(item => [item.id, item.label, item.serviceName].some(value => value?.toLowerCase() === String(id).toLowerCase()));
+    return (serviceFamily(id) || serviceFamily(service?.label || service?.serviceName))?.[1] || service?.label || service?.serviceName || String(id).replace(/^catalog_/, '').replace(/_/g, ' ');
+  }))];
+  const viewProfile = () => onViewProfile?.(caregiver);
+  const request = () => {
+    if (reason) return;
+    if (requireLogin) navigate('/caregivers/' + encodeURIComponent(caregiver.id) + '?request=1#request-care');
+    else onSelect?.(caregiver);
   };
-
-  return (
-    <article className={`browse-caregiver-card${compact ? " caregiver-preview-card" : ""}`}>
-      {enabled && <div className="saved-care-card-control"><button type="button" className="sawak-save-button" aria-pressed={saved.includes(caregiver.id)} aria-label={(saved.includes(caregiver.id) ? 'Remove ' : 'Save ') + (caregiver.name || 'caregiver') + (saved.includes(caregiver.id) ? ' from saved caregivers' : ' to saved caregivers')} onClick={() => toggle(caregiver.id)}>{saved.includes(caregiver.id) ? '♥ Saved' : '♡ Save'}</button></div>}
-      <div className="browse-caregiver-card__top">
-        <div className="browse-caregiver-card__avatar">
-          {caregiver.profileImage ? (
-            <ProfileImage src={caregiver.profileImage} alt={caregiver.name || "Caregiver"} />
-          ) : (
-            getInitials(caregiver.name).slice(0, 2)
-          )}
-        </div>
-        <div className="browse-caregiver-card__identity">
-          <div className="browse-caregiver-card__name-row">
-            <h3 title={caregiver.name || "Caregiver"}>{caregiver.name || "Caregiver"}</h3>
-            {caregiver.verificationSource === "audited_v1" && caregiver.verified ? (
-              <VerificationBadge
-                state="verified"
-                label="Verified"
-                description="Verified by Sewak based on the approved records shown in this profile."
-                compact
-              />
-            ) : <VerificationBadge state="not_verified" label="Verification not complete" compact />}
-          </div>
-          <RequestAvailability caregiver={caregiver} />
-          <p className="browse-caregiver-card__location">
-            {caregiver.location || "Location not listed"}
-          </p>
-          {caregiver.organizationName && (
-            <p className="browse-caregiver-card__organization">
-              {caregiver.organizationName}
-            </p>
-          )}
-          {rating === null && <p className="browse-rating__count">No verified reviews yet</p>}
-          {rating !== null && (
-            <div className="browse-rating" aria-label={`${rating.toFixed(1)} out of 5 stars`}>
-              <span className="browse-rating__star" aria-hidden="true">★</span>
-              <span>{rating.toFixed(1)}</span>
-              <span className="browse-rating__count">({caregiver.reviewCount || 0} verified reviews)</span>
-            </div>
-          )}
-        </div>
+  return <article className={'care-listing-card' + (compact ? ' care-listing-card--compact' : '')}>
+    <div className="care-listing-card__portrait">
+      {caregiver.profileImage ? <ProfileImage src={caregiver.profileImage} alt={caregiver.name || 'Caregiver'} /> : <span>{initials}</span>}
+    </div>
+    <div className="care-listing-card__details">
+      <div className="care-listing-card__title"><h3><button type="button" onClick={viewProfile}>{caregiver.name || 'Caregiver'}</button></h3>
+        {enabled && <button type="button" className="care-save" aria-pressed={saved.includes(caregiver.id)} aria-label={(saved.includes(caregiver.id) ? 'Remove ' : 'Save ') + (caregiver.name || 'caregiver')} onClick={() => toggle(caregiver.id)}>{saved.includes(caregiver.id) ? '♥' : '♡'}</button>}
       </div>
-
-      <div className="browse-caregiver-card__tags" aria-label="Services offered">
-        {serviceLabels.length > 0 ? (
-          <>
-            {serviceLabels.slice(0, 2).map((service) => (
-              <span className="browse-service-tag" key={service}>{service}</span>
-            ))}
-            {serviceLabels.length > 2 && (
-              <span className="browse-service-more">+{serviceLabels.length - 2} more</span>
-            )}
-          </>
-        ) : (
-          <span className="browse-service-tag">Services not specified</span>
-        )}
+      <p className="care-listing-card__location">{caregiver.location || 'Location not listed'}{caregiver.organizationName && <span> · {caregiver.organizationName}</span>}</p>
+      <div className="care-listing-card__reputation">
+        {rating === null ? <span>No verified reviews yet</span> : <span className="care-listing-card__rating" aria-label={`${rating.toFixed(1)} out of 5 stars`}><span aria-hidden="true">★</span> {rating.toFixed(1)} <small>({caregiver.reviewCount || 0} verified reviews)</small></span>}
+        <VerificationBadge state={caregiver.verificationSource === 'audited_v1' && caregiver.verified ? 'verified' : 'not_verified'} label={caregiver.verificationSource === 'audited_v1' && caregiver.verified ? 'Verified' : 'Verification not complete'} compact />
       </div>
-
-      {!compact && <div className="browse-assurance-row" role="group" aria-label="Profile checks">
-        {caregiver.verificationSource === "audited_v1" && caregiver.backgroundChecked && <span className="browse-assurance-tag">Background checked</span>}
-        {caregiver.verificationSource === "audited_v1" && caregiver.verified && <span className="browse-assurance-tag">ID verified</span>}
-        {caregiver.verificationSource === "audited_v1" && caregiver.isCertified && <span className="browse-assurance-tag browse-assurance-tag--certified">Certified</span>}
-      </div>}
-
-      {!compact && <dl className="browse-caregiver-card__stats">
-        <div>
-          <dt>Years experience</dt>
-          <dd>{caregiver.experience ? `${caregiver.experience}+` : "—"}</dd>
-        </div>
-        <div>
-          <dt>Jobs completed</dt>
-          <dd>{typeof caregiver.jobsCompleted === "number" ? caregiver.jobsCompleted : "—"}</dd>
-        </div>
-        <div>
-          <dt>Schedule</dt>
-          <dd>{schedule}</dd>
-        </div>
-      </dl>}
-
-      <div className="browse-caregiver-card__footer">
-        <div className={`browse-price${caregiver.hourlyRate ? "" : " browse-price--unlisted"}`}>
-          <small>{caregiver.hourlyRate ? "Starting at" : "Rate"}</small>
-          <strong>{Number.isFinite(caregiver.hourlyRate) && (caregiver.hourlyRate > 0 || caregiver.allowZeroRate) ? `${formatNpr(caregiver.hourlyRate)}/hour` : "Not configured"}</strong>
-        </div>
-        <div className="browse-card-actions">
-          <button
-            type="button"
-            className="browse-card-action browse-card-action--secondary"
-            onClick={() => onViewProfile?.(caregiver)}
-          >
-            View profile
-          </button>
-          <button
-          type="button"
-          className="browse-card-action"
-          onClick={handleBookClick}
-          disabled={Boolean(bookingReason)}
-          aria-describedby={bookingReason ? reasonId : undefined}
-        >
-          {requireLogin ? "Sign in to book" : "Book now"}
-          <span aria-hidden="true">→</span>
-          </button>
-        </div>
-      </div>
-      {bookingReason && <p id={reasonId} className="caregiver-booking-reason">{bookingReason}</p>}
-    </article>
-  );
+      <p className="care-listing-card__experience">{caregiver.experience ? `${caregiver.experience}+ years experience` : 'Experience not listed'}{caregiver.workType && <span> · {caregiver.workType === 'fulltime' ? 'Full time' : caregiver.workType === 'parttime' ? 'Part time' : 'Schedule to confirm'}</span>}{!compact && typeof caregiver.jobsCompleted === 'number' && <span> · {caregiver.jobsCompleted} completed sessions</span>}</p>
+      <div className="care-listing-card__services" aria-label="Services offered">{serviceLabels.slice(0, 2).map(label => <span key={label}>{label}</span>)}{serviceLabels.length > 2 && <span>+{serviceLabels.length - 2} more</span>}{!serviceLabels.length && <span>Services not specified</span>}</div>
+      <RequestAvailability caregiver={caregiver} />
+    </div>
+    <div className="care-listing-card__action">
+      <p className="care-listing-card__price"><small>Starting at</small><strong>{Number.isFinite(caregiver.hourlyRate) && (caregiver.hourlyRate > 0 || caregiver.allowZeroRate) ? `${formatNpr(caregiver.hourlyRate)}/hour` : 'Rate not listed'}</strong></p>
+      <button type="button" className="care-primary-button" onClick={request} disabled={Boolean(reason)} aria-describedby={reason ? reasonId : undefined}>Request availability <span aria-hidden="true">→</span></button>
+      <button type="button" className="care-profile-link" onClick={viewProfile}>View profile</button>
+    </div>
+    {reason && <p id={reasonId} className="care-listing-card__reason">{reason}</p>}
+  </article>;
 }

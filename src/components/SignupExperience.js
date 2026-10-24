@@ -17,11 +17,11 @@ export default function SignupExperience() {
     <section className="signup-experience sewak2-signup" aria-labelledby="signup-hero-title">
       <div className="signup-brand"><img src={logo} width="44" height="44" alt="" /><span>Sewak<small>Care, closer to home.</small></span></div>
       <p className="signup-eyebrow">Better connections. Better care.</p>
-      <h1 id="signup-hero-title">There is room for <em>everyone</em> in care.</h1>
+      <h2 id="signup-hero-title">There is room for <em>everyone</em> in care.</h2>
       <p className="signup-description">Join as a family, independent care professional or organization. Find support, share your skills and help communities thrive.</p>
       <div className="sewak2-signup-image">
-        <img src="/images/sewak2-senior-care.webp"
-          width="1000" height="690" alt="Caregiver helping an older woman with her walker" loading="eager"
+        <img src="/images/sewak2-family-care.webp"
+          width="1000" height="690" alt="A parent sharing a story with her daughter at home" loading="eager"
           onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = "/images/care-for-every-generation.webp"; }} />
         <span>People first. Always.</span>
       </div>

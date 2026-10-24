@@ -1,3 +1,4 @@
+const {chooseRegistrationRole}=require('./signup-helpers.cjs');
 const { test, expect } = require('./test.cjs');
 const { seed, db } = require('./seed.cjs');
 const combined = 'Caregiver & Household Staffing Agency';
@@ -5,12 +6,12 @@ test.beforeAll(seed);
 
 for (const width of [320, 1440]) test(`combined organization selects both service categories and persists through admin approval at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 1000 });
-  await page.goto('/auth?mode=register');
+  await page.goto('/auth?mode=register&role=user');
   const email = `combined-${width}-${Date.now()}@example.test`, name = `Combined Organization ${width}`;
   await page.getByLabel('Full name').fill('Combined Owner');
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill('Local-test-only-123!');
-  await page.getByRole('radio', { name: /Organization\/Company/ }).check();
+  await chooseRegistrationRole(page, /Register an organization/);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByLabel('Organization/Company Name').fill(name);
   const type = page.getByRole('combobox', { name: 'Organization Type *', exact: true });

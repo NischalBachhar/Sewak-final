@@ -11,7 +11,8 @@ export function routeMetadata(pathname) {
   return { title: "Your care account | Sewak", description: "Manage your Sewak account and care requests.", public: false };
 }
 export default function RouteMetadata() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
+  useEffect(() => { if (!hash) window.scrollTo?.({ top: 0, left: 0, behavior: "instant" }); }, [pathname, hash]);
   useEffect(() => {
     const data = routeMetadata(pathname); document.title = data.title;
     const meta = (key, content, property = false) => {

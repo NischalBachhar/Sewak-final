@@ -56,7 +56,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState(auth.currentUser?.email || "");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(() => sessionStorage.getItem("sewak.registrationRole") || (["orgadmin", "caregiver"].includes(params.get("role")) ? params.get("role") : "user"));
+  const [selectedRole, setSelectedRole] = useState(() => ["user", "orgadmin", "caregiver"].includes(params.get("role")) ? params.get("role") : sessionStorage.getItem("sewak.registrationRole") || "user");
   const [organization, setOrganization] = useState({});
   const [organizationName, setOrganizationName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -110,13 +110,13 @@ export default function AuthPage() {
   const forgotPassword = () => { setError(''); setSuccess('Contact your Sewak administrator for account recovery. Automated reset email is not configured.'); };
 
   return (
-    <div className={`auth-shell ${mode === "login" ? "auth-shell--login" : "auth-shell--signup"}`}>
+    <div className={`auth-shell marketplace-auth ${mode === "login" ? "auth-shell--login" : "auth-shell--signup"}`}>
       {mode === "login" ? <LoginExperience /> : <SignupExperience />}
 
-      <div className="auth-card">
+      <main id="main-content" className="auth-card">
         {mode === "login" && <div className="login-card-mark" aria-hidden="true"><LoginIcon name="heart" /></div>}
         {mode === "register" && <div className="signup-card-eyebrow"><span aria-hidden="true" />LET’S MAKE CARE EASIER</div>}
-        <h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2>
+        <h1>{mode === "login" ? "Welcome back" : "Create your account"}</h1>
         <p>
           {mode === "login"
             ? "Continue to your Sewak account."
@@ -128,6 +128,7 @@ export default function AuthPage() {
         {success && <div className="success-message" role="status">{success}</div>}
 
         {mode === "register" ? <SignupRegistrationForm
+          initialRoleSelected={["user", "orgadmin", "caregiver"].includes(params.get("role")) || registrationPending || Boolean(userDoc?.registrationIncomplete)}
           values={{ fullName, email, password, selectedRole, organizationName, organization }}
           onChange={(key, value) => ({ fullName: setFullName, email: setEmail, password: setPassword, selectedRole: setSelectedRole, organizationName: setOrganizationName, organization: setOrganization })[key](value)}
           onSubmit={handleSubmit} loading={loading} passwordRequired={!auth.currentUser} error={error} clearError={() => setError('')}
@@ -184,7 +185,7 @@ export default function AuthPage() {
         </div>
         {mode === "register" && <div className="signup-footer-note"><SignupIcon name="lock" />Care begins with a little trust.</div>}
         <a className="auth-home-link" href="/">Back to Sewak home</a>
-      </div>
+      </main>
     </div>
   );
 }

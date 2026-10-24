@@ -1,3 +1,4 @@
+const {chooseRegistrationRole}=require('./signup-helpers.cjs');
 const {test,expect}=require('./test.cjs');
 const {seed,db,createTestAccount}=require('./seed.cjs');
 test.beforeAll(seed);
@@ -7,7 +8,7 @@ async function registerCustomerForProfile(page,suffix){
  await page.getByLabel('Full name',{exact:true}).fill('Synthetic onboarding customer');
  await page.getByLabel('Email',{exact:true}).fill(email);
  await page.getByLabel('Password',{exact:true}).fill('Local-test-only-123!');
- await page.getByRole('radio',{name:/Customer/}).check();
+ await chooseRegistrationRole(page, /Find care/);
  await page.getByRole('button',{name:'Sign up',exact:true}).click();
  await expect(page).toHaveURL(/\/user\/profile$/);
  await page.getByLabel('Phone Number *',{exact:true}).fill('9800000000');
@@ -50,7 +51,7 @@ test('asset security headers allow Cloudflare sessions without external auth ori
 });
 for(const width of [320,375,430,768,1366,1920])test(`public and four authenticated role routes at ${width}px`,async({browser})=>{
  const context=await browser.newContext({viewport:{width,height:900}});const page=await context.newPage();
- await page.goto('/browse');await expect(page.getByRole('heading',{name:'Meet your next care partner.',exact:true})).toBeVisible();await checkOverflow(page);
+ await page.goto('/browse');await expect(page.getByRole('heading',{name:'A little help. The right person.',exact:true})).toBeVisible();await checkOverflow(page);
  const menu=page.getByRole('button',{name:'Open navigation',exact:true});if(await menu.isVisible())await menu.click();
  await page.getByRole('navigation',{name:'Public pages'}).getByRole('link',{name:'Find care jobs',exact:true}).click();
  await page.getByRole('link',{name:'Create a family account'}).click();await expect(page.getByLabel('Full name')).toBeVisible();
@@ -129,7 +130,7 @@ test('organization retains booking history after caregiver leaves roster; custom
 
 test('slow loading and offline authentication show recoverable state; local navigation timings are recorded',async({page,context},testInfo)=>{
  await page.route('**/*.js',async route=>{await new Promise(resolve=>setTimeout(resolve,150));await route.continue();});
- await page.goto('/browse');await expect(page.getByRole('heading',{name:'Meet your next care partner.',exact:true})).toBeVisible();
+ await page.goto('/browse');await expect(page.getByRole('heading',{name:'A little help. The right person.',exact:true})).toBeVisible();
  const metrics=await page.evaluate(()=>{const n=performance.getEntriesByType('navigation')[0];return {environment:'local Chrome, synthetic 150ms script delay; not field Web Vitals',domContentLoadedMs:n.domContentLoadedEventEnd,loadMs:n.loadEventEnd,paint:performance.getEntriesByType('paint').map(p=>({name:p.name,startTime:p.startTime})),scripts:performance.getEntriesByType('resource').filter(r=>r.initiatorType==='script').length};});await testInfo.attach('local-navigation-metrics',{body:JSON.stringify(metrics,null,2),contentType:'application/json'});
  await page.goto('/auth');await page.getByLabel('Email',{exact:true}).fill('offline@example.test');await page.getByLabel('Password',{exact:true}).fill('Local-test-only-123!');await context.setOffline(true);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page.getByRole('alert')).toBeVisible({timeout:30000});await context.setOffline(false);await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeEnabled();
 });
@@ -137,7 +138,7 @@ test('slow loading and offline authentication show recoverable state; local navi
 test('an authenticated account without a profile can resume organization signup without a second sign-in or elevated permissions',async({page})=>{
  await createTestAccount({uid:'e2e-recovery',email:'e2e-recovery@example.test',password:'Local-test-only-123!'});
  await page.goto('/auth');await page.getByLabel('Email',{exact:true}).fill('e2e-recovery@example.test');await page.getByLabel('Password',{exact:true}).fill('Local-test-only-123!');await page.getByRole('button',{name:'Sign in',exact:true}).click();
- await expect(page.getByLabel('Full name')).toBeVisible();await page.getByLabel('Full name').fill('Recovered Test Applicant');await page.getByRole('radio',{name:/Organization\/Company/}).check();await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByLabel('Organization/Company Name').fill('Recovered Test Organization');await page.getByRole('combobox',{name:'Organization Type *',exact:true}).selectOption('Caregiver Agency');await page.getByLabel('Phone Number *').fill('9800000000');await page.getByRole('combobox',{name:'City *',exact:true}).selectOption('Hetauda');await page.getByLabel('Address *',{exact:true}).fill('Synthetic Road 12');await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByRole('button',{name:'Submit application',exact:true}).click();
+ await expect(page.getByLabel('Full name')).toBeVisible();await page.getByLabel('Full name').fill('Recovered Test Applicant');await chooseRegistrationRole(page, /Register an organization/);await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByLabel('Organization/Company Name').fill('Recovered Test Organization');await page.getByRole('combobox',{name:'Organization Type *',exact:true}).selectOption('Caregiver Agency');await page.getByLabel('Phone Number *').fill('9800000000');await page.getByRole('combobox',{name:'City *',exact:true}).selectOption('Hetauda');await page.getByLabel('Address *',{exact:true}).fill('Synthetic Road 12');await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByRole('button',{name:'Submit application',exact:true}).click();
  await expect(page).toHaveURL(/\/organization\/profile/);await expect.poll(async()=> (await db.doc('users/e2e-recovery').get()).data()?.role).toBe('orgadmin');await expect.poll(async()=> (await db.doc('organizationApplications/e2e-recovery').get()).data()?.status).toBe('pending');await expect(page.getByRole('button',{name:/Account menu for Recovered Test Applicant/})).toBeVisible();
 });
 

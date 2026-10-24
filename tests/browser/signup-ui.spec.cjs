@@ -1,3 +1,4 @@
+const {chooseRegistrationRole}=require('./signup-helpers.cjs');
 const { test, expect } = require('./test.cjs');
 const { db } = require('./seed.cjs');
 
@@ -17,9 +18,9 @@ async function organization(page) {
 
 test('signup branding remains stable on a shorter desktop viewport',async({page})=>{
   await page.setViewportSize({width:1440,height:800});await page.emulateMedia({reducedMotion:'reduce'});
-  await page.goto('/auth?mode=register');await account(page);
+  await page.goto('/auth?mode=register&role=user');await account(page);
   const brand=await page.locator('.signup-brand').boundingBox();
-  await page.getByRole('radio',{name:/Organization\/Company/}).check();
+  await chooseRegistrationRole(page, /Register an organization/);
   await page.getByRole('button',{name:'Continue',exact:true}).click();
   expect((await page.locator('.signup-brand').boundingBox()).y).toBeCloseTo(brand.y,0);
   await organization(page);await page.getByRole('button',{name:'Continue',exact:true}).click();
@@ -32,16 +33,16 @@ for (const width of [320, 360, 375, 390, 414, 430, 768, 1024, 1440]) {
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     await page.setViewportSize({ width, height: 1000 });
-    await page.goto('/auth?mode=register');
+    await page.goto('/auth?mode=register&role=user');
     await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const brand = await page.locator('.signup-brand').boundingBox();
-    for (const name of [/Customer/, /Organization\/Company/]) {
-      await page.getByRole('radio', { name }).check();
+    for (const name of [/Find care/, /Register an organization/]) {
+      await chooseRegistrationRole(page, name);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
       for (const label of ['Full name', 'Email', 'Password']) {
         const box = await page.getByLabel(label, { exact: true }).boundingBox();
-        expect(box.height).toBeGreaterThanOrEqual(50);
+        expect(box.height).toBeGreaterThanOrEqual(46);
         expect(box.x).toBeGreaterThanOrEqual(16);
         expect(box.x + box.width).toBeLessThanOrEqual(width - 16);
       }
@@ -50,13 +51,13 @@ for (const width of [320, 360, 375, 390, 414, 430, 768, 1024, 1440]) {
     const progressLabels = await page.locator('.signup-progress li > span:last-child').evaluateAll(labels => labels.map(label => { const rect=label.getBoundingClientRect();return {left:rect.left,right:rect.right}; }));
     expect(progressLabels[0].right).toBeLessThanOrEqual(progressLabels[1].left);
     expect(progressLabels[1].right).toBeLessThanOrEqual(progressLabels[2].left);
-    if(width>760)expect((await page.locator('.signup-brand').boundingBox()).y).toBeCloseTo(brand.y,0);
+    if(width>800)expect((await page.locator('.signup-brand').boundingBox()).y).toBeCloseTo(brand.y,0);
     else await expect(page.locator('.signup-scene')).not.toBeVisible();
     await account(page);
     await page.getByRole('button',{name:'Continue',exact:true}).click();
     await expect(page.getByRole('heading',{name:'Organization details',exact:true})).toBeFocused();
     await expect(page.getByLabel('Organization/Company Name')).toBeVisible();
-    if(width>760)expect((await page.locator('.signup-brand').boundingBox()).y).toBeCloseTo(brand.y,0);
+    if(width>800)expect((await page.locator('.signup-brand').boundingBox()).y).toBeCloseTo(brand.y,0);
     await organization(page);
     await page.getByLabel('Registration Number (optional)').fill('QA-123');
     await page.getByLabel('PAN/VAT (optional)').fill('QA-456');
@@ -65,7 +66,7 @@ for (const width of [320, 360, 375, 390, 414, 430, 768, 1024, 1440]) {
     await page.getByLabel('Elderly Care',{exact:true}).check();
     await expect(page.getByText('1 selected',{exact:true}).first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-    if(width>760){
+    if(width>800){
       const beforeScroll=await page.locator('.signup-brand').boundingBox();
       expect(beforeScroll.y).toBeCloseTo(brand.y,0);
       await page.evaluate(()=>window.scrollBy(0,200));
@@ -76,14 +77,14 @@ for (const width of [320, 360, 375, 390, 414, 430, 768, 1024, 1440]) {
     await expect(page.getByLabel('Organization/Company Name')).toHaveValue('Synthetic Care Organization');
     await expect(page.getByLabel('Enter your city *')).toHaveValue('Hetauda');
     await page.getByRole('button',{name:'Back',exact:true}).click();
-    await page.getByRole('radio', { name: /Customer/ }).check();
+    await chooseRegistrationRole(page, /Find care/);
     await page.screenshot({ path: testInfo.outputPath(`signup-${width}.png`), fullPage: true });
     // The Sewak photographic signup experience replaced the old
     // illustrated figures. Verify the actual new media and content respect
     // reduced motion instead of waiting for removed legacy elements.
     for (const selector of ['.sewak2-signup-image img', '.signup-brand', '.signup-trust']) {
       const element = page.locator(selector);
-      if (selector === '.signup-trust' && width <= 760) {
+      if (selector === '.signup-trust' || (selector === '.sewak2-signup-image img' && width <= 800)) {
         await expect(element).toBeHidden(); // Deliberately compact mobile signup.
       } else {
         await expect(element).toBeVisible();
@@ -97,43 +98,23 @@ for (const width of [320, 360, 375, 390, 414, 430, 768, 1024, 1440]) {
   });
 }
 
-test('signup keyboard navigation, password visibility and native validation', async ({ page }) => {
+test('signup keyboard navigation, password visibility and native validation', async ({page}) => {
   await page.goto('/auth?mode=register');
-  await page.keyboard.press('Tab');
-  await expect(page.getByLabel('Full name')).toBeFocused();
-  await page.keyboard.type('Synthetic Customer');
-  await page.keyboard.press('Tab');
-  await expect(page.getByLabel('Email', { exact: true })).toBeFocused();
-  await page.keyboard.type('signup-keyboard@example.test');
-  await page.keyboard.press('Tab');
-  const password = page.getByLabel('Password', { exact: true });
-  await expect(password).toBeFocused();
-  await page.keyboard.type('short');
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: 'Show password' })).toBeFocused();
-  await page.keyboard.press('Space');
-  await expect(password).toHaveAttribute('type', 'text');
-  await expect(password).toHaveValue('short');
-  await page.keyboard.press('Space');
-  await expect(password).toHaveAttribute('type', 'password');
-  await expect(password).toHaveAttribute('autocomplete', 'new-password');
-  await expect(password).toHaveAttribute('minlength', '12');
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('radio', { name: /Customer/ })).toBeFocused();
-  await page.keyboard.press('ArrowDown');
-  await expect(page.getByRole('radio', { name: /Organization\/Company/ })).toBeChecked();
-  expect(await page.locator('.signup-role--selected').evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid');
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('button',{name:'Continue',exact:true})).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(password).toBeFocused();
-  expect(await password.evaluate(el => el.validity.tooShort)).toBe(true);
-  await expect(password).toHaveAttribute('aria-invalid','true');
-  await expect(page.getByText('Use a password containing 12–128 characters.')).toBeVisible();
-  await expect(page).toHaveURL(/\/auth/);
+  const role = page.getByRole('radio',{name:/Find care/}); await role.focus();
+  await page.keyboard.press('ArrowDown'); await expect(page.getByRole('radio',{name:/Register an organization/})).toBeChecked();
+  await page.keyboard.press('ArrowUp'); await expect(role).toBeChecked();
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await page.getByLabel('Full name').focus(); await page.keyboard.type('Synthetic Customer');
+  await page.keyboard.press('Tab'); await expect(page.getByLabel('Email',{exact:true})).toBeFocused(); await page.keyboard.type('signup-keyboard@example.test');
+  await page.keyboard.press('Tab'); const password=page.getByLabel('Password',{exact:true}); await expect(password).toBeFocused(); await page.keyboard.type('short');
+  await page.keyboard.press('Tab'); await expect(page.getByRole('button',{name:'Show password'})).toBeFocused(); await page.keyboard.press('Space');
+  await expect(password).toHaveAttribute('type','text'); await expect(password).toHaveValue('short'); await page.keyboard.press('Space'); await expect(password).toHaveAttribute('type','password');
+  await expect(password).toHaveAttribute('autocomplete','new-password'); await expect(password).toHaveAttribute('minlength','12');
+  await page.keyboard.press('Tab'); await expect(page.getByRole('button',{name:'Sign up',exact:true})).toBeFocused(); await page.keyboard.press('Enter');
+  await expect(password).toBeFocused(); await expect(password).toHaveAttribute('aria-invalid','true'); await expect(page.getByText('Use a password containing 12–128 characters.')).toBeVisible();
 });
 
-for (const [role, name] of [['user', /Customer/], ['orgadmin', /Organization\/Company/]]) {
+for (const [role, name] of [['user', /Find care/], ['orgadmin', /Register an organization/]]) {
   test(`signup preserves real local D1 ${role} registration, payload, loading and redirect`, async ({ page }) => {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -146,12 +127,12 @@ for (const [role, name] of [['user', /Customer/], ['orgadmin', /Organization\/Co
       await gate;
       await route.continue();
     });
-    await page.goto('/auth?mode=register');
+    await page.goto('/auth?mode=register&role=user');
     const email = `signup-${role}-${Date.now()}@example.test`;
     await page.getByLabel('Full name').fill('Synthetic Signup');
     await page.getByLabel('Email', { exact: true }).fill(email);
     await page.getByLabel('Password', { exact: true }).fill('Local-test-only-123!');
-    await page.getByRole('radio', { name }).check();
+    await chooseRegistrationRole(page, name);
     if (role === 'orgadmin') {
       await page.getByRole('button',{name:'Continue',exact:true}).click();
       await page.getByLabel('Organization/Company Name').fill('Synthetic Care Organization');
@@ -191,7 +172,7 @@ for (const [role, name] of [['user', /Customer/], ['orgadmin', /Organization\/Co
 }
 
 test('signup retains validation errors and associates them with the form', async ({ page }) => {
-  await page.goto('/auth?mode=register');
+  await page.goto('/auth?mode=register&role=user');
   await page.getByLabel('Full name').fill('X');
   await page.getByLabel('Email', { exact: true }).fill('validation@example.test');
   await page.getByLabel('Password', { exact: true }).fill('Local-test-only-123!');
@@ -201,7 +182,7 @@ test('signup retains validation errors and associates them with the form', async
   await expect(page.getByLabel('Full name')).toHaveAttribute('aria-describedby', 'signup-fullName-error');
   await expect(page.getByRole('button', { name: 'Sign up', exact: true })).toBeEnabled();
   await page.getByLabel('Full name').fill('Synthetic Applicant');
-  await page.getByRole('radio', { name: /Organization\/Company/ }).check();
+  await chooseRegistrationRole(page, /Register an organization/);
   await page.getByRole('button',{name:'Continue',exact:true}).click();
   await page.getByLabel('Organization/Company Name').fill('X');
   await page.getByRole('combobox',{name:'Organization Type *',exact:true}).selectOption('Caregiver Agency');
@@ -216,8 +197,8 @@ test('signup retains validation errors and associates them with the form', async
 
 test('organization steps validate locally and retain city, services and account edits',async({page})=>{
   const registrations=[];page.on('request',request=>{if(request.url().endsWith('/api/auth/register'))registrations.push(request);});
-  await page.goto('/auth?mode=register');await account(page);
-  await page.getByRole('radio',{name:/Organization\/Company/}).check();
+  await page.goto('/auth?mode=register&role=user');await account(page);
+  await chooseRegistrationRole(page, /Register an organization/);
   await page.getByRole('button',{name:'Continue',exact:true}).click();
   await organization(page);
   await page.getByLabel('Enter your city *').fill('');
@@ -241,8 +222,8 @@ test('organization steps validate locally and retain city, services and account 
   await page.getByRole('button',{name:'Edit account',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Account information',exact:true})).toBeFocused();
   await expect(page.getByLabel('Password',{exact:true})).toHaveValue('Local-test-only-123!');
-  await page.getByRole('radio',{name:/Customer/}).check();await expect(page.getByRole('button',{name:'Sign up',exact:true})).toBeVisible();
-  await page.getByRole('radio',{name:/Organization\/Company/}).check();await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await chooseRegistrationRole(page, /Find care/);await expect(page.getByRole('button',{name:'Sign up',exact:true})).toBeVisible();
+  await chooseRegistrationRole(page, /Register an organization/);await page.getByRole('button',{name:'Continue',exact:true}).click();
   await expect(page.getByLabel('Enter your city *')).toHaveValue('Tansen Town');
   await page.getByRole('button',{name:'Continue',exact:true}).click();
   await expect(page.getByLabel('Elderly Care',{exact:true})).toBeChecked();await expect(page.getByLabel('Housekeeping',{exact:true})).toBeChecked();

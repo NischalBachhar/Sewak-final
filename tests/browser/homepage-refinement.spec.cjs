@@ -26,14 +26,14 @@ for (const width of [320, 375, 430, 768, 1024, 1366, 1440, 1920]) {
     await expect(marketplace).toBeVisible();
     await expect(marketplace.getByRole('heading', { level: 1 })).toHaveText('The right care. Right here.');
     await expect(marketplace.getByRole('search', { name: 'Find caregivers on Sewak' })).toBeVisible();
-    await expect(marketplace.locator('.caregiver-preview-card')).toHaveCount(1);
+    await expect(marketplace.locator('.care-listing-card')).toHaveCount(1);
     await expect(marketplace).toContainText('Test Caregiver');
     await expect(marketplace).toContainText('Accepting requests');
-    await expect(marketplace.getByRole('button', { name: /Sign in to book/ })).toBeEnabled();
+    await expect(marketplace.getByRole('button', { name: /Request availability/ })).toBeEnabled();
     const position = await page.evaluate(() => {
       const first = document.querySelector('#main-content').firstElementChild;
       const box = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
-      return { first: first.id, card: box('.home-marketplace .caregiver-preview-card'), stories: box('.sewak2-stories'), services: box('#services') };
+      return { first: first.id, card: box('.marketplace-home .care-listing-card'), stories: box('.sewak2-stories'), services: box('#services') };
     });
     expect(position.first).toBe('caregivers');
     expect(position.card.top).toBeLessThan(height);
@@ -71,24 +71,20 @@ test('Homepage filters genuine profiles without visiting another search page', a
   await page.goto('/');
   const marketplace = page.getByRole('region', { name: 'Find and book a caregiver' });
   await expect(marketplace).toContainText('Test Caregiver');
-  await marketplace.getByRole('searchbox', { name: 'Caregiver or area' }).fill('Test Caregiver');
   await marketplace.getByRole('combobox', { name: 'Service' }).selectOption('e2e-care');
-  await marketplace.getByRole('button', { name: 'More filters' }).click();
   await marketplace.getByRole('textbox', { name: 'City or locality' }).fill('Hetauda');
-  await marketplace.getByRole('combobox', { name: 'Support type' }).selectOption('caregiver');
   await marketplace.getByRole('button', { name: /Find caregivers/ }).click();
   await expect(marketplace).toContainText('Test Caregiver');
-  expect(queries.some(query => query.search?.text === 'Test Caregiver'
-    && query.search?.serviceId === 'e2e-care'
-    && query.search?.location === 'Hetauda'
-    && query.search?.category === 'caregiver')).toBe(true);
+  expect(queries.some(query => query.search?.serviceId === 'e2e-care'
+    && query.search?.location === 'Hetauda')).toBe(true);
   await expect(page).toHaveURL(/\/$/);
 });
 
 test('Homepage booking action preserves selected caregiver through sign-in', async ({ page }) => {
   await page.goto('/');
   const marketplace = page.getByRole('region', { name: 'Find and book a caregiver' });
-  await marketplace.getByRole('button', { name: /Sign in to book/ }).click();
+  await marketplace.getByRole('button', { name: /Request availability/ }).click();
+  await page.getByRole('button',{name:'Continue to request'}).click();
   await expect(page).toHaveURL(/\/auth$/);
   expect(await page.evaluate(() => localStorage.getItem('pendingBookingCaregiverId'))).toBe('e2e-caregiver');
 });

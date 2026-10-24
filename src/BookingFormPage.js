@@ -1,3 +1,4 @@
+import { readCareIntent } from './bookingIntent';
 import NepalCitySelect from './components/NepalCitySelect';
 import React, { useEffect, useRef, useState } from "react";
 import { collection, documentId, getDocs, query, where } from "./d1Client";
@@ -47,8 +48,8 @@ export default function BookingFormPage({ caregiver, onBooked }) {
   const [careRecipient, setCareRecipient] = useState("");
   const [serviceId, setServiceId] = useState(caregiver?.servicesOffered?.[0] || "");
   const [careNeeds, setCareNeeds] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+  const [date, setDate] = useState(() => readCareIntent(caregiver?.id).date || '');
+  const [time, setTime] = useState(() => readCareIntent(caregiver?.id).time || '');
   const [requestedTimeWindows, setRequestedTimeWindows] = useState([]);
   const [durationHours, setDurationHours] = useState(4);
   const [recurrence, setRecurrence] = useState("one_time");

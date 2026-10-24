@@ -22,7 +22,7 @@ test('self-hosted Sewak media preserves the static fallback when delivery fails'
  const response=await page.goto('/');
  expect(response.headers()['content-security-policy']).toContain("media-src 'self';");
  expect(response.headers()['content-security-policy']).toContain("img-src 'self' blob: data:;");
- const fallback=page.locator('.home-marketplace__hero-visual img');
+ const fallback=page.locator('.care-search-hero .sewak-care-media img');
  await expect(fallback).toHaveAttribute('src','/images/care-for-every-generation.webp');
  await expect.poll(()=>fallback.evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
  await expect(page.getByRole('button',{name:'Pause background video'})).toHaveCount(0);
@@ -33,7 +33,7 @@ for(const width of [320,360,390,720,1440])test(`original hero MP4 plays, can be 
  await page.setViewportSize({width,height:900});
  await page.emulateMedia({reducedMotion:'no-preference'});
  await page.goto('/');
- const video=page.locator('.home-marketplace__hero-visual video');
+ const video=page.locator('.care-search-hero .sewak-care-media video');
  await expect(video).toHaveClass('is-ready');
  await expect.poll(()=>video.evaluate(el=>el.readyState)).toBeGreaterThanOrEqual(2);
  await page.getByRole('button',{name:'Pause background video'}).click();
@@ -42,7 +42,7 @@ for(const width of [320,360,390,720,1440])test(`original hero MP4 plays, can be 
  await expect.poll(()=>video.evaluate(el=>el.paused)).toBe(false);
  const control=page.getByRole('button',{name:'Pause background video'}),box=await control.boundingBox();
  expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);
- for(const link of await page.locator('.home-marketplace__quick-categories a').all()){
+ for(const link of await page.locator('.care-category-tile').all()){
   const target=await link.boundingBox();expect(box.x<target.x+target.width&&box.x+box.width>target.x&&box.y<target.y+target.height&&box.y+box.height>target.y).toBe(false);
  }
  await control.focus();await page.keyboard.press('Enter');await expect.poll(()=>video.evaluate(el=>el.paused)).toBe(true);
@@ -50,7 +50,7 @@ for(const width of [320,360,390,720,1440])test(`original hero MP4 plays, can be 
  await page.screenshot({path:info.outputPath(`public-player-${width}.png`),animations:'disabled'});
  await page.emulateMedia({reducedMotion:'reduce'});
  await expect(video).toHaveCount(0);
- await expect(page.locator('.home-marketplace__hero-visual img')).toBeVisible();
+ await expect(page.locator('.care-search-hero .sewak-care-media img')).toBeVisible();
 });
 
 for(const width of [320,390,768,1440,1920])test(`expanded marketplace screens and organization at ${width}px`,async({page},info)=>{

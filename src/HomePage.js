@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import PublicHeader from './components/PublicHeader';
+import PublicFooter from './components/PublicFooter';
+import VerifiedCareReviews from './components/VerifiedCareReviews';
+import CareCategoryTiles from './components/CareCategoryTiles';
 import { LoginIcon } from './components/LoginExperience';
 import { loadServiceOptions } from './components/ServiceSelector';
 import HomeServiceIcon from './components/HomeServiceIcon';
 import './HomePage.css';
+import { publicServiceChoices } from './serviceCatalog';
 import HomeCaregiverMarketplace from './components/HomeCaregiverMarketplace';
 import Sewak2Stories from './components/Sewak2Stories';
 
@@ -18,7 +22,7 @@ export default function HomePage() {
     let active = true;
     setState('loading');
     loadServiceOptions().then(items => {
-      if (active) { setServices(items.map(item => ({ ...item, category: item.category === 'vendor' ? 'household' : item.category }))); setState('ready'); }
+      if (active) { setServices(publicServiceChoices(items).map(item => ({ ...item, category: item.category === 'vendor' ? 'household' : item.category }))); setState('ready'); }
     }).catch(() => { if (active) setState('error'); });
     return () => { active = false; };
   }, [attempt]);
@@ -29,15 +33,10 @@ export default function HomePage() {
     <PublicHeader />
     <main id="main-content">
       <HomeCaregiverMarketplace />
+      <section className="marketplace-categories" aria-labelledby="care-categories-title"><div className="marketplace-section-heading"><div><p className="care-eyebrow">A helping hand, your way</p><h2 id="care-categories-title">Care for every part of life.</h2></div><Link to="/care-services">Explore all services →</Link></div><CareCategoryTiles /></section>
       <Sewak2Stories />
-      <div className="home-values" aria-label="The Sewak care experience">
-        <div><span className="home-icon"><LoginIcon name="heart" /></span><strong>Care for every generation</strong></div>
-        <div><span className="home-icon"><LoginIcon name="shield" /></span><strong>Review profile details</strong></div>
-        <div><span className="home-icon"><LoginIcon name="clock" /></span><strong>Request a flexible schedule</strong></div>
-        <div><span className="home-icon"><LoginIcon name="home" /></span><strong>Manage care in one place</strong></div>
-      </div>
       <section id="services" className="home-section" aria-labelledby="services-title">
-        <div className="home-section-heading"><div><p className="home-eyebrow">A helping hand, your way</p><h2 id="services-title">Support that fits your life.</h2></div><p>Explore Sewak’s current service catalog. Availability and pricing depend on the care professional you choose.</p></div>
+        <div className="home-section-heading"><div><p className="home-eyebrow">A helping hand, your way</p><h2 id="services-title">Support that fits your life.</h2></div><p>Choose the help you need, then compare caregivers, schedules and published rates.</p></div>
         {state === 'loading' && <p className="home-catalog-state" role="status">Loading available services…</p>}
         {state === 'error' && <div className="home-catalog-state" role="alert"><p>We couldn’t load services right now.</p><button className="home-button home-button--outline" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>}
         {state === 'ready' && !services.length && <p className="home-catalog-state">There are no published services to show yet. Please check back soon.</p>}
@@ -48,8 +47,9 @@ export default function HomePage() {
         <div className="home-section-heading"><div><p className="home-eyebrow">A simpler way to arrange care</p><h2 id="how-title">A little help.<br /><em>A lot of possibility.</em></h2></div><p>Three steps from searching to arranging support.</p></div>
         <ol className="home-steps">{[['01', 'Find your care partner', 'Search by service and location to find someone who fits your needs.'], ['02', 'Request the support you need', 'Choose a service and schedule. Care is confirmed only after the caregiver accepts.'], ['03', 'Keep care in one place', 'Manage your bookings through your Sewak account.']].map(([number, title, copy]) => <li key={number}><span aria-hidden="true">{number}</span><h3>{title}</h3><p>{copy}</p></li>)}</ol>
       </section>
-      <section className="home-join home-section" aria-labelledby="join-title"><div><p className="home-eyebrow">Stronger homes. Connected communities.</p><h2 id="join-title">Find care. <em>Or help others find it.</em></h2><p>Explore support for your family. Organizations can select their role at signup and apply for review.</p><Link className="home-text-link" to="/auth">Already part of Sewak? Sign in</Link></div><div className="home-actions"><Link className="home-button" to="/browse">Find Care for My Family <LoginIcon name="arrow" /></Link><Link className="home-button home-button--outline" to="/auth?mode=register">Register My Organization <LoginIcon name="arrow" /></Link></div></section>
+      <VerifiedCareReviews />
+      <section className="home-join home-section" aria-labelledby="join-title"><div><p className="home-eyebrow">Stronger homes. Connected communities.</p><h2 id="join-title">Find care. <em>Or help others find it.</em></h2><p>Explore support for your family. Find care, offer your skills, or bring your care team to Sewak.</p><Link className="home-text-link" to="/auth">Already part of Sewak? Sign in</Link></div><div className="home-actions"><Link className="home-button" to="/browse">Find Care for My Family <LoginIcon name="arrow" /></Link><Link className="home-button home-button--outline" to="/auth?mode=register&role=orgadmin">Register My Organization <LoginIcon name="arrow" /></Link></div></section>
     </main>
-    <footer className="home-footer"><Link className="home-footer__brand" to="/">Sewak</Link><p>Care for every stage of life. Across Nepal.</p><nav aria-label="Footer"><Link to="/browse">Find Care</Link><Link to="/auth?mode=register">Join Sewak</Link><a href="#how-it-works">How it works</a></nav></footer>
+    <PublicFooter />
   </div>;
 }

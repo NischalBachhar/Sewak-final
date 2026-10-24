@@ -6,8 +6,8 @@ const steps = ['Account information', 'Organization details', 'Services and conf
 
 // This is a presentation flow. The parent submits the same complete payload to
 // the existing atomic registration endpoint only after the final step.
-export default function SignupRegistrationForm({ values, onChange, onSubmit, loading, passwordRequired, error, clearError }) {
-  const [step, setStep] = useState(1);
+export default function SignupRegistrationForm({ values, onChange, onSubmit, loading, passwordRequired, error, clearError, initialRoleSelected = false }) {
+  const [step, setStep] = useState(initialRoleSelected ? 1 : 0);
   const [errors, setErrors] = useState({});
   const [passwordVisible, setPasswordVisible] = useState(false);
   const form = useRef(null), heading = useRef(null), previousStep = useRef(1);
@@ -48,7 +48,9 @@ export default function SignupRegistrationForm({ values, onChange, onSubmit, loa
   };
   const submit = event => {
     event.preventDefault();
-    if (loading || !validate()) return;
+    if (loading) return;
+    if (step === 0) { go(1); return; }
+    if (!validate()) return;
     if (org && step < 3) go(step + 1);
     else onSubmit(event);
   };
@@ -66,27 +68,30 @@ export default function SignupRegistrationForm({ values, onChange, onSubmit, loa
   </div>;
   return <form ref={form} className="form signup-registration-form" noValidate onSubmit={submit} aria-describedby={error ? 'auth-error' : undefined}
     onChangeCapture={event => { const key = event.target.name; if (errors[key]) setErrors(current => { const next = { ...current }; delete next[key]; return next; }); }}>
-    {org && <ol className="signup-progress" aria-label="Organization registration progress">{steps.map((label, index) => <li key={label} aria-current={step === index + 1 ? 'step' : undefined} className={step > index + 1 ? 'is-complete' : ''}><span aria-hidden="true">{step > index + 1 ? <SignupIcon name="check" /> : index + 1}</span><span>{['Account','Organization','Review'][index]}</span></li>)}</ol>}
-    <div className="signup-step-intro">
-      {org && <p className="signup-step-number">Step {step} of 3</p>}
-      <h3 ref={heading} tabIndex={-1}>{steps[step - 1]}</h3>
-      <p>{step === 1 ? 'Start with your account. Your details stay with you as you continue.' : step === 2 ? 'Tell us about your organization so Sewak can review your application. Fields marked * are required.' : 'Choose the support you provide, then check your details before submitting for review.'}</p>
-    </div>
-    {Object.keys(errors).length > 0 && <p className="signup-validation-summary" role="alert">Check the highlighted fields to continue.</p>}
-    <fieldset className="signup-step-fields" hidden={step !== 1} disabled={loading || step !== 1} aria-label="Account information">
-      {input('fullName', 'Full name', 'user', { autoComplete: 'name', maxLength: 120, placeholder: 'Your full name' })}
-      {input('email', 'Email', 'mail', { type: 'email', autoComplete: 'email', maxLength: 254, placeholder: 'your@email.com' })}
-      {input('password', 'Password', 'lock', { type: passwordVisible ? 'text' : 'password', autoComplete: 'new-password', minLength: 12, maxLength: 128, required: passwordRequired, placeholder: 'At least 12 characters' })}
+    {org && step > 0 && <ol className="signup-progress" aria-label="Organization registration progress">{steps.map((label, index) => <li key={label} aria-current={step === index + 1 ? 'step' : undefined} className={step > index + 1 ? 'is-complete' : ''}><span aria-hidden="true">{step > index + 1 ? <SignupIcon name="check" /> : index + 1}</span><span>{['Account','Organization','Review'][index]}</span></li>)}</ol>}
+    <fieldset className="signup-step-fields" hidden={step !== 0} disabled={loading || step !== 0} aria-label="Choose your account type">
       <div className="signup-roles">
-        <p id="registration-role-label">I want to register as</p>
+        <p id="registration-role-label">What brings you to Sewak?</p>
         <div className="role-selection" role="group" aria-labelledby="registration-role-label">
-          {[['user','Customer','Find and book trusted caregivers for your family.','home'],['orgadmin','Organization/Company','Manage your caregivers and provide care through Sewak.','organization'],['caregiver','Caregiver / Care professional','Apply as an independent professional. You will need approval before appearing in search.','user']].map(([role,label,description,icon]) => <label key={role} className={`role-option${values.selectedRole === role ? ' signup-role--selected' : ''}`}>
+          {[['user','Find care','Find and book care for your family.','home'],['orgadmin','Register an organization','Manage your team and offer care services.','organization'],['caregiver','Offer care','Apply as an independent care professional.','user']].map(([role,label,description,icon]) => <label key={role} className={`role-option${values.selectedRole === role ? ' signup-role--selected' : ''}`}>
             <input type="radio" name="role" value={role} checked={values.selectedRole === role} onChange={() => { onChange('selectedRole', role); setErrors({}); clearError(); }} />
             <span className="signup-role-icon"><SignupIcon name={icon} /></span><span className="signup-role-copy"><strong>{label}</strong><span>{description}</span></span><span className="signup-role-check" aria-hidden="true"><SignupIcon name="check" /></span>
           </label>)}
         </div>
         <div className="signup-role-context" aria-live="polite">{org ? 'Organization access follows application review.' : values.selectedRole === 'caregiver' ? 'Your public profile stays hidden until the Sewak team approves it.' : 'A helping hand for the people you love.'}</div>
       </div>
+    </fieldset>
+    {step > 0 && <div className="signup-step-intro">
+      {org && <p className="signup-step-number">Step {step} of 3</p>}
+      <h3 ref={heading} tabIndex={-1}>{steps[step - 1]}</h3>{step === 1 && <button type="button" className="signup-change-role" onClick={() => go(0)}>Change account type</button>}
+      <p>{step === 1 ? 'Start with your account. Your details stay with you as you continue.' : step === 2 ? 'Tell us about your organization so Sewak can review your application. Fields marked * are required.' : 'Choose the support you provide, then check your details before submitting for review.'}</p>
+    </div>}
+    {Object.keys(errors).length > 0 && <p className="signup-validation-summary" role="alert">Check the highlighted fields to continue.</p>}
+    <fieldset className="signup-step-fields" hidden={step !== 1} disabled={loading || step !== 1} aria-label="Account information">
+      {input('fullName', 'Full name', 'user', { autoComplete: 'name', maxLength: 120, placeholder: 'Your full name' })}
+      {input('email', 'Email', 'mail', { type: 'email', autoComplete: 'email', maxLength: 254, placeholder: 'your@email.com' })}
+      {input('password', 'Password', 'lock', { type: passwordVisible ? 'text' : 'password', autoComplete: 'new-password', minLength: 12, maxLength: 128, required: passwordRequired, placeholder: 'At least 12 characters' })}
+
     </fieldset>
     {org && <fieldset className="signup-step-fields" hidden={step !== 2} disabled={loading || step !== 2} aria-label="Organization details">
       {input('organizationName', 'Organization/Company Name', 'organization', { autoComplete: 'organization', maxLength: 160, placeholder: 'e.g., ABC Care Services Pvt. Ltd.' })}
@@ -105,7 +110,7 @@ export default function SignupRegistrationForm({ values, onChange, onSubmit, loa
     </fieldset>}
     <div className="signup-step-actions">
       {org && step > 1 && <button type="button" className="signup-back" disabled={loading} onClick={() => go(step - 1)}>Back</button>}
-      <button type="submit" className="btn btn-primary auth-submit" disabled={loading}>{loading ? 'Creating account...' : !org ? 'Sign up' : step < 3 ? 'Continue' : 'Submit application'}<span className={loading ? 'signup-spinner' : 'signup-submit-arrow'} aria-hidden="true">{!loading && <SignupIcon name="arrow" />}</span></button>
+      <button type="submit" className="btn btn-primary auth-submit" disabled={loading}>{loading ? 'Creating account...' : step === 0 ? 'Continue' : !org ? 'Sign up' : step < 3 ? 'Continue' : 'Submit application'}<span className={loading ? 'signup-spinner' : 'signup-submit-arrow'} aria-hidden="true">{!loading && <SignupIcon name="arrow" />}</span></button>
     </div>
   </form>;
 }
