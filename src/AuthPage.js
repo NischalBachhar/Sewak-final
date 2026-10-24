@@ -119,7 +119,7 @@ export default function AuthPage() {
         <h1>{mode === "login" ? "Welcome back" : "Create your account"}</h1>
         <p>
           {mode === "login"
-            ? "Continue to your Sewak account."
+            ? "Continue to your Sewak workspace."
             : "Join Sewak and make finding trusted care easier."}
         </p>
         {mode === "register" && <div className="signup-context"><SignupIcon name="heart" />Your first step to care, closer to home.</div>}

@@ -35,7 +35,7 @@ jobs:
       - name: Registration, approval, booking and security journeys
         run: npm run test:browser -- signup-ui.spec.cjs combined-organization.spec.cjs organization-moderation.spec.cjs journeys.spec.cjs --grep 'signup|combined organization|organization moderation|real D1 customer request|asset security|account switching|browser photo compression'
       - name: Caregiver previews, availability and discovery
-        run: npm run test:browser -- caregiver-previews.spec.cjs zz-discovery.spec.cjs marketplace-ui.spec.cjs
+        run: npm run test:browser -- caregiver-previews.spec.cjs zz-discovery.spec.cjs marketplace-ui.spec.cjs customer-home.spec.cjs dashboard-refinement.spec.cjs
       - name: New marketplace inbox and availability end-to-end journeys
         run: npm run test:browser -- marketplace-rebuild.spec.cjs marketplace-media.spec.cjs
       - run: npm run build:release

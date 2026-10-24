@@ -3,7 +3,7 @@ import CaregiverPreviewCard from './components/CaregiverPreviewCard';
 import RequestAvailability from './components/RequestAvailability';
 import ProfileImage from "./components/ProfileImage";
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { publicServiceChoices } from './serviceCatalog';
 import { hasVerifiedRating } from "./bookingModel";
@@ -762,6 +762,7 @@ export default function CaregiverListPage({
             <button type="button" className="browse-filter-clear" onClick={clearFilters}>
               Clear filters
             </button>
+            <Link className="care-primary-button" to={requireLogin ? '/auth?intent=post-care-job' : '/user/jobs'}>Post a care request →</Link>
           </div>
         )}
 

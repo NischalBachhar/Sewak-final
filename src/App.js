@@ -20,7 +20,6 @@ import CaregiverAvailabilityPage from "./CaregiverAvailabilityPage";
 import CareMembershipPage from "./CareMembershipPage";
 import Header from "./components/Header";
 import MobileBottomNavigation from "./components/MobileBottomNavigation";
-import { RoleCareHero } from "./components/CareHeroMedia";
 import { ErrorState, SkeletonCard } from "./components/CareExperience";
 import "./App.css";
 import "./DashboardExperience.css";
@@ -385,9 +384,6 @@ function App() {
         onMyBookings={handleMyBookings}
         notificationCount={notificationCount}
       />
-      {((userRole === "caregiver" && ["/caregiver", "/caregiver/dashboard", "/caregiver/home"].includes(location.pathname)) ||
-        (userRole === "orgadmin" && ["/organization", "/organization/dashboard"].includes(location.pathname)) ||
-        (userRole === "superadmin" && ["/superadmin", "/superadmin/overview"].includes(location.pathname))) && <RoleCareHero role={userRole} />}
       <Routes>
         <Route path="/get-started" element={<CareInfoPage page="start" withHeader={false} />} />
         <Route path="/care-services" element={<CareInfoPage page="services" withHeader={false} />} />
@@ -545,7 +541,7 @@ function App() {
             )
           }
         />
-        <Route path="/auth" element={<Navigate to="/" replace />} />
+        <Route path="/auth" element={<Navigate to={userRole === "user" && new URLSearchParams(location.search).get("intent") === "post-care-job" ? "/user/jobs" : "/"} replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <MobileBottomNavigation role={userRole} />

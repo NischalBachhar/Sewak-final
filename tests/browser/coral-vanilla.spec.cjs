@@ -59,10 +59,12 @@ test('Homepage service error, retry and empty catalog are truthful',async({page}
     await route.continue();
   });
   await page.goto('/');
+  await page.locator('#services > summary').click();
   await expect(page.locator('#services').getByRole('alert')).toContainText('We couldn’t load services');
   mode='ready'; await page.locator('#services').getByRole('button',{name:'Try again'}).click();
   await expect(page.locator('.home-service').first()).toBeVisible();
   mode='empty'; await page.reload();
+  await page.locator('#services > summary').click();
   await expect(page.getByText('There are no published services to show yet. Please check back soon.')).toBeVisible();
   await expect(page.locator('.home-service')).toHaveCount(0);
 });

@@ -1,9 +1,9 @@
+import { RoleCareHero } from "./components/CareHeroMedia";
 import { VerificationManagement } from './components/VerificationWorkspace';
 import AdminOperationsPanel from './components/AdminOperationsPanel';
 import { saveService, retireService } from "./servicePublishing";
 import AccessibleDialog from "./components/AccessibleDialog";
 import WorkspaceShell from "./components/WorkspaceShell";
-import Sewak2ActionCenter from "./components/Sewak2ActionCenter";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -1231,7 +1231,7 @@ export default function AdminDashboardPage() {
   return (
     <WorkspaceShell
       role="admin"
-      title={activeTab === "overview" ? "Platform overview" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+      title={activeTab === "overview" ? "Platform overview" : activeTab === "admins" ? "Superadmin access" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
       subtitle="Review platform activity, manage care partners and keep operations accountable."
       activeTab={activeTab}
       onSelect={(tab) => navigate("/superadmin/" + tab)}
@@ -1319,7 +1319,6 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ===== TAB: OPERATIONS OVERVIEW ===== */}
-      {activeTab === "overview" && <Sewak2ActionCenter role="admin" onAction={tab => navigate("/superadmin/" + tab)} metrics={[{label:"Caregivers awaiting review",value:pendingCaregiverCount},{label:"Organizations awaiting review",value:pendingOrgCount + pendingOrganizationApplicationCount},{label:"Safety records awaiting review",value:pendingBlacklistCount}]} />}
       {activeTab === "overview" && (
         <section aria-labelledby="operations-overview-heading">
           <div style={{ marginBottom: "24px" }}>
@@ -1328,10 +1327,22 @@ export default function AdminDashboardPage() {
             </p>
             <h2 id="operations-overview-heading" style={{ margin: "6px 0 8px", color: "var(--theme-text)" }}>What needs attention</h2>
             <p style={{ margin: 0, color: "var(--theme-text-muted)" }}>
-              These counts come from live operational records; they are not performance or trust claims.
+              Review outstanding requests and keep care running smoothly.
             </p>
           </div>
 
+          <div style={{ background: "var(--theme-surface)", border: "1px solid var(--theme-border)", borderRadius: "12px", padding: "20px" }}>
+            <h3 style={{ color: "var(--theme-text)", marginTop: 0 }}>Review queue</h3>
+            {attentionQueues.length ? attentionQueues.map((item) => (
+              <div key={item.title} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "14px 0", borderTop: "1px solid var(--theme-border)", flexWrap: "wrap" }}>
+                <div>
+                  <strong>{item.count} {item.title}</strong>
+                  <p style={{ margin: "4px 0 0", color: "var(--theme-text-muted)", fontSize: "13px" }}>{item.detail}</p>
+                </div>
+                <button type="button" className="btn btn-outline" onClick={() => navigate(`/superadmin/${item.tab}`)}>Open queue</button>
+              </div>
+            )) : <p style={{ margin: 0, color: "var(--theme-text-muted)" }}>No records currently need a review action.</p>}
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "14px", marginBottom: "24px" }}>
             {[
               ["Active care", activeCareCount, "bookings"],
@@ -1354,18 +1365,7 @@ export default function AdminDashboardPage() {
             ))}
           </div>
 
-          <div style={{ background: "var(--theme-surface)", border: "1px solid var(--theme-border)", borderRadius: "12px", padding: "20px" }}>
-            <h3 style={{ color: "var(--theme-text)", marginTop: 0 }}>Review queue</h3>
-            {attentionQueues.length ? attentionQueues.map((item) => (
-              <div key={item.title} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "14px 0", borderTop: "1px solid var(--theme-border)", flexWrap: "wrap" }}>
-                <div>
-                  <strong>{item.count} {item.title}</strong>
-                  <p style={{ margin: "4px 0 0", color: "var(--theme-text-muted)", fontSize: "13px" }}>{item.detail}</p>
-                </div>
-                <button type="button" className="btn btn-outline" onClick={() => navigate(`/superadmin/${item.tab}`)}>Open queue</button>
-              </div>
-            )) : <p style={{ margin: 0, color: "var(--theme-text-muted)" }}>No records currently need a review action.</p>}
-          </div>
+          <RoleCareHero role="superadmin" />
         </section>
       )}
 
@@ -2493,11 +2493,12 @@ export default function AdminDashboardPage() {
             <DashboardLoadingState label="Loading caregivers…" />
           ) : (
             <div>
-              <section
-                className="card"
-                aria-labelledby="public-caregiver-sync-title"
+              <details
+                className="admin-listing-maintenance"
+                aria-label="Listing maintenance"
                 style={{ marginBottom: "18px", padding: "18px" }}
               >
+                <summary>Listing maintenance</summary>
                 <div
                   style={{
                     display: "flex",
@@ -2534,10 +2535,7 @@ export default function AdminDashboardPage() {
                         lineHeight: 1.55,
                       }}
                     >
-                      Publish the PII-free public directory from caregiver
-                      records without Cloud Functions. Only approved,
-                      unsuspended, unblacklisted caregivers from active
-                      organizations can be listed.
+                      Refresh the profiles families can browse. Only eligible, approved caregivers from active organizations are included.
                     </p>
                   </div>
                   <button
@@ -2562,9 +2560,7 @@ export default function AdminDashboardPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  For this free-tier trial, publish after approving, rejecting,
-                  or changing a caregiver. The browser never reads private
-                  caregiver records on public pages.
+                  Refresh listings after reviewing or editing a caregiver. Private contact and verification details stay private.
                 </p>
 
                 {publicCaregiverSyncProgress && (
@@ -2580,7 +2576,7 @@ export default function AdminDashboardPage() {
                     {publicCaregiverSyncProgress}
                   </p>
                 )}
-              </section>
+              </details>
 
               <div
                 style={{ marginBottom: "15px", display: "flex", gap: "10px" }}
@@ -3136,7 +3132,7 @@ export default function AdminDashboardPage() {
 
       {/* ===== TAB: ADMINS ===== */}
       {activeTab === "admins" && (
-        <div>
+        <div className="admin-access">
           <div style={{ marginBottom: "20px" }}>
             <button
               onClick={() => setShowAddSuperAdminForm(!showAddSuperAdminForm)}
@@ -3224,7 +3220,7 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          <h3>Current Superadmins</h3>
+          <h2>Current superadmins</h2><p className="admin-access-help">These accounts have full platform access. Invite only trusted people who need to manage Sewak.</p>
           <div
             style={{
               display: "grid",
@@ -3235,6 +3231,7 @@ export default function AdminDashboardPage() {
             {superAdmins.map((admin) => (
               <div
                 key={admin.id}
+                className="admin-access-card"
                 style={{
                   backgroundColor: "white",
                   padding: "20px",
@@ -3246,7 +3243,7 @@ export default function AdminDashboardPage() {
                       : "1px solid var(--theme-neutral-light)",
                 }}
               >
-                <h5>{admin.name}</h5>
+                <h3>{admin.name || "Superadmin"}</h3>
                 <p>
                   <strong>Email:</strong> {admin.email}
                 </p>
@@ -3258,11 +3255,11 @@ export default function AdminDashboardPage() {
                 </p>
                 <p>
                   <strong>Status:</strong>{" "}
-                  {admin.isSuspended ? "🚫 Suspended" : "✅ Active"}
+                  <span className={"admin-account-status " + (admin.isSuspended ? "is-suspended" : "is-active")}>{admin.isSuspended ? "Suspended" : "Active"}</span>
                 </p>
                 {admin.id === currentUser?.uid && (
                   <p style={{ color: "var(--theme-help)", fontWeight: "bold" }}>
-                    👤 (You)
+                    Your account
                   </p>
                 )}
               </div>

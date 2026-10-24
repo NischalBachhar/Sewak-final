@@ -4,7 +4,7 @@ test.beforeAll(seed);
 
 for(const [role,route,heading] of [
  ['customer','/user/home',/Find & Book Care/],
- ['caregiver','/caregiver',/Test caregiver|Caregiver|Jobs/i],
+ ['caregiver','/caregiver',/Your day at a glance/],
  ['org','/organization/dashboard',/Your workspace overview/],
  ['admin','/superadmin',/Overview|Dashboard/i],
 ]) test(`auth reliability: ${role} login, refresh, logout and protected denial`,async({page,context})=>{
