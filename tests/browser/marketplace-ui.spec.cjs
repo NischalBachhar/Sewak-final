@@ -18,6 +18,7 @@ for (const width of [320,390,768,1366]) {
     await expect(page.locator('.care-listing-card').getByText('NPR 500/hour')).toBeVisible();
     await expect(page.locator('.care-listing-card').getByRole('button',{name:/Request availability/})).toBeEnabled();
     if(width>=1000) expect((await page.locator('.care-listing-card').boundingBox()).y+(await page.locator('.care-listing-card').boundingBox()).height).toBeLessThan(936);
+    if(width===390) { const action=await page.locator('.care-listing-card').getByRole('button',{name:/Request availability/}).boundingBox(); expect(action.y+action.height).toBeLessThan(844); }
     await noOverflow(page,width); await capture(page,'home-'+width);
     await page.evaluate(axe.source);
     const violations=await page.evaluate(async()=> (await window.axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}})).violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})));

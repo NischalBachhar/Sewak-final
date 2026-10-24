@@ -54,7 +54,7 @@ for(const width of [320,375,430,768,1366,1920])test(`public and four authenticat
  await page.goto('/browse');await expect(page.getByRole('heading',{name:'A little help. The right person.',exact:true})).toBeVisible();await checkOverflow(page);
  const menu=page.getByRole('button',{name:'Open navigation',exact:true});if(await menu.isVisible())await menu.click();
  await page.getByRole('navigation',{name:'Public pages'}).getByRole('link',{name:'Find care jobs',exact:true}).click();
- await page.getByRole('link',{name:'Create a family account'}).click();await expect(page.getByLabel('Full name')).toBeVisible();
+ await expect(page).toHaveURL(/mode=register&role=caregiver/);await expect(page.getByLabel('Full name')).toBeVisible();
  for(const [role,route,heading]of[['customer','/user/home','Find & Book Care'],['caregiver','/caregiver/jobs',''],['org','/organization?tab=bookings','Bookings'],['admin','/superadmin/caregivers','Caregivers']]){
   const roleContext=await browser.newContext({viewport:{width,height:900}});const p=await roleContext.newPage();await signIn(p,role);await p.goto(route);
   if(heading)await expect(p.getByRole('heading',{name:new RegExp(heading)}).first()).toBeVisible();else await expect(p.getByRole('heading',{name:/Test caregiver|Caregiver|My jobs|Jobs/i}).first()).toBeVisible();

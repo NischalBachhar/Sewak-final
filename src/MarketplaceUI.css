@@ -266,3 +266,7 @@ body { color:var(--care-ink); font-family:var(--font-display); }
 /* The transparent copy layer must not cover the video's pause control. */
 .care-search-hero__content { pointer-events:none; }
 .care-search-hero__content .care-hero-search { pointer-events:auto; }
+/* Keep rates and the first request action within reach on a phone. */
+@media(max-width:560px) { .care-search-hero__description { display:none; }.care-search-hero h1 { margin-bottom:16px; } }
+@media(max-width:560px) { .care-search-hero__content > .care-eyebrow { display:none; } }
+@media(max-width:560px) { .marketplace-results-heading { padding-top:16px; }.marketplace-availability-note { margin-bottom:10px; } }
