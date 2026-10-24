@@ -62,7 +62,8 @@ for (const width of [320, 1440]) test(`combined organization selects both servic
   await page.getByLabel('Password', { exact: true }).fill('Local-test-only-123!');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page).toHaveURL(/\/superadmin/);
-  await page.getByRole('button', { name: /Organizations/ }).first().click();
+  if (width < 768) await page.getByRole('combobox', { name: 'Administration section' }).selectOption('organizations');
+  else await page.getByRole('button', { name: /Organizations/ }).first().click();
   const application = page.locator('article').filter({ has: page.getByText(name, { exact: true }) });
   await expect(application).toContainText(combined);
   await application.getByRole('button', { name: 'Approve application', exact: true }).click();
