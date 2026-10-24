@@ -1,3 +1,4 @@
+import { RoleCareHero } from "./components/CareHeroMedia";
 import CaregiverEditor from './components/CaregiverEditor';
 import ServiceSelector from './components/ServiceSelector';
 import NepalCitySelect from './components/NepalCitySelect';
@@ -24,7 +25,6 @@ import useOrganizationBookings from "./useOrganizationBookings";
 import { useAuth } from "./AuthContext";
 import "./OrganizationDashboard.css";
 import { OrganizationSidebar, OrganizationMobileNav, OrganizationOverview, OrganizationSectionHeader, OrganizationTeamList, OrganizationBookingsPanel, OrganizationIcon } from "./components/OrganizationWorkspace";
-import Sewak2ActionCenter from "./components/Sewak2ActionCenter";
 
 const validTabs = ["overview", "caregivers", "bookings", "services", "blacklist", "profile"];
 const normalizeServiceCategory = value => value === "vendor" ? "household" : value;
@@ -495,8 +495,8 @@ export default function OrganizationDashboard() {
           )}
         </div>
 
-        {activeTab === "overview" && <Sewak2ActionCenter role="organization" onAction={selectTab} metrics={[{label:"Team members",value:caregivers.length},{label:"Published services",value:orgServices.length}]} />}
         {activeTab === "overview" && <OrganizationOverview organizationData={organizationData} caregivers={caregivers} services={orgServices} bookingHistory={bookingHistory} onSelect={selectTab}/>}
+        {activeTab === "overview" && <RoleCareHero role="orgadmin" />}
       {activeTab === "caregivers" && (
         <section className="org-section-card" aria-label="Team management">
           <OrganizationSectionHeader eyebrow="WORKFORCE" title="Team members" description="Manage caregivers and household workers in one organized workspace." action={<button type="button" className="org-primary-action" onClick={() => { setShowAddCaregiverModal(true); setError(""); }}><OrganizationIcon name="plus" size={18}/> Add team member</button>}/>

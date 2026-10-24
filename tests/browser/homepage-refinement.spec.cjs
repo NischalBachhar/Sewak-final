@@ -56,6 +56,7 @@ test('Homepage service cards open same-page caregivers with that service selecte
   await page.goto('/');
   const services = page.locator('.home-service a');
   await expect(services.first()).toHaveAttribute('href', /^\/\?service=.+#caregivers$/);
+  await page.locator('.home-service-catalog > summary').click();
   await services.first().click();
   await expect(page).toHaveURL(/\/\?service=.+#caregivers$/);
   await expect(page.getByRole('region', { name: 'Find and book a caregiver' })).toBeVisible();
@@ -109,6 +110,7 @@ test('Homepage catalog still expands and remains behind caregiver booking', asyn
   const services = page.locator('.home-service');
   await expect(services).toHaveCount(6);
   const toggle = page.locator('.home-services-toggle');
+  await page.locator('.home-service-catalog > summary').click();
   await toggle.click();
   await expect(services).toHaveCount(16);
   await expect(toggle).toHaveText('Show fewer services');

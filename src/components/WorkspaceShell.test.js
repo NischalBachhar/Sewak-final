@@ -22,6 +22,8 @@ test("caregiver workspace exposes accessible navigation and preserves caller han
   expect(screen.getByRole("button", { name: /job requests/i }).getAttribute("aria-current")).toBe("page");
   fireEvent.click(screen.getByRole("button", { name: /my schedule/i }));
   expect(selected).toHaveBeenCalledWith("schedule");
+  fireEvent.change(screen.getByRole("combobox", { name: "Caregiver section" }), { target: { value: "jobs" } });
+  expect(selected).toHaveBeenLastCalledWith("jobs");
 });
 
 test("superadmin workspace renders only supplied authorized navigation entries", () => {

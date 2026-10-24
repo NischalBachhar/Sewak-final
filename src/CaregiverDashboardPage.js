@@ -1,3 +1,4 @@
+import { RoleCareHero } from "./components/CareHeroMedia";
 import { MyVerification } from './components/VerificationWorkspace';
 import ServiceSelector from './components/ServiceSelector';
 import NepalCitySelect from './components/NepalCitySelect';
@@ -23,7 +24,8 @@ import { db } from "./d1Client";
 import { useAuth } from "./AuthContext";
 import CaregiverShiftWorkflow from "./CaregiverShiftWorkflow";
 import { formatNpr } from "./config/brand";
-import { SkeletonCard } from "./components/CareExperience";
+import { SkeletonCard, StatusBadge } from "./components/CareExperience";
+import { bookingScheduleLabel } from "./bookingModel";
 import "./OrganizationDashboard.css";
 import WorkspaceShell from "./components/WorkspaceShell";
 import Sewak2ActionCenter from "./components/Sewak2ActionCenter";
@@ -333,8 +335,8 @@ export default function CaregiverDashboardPage() {
       return !scheduled || scheduled.getTime() >= new Date(todayKey+'T00:00:00+05:45').getTime();
     })
     .sort((first, second) => bookingSortTime(first) - bookingSortTime(second));
-  const nextJob = upcomingJobs[0] || null;
   const scheduledJobs = upcomingJobs.filter((booking) => ["accepted", "in_progress"].includes(booking.status));
+  const nextJob = scheduledJobs[0] || null;
   const todayCompletedEarnings = todaysJobs
     .filter((booking) => booking.status === "completed")
     .reduce(
@@ -406,10 +408,11 @@ export default function CaregiverDashboardPage() {
     );
   }
 
+  const pendingRequestCount = bookings.filter(booking => booking.status === 'pending').length;
   return (
     <WorkspaceShell
       role="caregiver"
-      title={"Good day, " + (userDoc?.name || profileData?.name || "Care professional")}
+      title={activeTab === "home" ? "Your day at a glance" : ({jobs:"Care requests",schedule:"Your schedule",earnings:"Your earnings",profile:"Your profile",verification:"Your verification"})[activeTab] || "Your workspace"}
       subtitle="Your care schedule, requests and earnings — all in one place."
       activeTab={activeTab}
       onSelect={selectTab}
@@ -448,28 +451,9 @@ export default function CaregiverDashboardPage() {
       {/* HOME TAB */}
       {activeTab === "home" && (
         <div>
-          <Sewak2ActionCenter role="caregiver" onAction={action => { if (action === "opportunities") navigate("/caregiver/opportunities"); else if (action === "availability") navigate("/caregiver/availability"); else selectTab("jobs"); }} metrics={[{label:"Pending requests",value:bookings.filter(b=>b.status==="pending").length},{label:"Accepted care",value:bookings.filter(b=>b.status==="accepted").length},{label:"Completed visits",value:bookings.filter(b=>b.status==="completed").length}]} />
-          <section className="card" style={{ marginBottom: 16 }} aria-labelledby="caregiver-home-today">
-            <p style={{ color: "var(--theme-text-muted)", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", margin: "0 0 6px" }}>
-              TODAY
-            </p>
-            <h3 id="caregiver-home-today" style={{ color: "var(--theme-text)", margin: "0 0 16px" }}>
-              Your work at a glance
-            </h3>
-            <div className="caregiver-day-overview" style={{ marginBottom: 0 }}>
-              <div>
-                <span>Today&apos;s earnings</span>
-                <strong>{formatNpr(todayCompletedEarnings, "NPR 0")}</strong>
-              </div>
-              <div>
-                <span>Today&apos;s jobs</span>
-                <strong>{todaysJobs.length}</strong>
-              </div>
-              <div>
-                <span>New requests</span>
-                <strong>{bookings.filter((booking) => booking.status === "pending").length}</strong>
-              </div>
-            </div>
+          <section className="workspace-priority" aria-labelledby="caregiver-priority-title">
+            <div><p className="care-eyebrow">CARE REQUESTS</p><h2 id="caregiver-priority-title">{pendingRequestCount ? `${pendingRequestCount} ${pendingRequestCount === 1 ? 'request' : 'requests'} to review` : 'You’re up to date'}</h2><p>Review dates, care needs and earnings before accepting.</p></div>
+            <button type="button" className="care-primary-button" onClick={() => selectTab('jobs')}>Review requests →</button>
           </section>
 
           <section className="card" style={{ marginBottom: 16 }} aria-labelledby="caregiver-next-job">
@@ -477,7 +461,7 @@ export default function CaregiverDashboardPage() {
               NEXT JOB
             </p>
             <h3 id="caregiver-next-job" style={{ color: "var(--theme-text)", margin: "0 0 8px" }}>
-              {nextJob?.userName || "No upcoming care scheduled"}
+              {nextJob ? nextJob.userName || nextJob.customerName || "Upcoming care" : "No upcoming care scheduled"}
             </h3>
             {nextJob ? (
               <>
@@ -500,6 +484,28 @@ export default function CaregiverDashboardPage() {
             )}
           </section>
 
+          <section className="card" style={{ marginBottom: 16 }} aria-labelledby="caregiver-home-today">
+            <p style={{ color: "var(--theme-text-muted)", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", margin: "0 0 6px" }}>
+              TODAY
+            </p>
+            <h3 id="caregiver-home-today" style={{ color: "var(--theme-text)", margin: "0 0 16px" }}>
+              Your work at a glance
+            </h3>
+            <div className="caregiver-day-overview" style={{ marginBottom: 0 }}>
+              <div>
+                <span>Today&apos;s earnings</span>
+                <strong>{formatNpr(todayCompletedEarnings, "NPR 0")}</strong>
+              </div>
+              <div>
+                <span>Today&apos;s jobs</span>
+                <strong>{todaysJobs.length}</strong>
+              </div>
+              <div>
+                <span>New requests</span>
+                <strong>{bookings.filter((booking) => booking.status === "pending").length}</strong>
+              </div>
+            </div>
+          </section>
           <section className="card" aria-labelledby="caregiver-home-schedule">
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               <div>
@@ -527,6 +533,8 @@ export default function CaregiverDashboardPage() {
               </p>
             )}
           </section>
+          <Sewak2ActionCenter role="caregiver" onAction={action => { if (action === "opportunities") navigate("/caregiver/opportunities"); else if (action === "availability") navigate("/caregiver/availability"); else selectTab("jobs"); }} metrics={[{label:"Pending requests",value:bookings.filter(b=>b.status==="pending").length},{label:"Accepted care",value:bookings.filter(b=>b.status==="accepted").length},{label:"Completed visits",value:bookings.filter(b=>b.status==="completed").length}]} />
+          <RoleCareHero role="caregiver" />
         </div>
       )}
 
@@ -576,240 +584,20 @@ export default function CaregiverDashboardPage() {
             </div>
           ) : (
             filtered.map((b) => (
-              <div
-                key={b.id}
-                className="card"
-                style={{ marginBottom: 12 }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <div>
-                    <strong
-                      style={{ color: "var(--theme-text)", fontSize: 14 }}
-                    >
-                      {b.userName || "User"}
-                    </strong>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "var(--theme-text-muted)",
-                        marginTop: 4,
-                      }}
-                    >
-                      {b.userPhone || "NA"}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "var(--theme-text-muted)",
-                        marginTop: 4,
-                      }}
-                    >
-                      {b.address || "NA"}
-                    </div>
-                  </div>
-                  <div>
-                    <span
-                      style={{
-                        background:
-                          b.status === "pending"
-                            ? "var(--theme-warning-soft)"
-                            : b.status === "accepted"
-                            ? "var(--theme-help-soft)"
-                            : b.status === "completed"
-                            ? "var(--theme-positive-soft)"
-                            : "var(--theme-danger-soft)",
-                        color:
-                          b.status === "pending"
-                            ? "var(--theme-warning)"
-                            : b.status === "accepted"
-                            ? "var(--theme-help)"
-                            : b.status === "completed"
-                            ? "var(--theme-positive)"
-                            : "var(--theme-danger)",
-                        padding: "4px 8px",
-                        borderRadius: 4,
-                        fontSize: 11,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {(b.status || "pending").toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Booking details */}
-                <div
-                  style={{
-                    marginTop: 10,
-                    paddingTop: 10,
-                    borderTop: "1px solid var(--theme-text)",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: "var(--theme-text-muted)",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <strong>Date:</strong>{" "}
-                    {b.date || "Not specified"}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: "var(--theme-text-muted)",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <strong>Time:</strong>{" "}
-                    {b.time || "Not specified"}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: "var(--theme-text-muted)",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <strong>Duration:</strong>{" "}
-                    {b.durationHours || "NA"} hours
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: "var(--theme-text-muted)",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <strong>Location:</strong>{" "}
-                    {b.address || "Not specified"}
-                  </p>
-
-                  {/* Customer requirements are collected in the booking flow and
-                      need to be visible before a caregiver accepts. */}
-                  {b.careNeeds && (
-                    <p
-                      style={{
-                        fontSize: 13,
-                        color: "var(--theme-text)",
-                        marginTop: 10,
-                        borderLeft: "3px solid var(--theme-help)",
-                        paddingLeft: 10,
-                      }}
-                    >
-                      <strong>Care needed:</strong> {b.careNeeds}
-                    </p>
-                  )}
-
-                  {b.notes && (
-                    <p
-                      style={{
-                        fontSize: 13,
-                        color: "var(--theme-text-muted)",
-                        marginTop: 10,
-                        fontStyle: "italic",
-                        borderLeft: "3px solid var(--theme-help)",
-                        paddingLeft: 10,
-                      }}
-                    >
-                      <strong>User notes:</strong> {b.notes}
-                    </p>
-                  )}
-                </div>
-
-                {/* Payment info */}
-                <div
-                  style={{
-                    marginTop: 10,
-                    paddingTop: 10,
-                    borderTop: "1px solid var(--theme-text)",
-                    background: "var(--theme-surface)",
-                    padding: 10,
-                    borderRadius: 8,
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: 12,
-                      color: "var(--theme-text-muted)",
-                      marginBottom: 4,
-                    }}
-                  >
-                    <strong>Total Amount:</strong>{" "}
-                    {formatNpr(b.totalAmount, "NPR 0")}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 12,
-                      color: "var(--theme-positive)",
-                      marginBottom: 4,
-                    }}
-                  >
-                    <strong>Your Earnings:</strong>{" "}
-                    {formatNpr(Math.round(
-                      b.vendorEarnings ??
-                        0
-                    ), "NPR 0")}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 11,
-                      color: "var(--theme-warning)",
-                      marginBottom: 4,
-                    }}
-                  >
-                    Recorded platform fee:{" "}
-                    {formatNpr(Math.round(
-                      b.platformCommission ??
-                        0
-                    ), "NPR 0")}{" "}
-                    ({b.commissionRate ?? "not recorded"}%)
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 12,
-                      color: "var(--theme-text-muted)",
-                      marginTop: 8,
-                    }}
-                  >
-                    <strong>Payment:</strong>{" "}
-                    {b.paymentMethod === "fonepay"
-                      ? "Fonepay"
-                      : "Cash"}
-                  </p>
-                </div>
-
-                {/* Booking ID */}
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--theme-text-muted)",
-                    marginTop: 10,
-                  }}
-                >
-                  Booking ID:{" "}
-                  {(b.id || "").substring(0, 8)}... • Created{" "}
-                  {b.createdAt?.toDate?.()?.toLocaleDateString?.() ||
-                    "NA"}
-                </div>
-
+              <article key={b.id} className="card care-job-card">
+                <header className="care-job-card__heading"><div><h3>{b.userName || 'Customer'}</h3><p>{b.serviceLabel || 'Care support'}</p></div><StatusBadge status={b.status || 'pending'} /></header>
+                <dl className="care-job-facts">
+                  <div><dt>Schedule</dt><dd>{bookingScheduleLabel(b)}</dd></div>
+                  <div><dt>Duration</dt><dd>{b.durationHours ? `${b.durationHours} hours` : 'To be confirmed'}</dd></div>
+                  <div className="care-job-location"><dt>Location</dt><dd>{b.address || 'Not specified'}</dd></div>
+                  <div><dt>Booking value</dt><dd>{formatNpr(b.totalAmount, 'Not recorded')}</dd></div>
+                  <div><dt>Your recorded earnings</dt><dd>{b.vendorEarnings == null ? 'Not recorded yet' : formatNpr(b.vendorEarnings)}</dd></div>
+                </dl>
+                {b.careNeeds && <p className="care-job-needs"><strong>Care needed:</strong> {b.careNeeds}</p>}
+                {b.notes && <p className="care-job-needs"><strong>Customer notes:</strong> {b.notes}</p>}
                 {/* Actions */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    marginTop: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <button type="button" className="btn btn-outline" onClick={() => navigate("/caregiver/messages/booking/" + encodeURIComponent(b.id))}>Message customer</button>
+                <div className="care-job-actions">
+
                   {b.status === "pending" && (
                     <>
                       <button
@@ -871,6 +659,7 @@ export default function CaregiverDashboardPage() {
                     </div>
                   )}
 
+                  <button type="button" className="btn btn-outline" onClick={() => navigate("/caregiver/messages/booking/" + encodeURIComponent(b.id))}>Message customer</button>
                   {isBookingReported(b.id) ? (
                     <button
                       className="btn btn-outline"
@@ -902,7 +691,8 @@ export default function CaregiverDashboardPage() {
                     )
                   )}
                 </div>
-              </div>
+                <details className="care-job-record"><summary>Payment and booking details</summary><dl><div><dt>Payment method</dt><dd>{b.paymentMethod === 'fonepay' ? 'Fonepay' : 'Cash'}</dd></div><div><dt>Recorded platform fee</dt><dd>{b.platformCommission == null ? 'Not recorded yet' : formatNpr(b.platformCommission)}{b.commissionRate != null ? ` (${b.commissionRate}%)` : ''}</dd></div>{b.userPhone && <div><dt>Customer phone</dt><dd>{b.userPhone}</dd></div>}<div><dt>Booking ID</dt><dd>{b.id}</dd></div></dl></details>
+              </article>
             ))
           )}
           <details className="sewak-report-history">

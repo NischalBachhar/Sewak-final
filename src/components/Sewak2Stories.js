@@ -30,8 +30,8 @@ const moments = [
     alt: 'Nurse smiling with an older adult in an indoor care setting',
   },
 ];
-export default function Sewak2Stories() {
-  return <section className="sewak2-stories" aria-labelledby="sewak2-stories-title">
+export default function Sewak2Stories({ compact = false }) {
+  return <section className={"sewak2-stories" + (compact ? " sewak2-stories--compact" : "")} aria-labelledby="sewak2-stories-title">
     <header className="sewak2-stories__heading">
       <div><p className="sewak2-kicker">Care for the moments that matter</p>
         <h2 id="sewak2-stories-title">Your people. Your routine. <span className="sewak2-stories-accent">Your kind of care.</span></h2>

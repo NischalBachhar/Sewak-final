@@ -3,7 +3,7 @@ const {seed}=require('./seed.cjs');
 const axe=require('axe-core');
 test.beforeAll(seed);
 for(const [label,route,role,ready] of [
-  ['home','/',null,'.home-service'],
+  ['home','/',null,'.care-listing-card'],
   ['discovery','/browse',null,'.care-listing-card'],
   ['login','/auth',null,'.auth-card'],
   ['signup','/auth?mode=register',null,'.auth-card'],

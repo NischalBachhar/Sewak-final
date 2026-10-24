@@ -58,7 +58,7 @@ test('rejection replaces review and blacklist buttons with a working delete conf
   expect(httpsCallable).toHaveBeenCalledWith(null, 'deleteOrganizationAccount');
   expect(execute).toHaveBeenLastCalledWith({ organizationId: 'org', confirmation: 'Test Care' });
   await waitFor(() => expect(screen.queryByText('Test Care')).toBeNull());
-  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'deleted' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Organization status' }), { target: { value: 'deleted' } });
   expect(screen.getByText('Test Care')).toBeTruthy();
   expect(screen.getByText('Deleted', { selector: '.org-review-badge' })).toBeTruthy();
 });

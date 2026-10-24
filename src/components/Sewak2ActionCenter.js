@@ -39,12 +39,7 @@ export default function Sewak2ActionCenter({role, onAction, metrics=[]}) {
   const cards=CARDS[role];
   if(!cards || typeof onAction!=='function') return null;
   return <section className={'sewak2-hub sewak2-hub--'+role} aria-label="Quick actions">
-    <div className="sewak2-hub__head">
-      <div><p className="sewak2-hub__eyebrow">YOUR SEWAK WORKSPACE</p><h2>{role==='user'?'Care starts here.':role==='caregiver'?'Make every workday count.':role==='organization'?'A simpler way to run care.':'Your next action matters.'}</h2>
-        <p>Choose what you need. All changes are made through your existing secure account workflows.</p>
-      </div>
-      <span className="sewak2-hub__flower" aria-hidden="true">✳</span>
-    </div>
+    <h2 className="workspace-tools-title">Quick actions</h2>
     {metrics.length>0 && <dl className="sewak2-hub__metrics">{metrics.map(({label,value})=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}
     <div className="sewak2-hub__grid">{cards.map(card=><button className="sewak2-hub__card" type="button" key={card.id} onClick={()=>onAction(card.id)}>
       <span className="sewak2-hub__top"><span className="sewak2-hub__icon"><Picture icon={card.icon}/></span><span className="sewak2-hub__number">{card.number}</span></span>

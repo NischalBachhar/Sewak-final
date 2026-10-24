@@ -84,7 +84,7 @@ for (const width of [320, 375, 390, 430, 768, 1024, 1366, 1440, 1920]) {
             animations: 'disabled',
           });
           if (role !== 'customer') {
-            const nav = page.getByRole('navigation', { name: role === 'admin' ? 'Administration sections' : 'Caregiver sections' });
+            const nav = page.getByRole('navigation', { name: role === 'admin' ? /administration sections/i : /caregiver sections/i });
             await expect(nav).toBeVisible();
           }
           if (role === 'customer' && label === 'my-bookings') {
@@ -131,7 +131,7 @@ test('Visual QA: iPhone-size touch navigation across customer, caregiver and sup
       const page = await context.newPage();
       await signIn(page, role);
       await page.goto(destination);
-      await expect(page.getByRole('navigation', { name })).toBeVisible();
+      await expect(page.getByRole('navigation', { name: new RegExp(name, "i") })).toBeVisible();
       await assertUsableViewport(page, 393, role + '/iPhone touch');
       await page.screenshot({ path: testInfo.outputPath(role + '-iphone-touch.png'), fullPage: true, animations: 'disabled' });
     } finally { await context.close(); }

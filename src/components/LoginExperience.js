@@ -24,7 +24,7 @@ export default function LoginExperience() {
       <div className="login-intro">
         <p className="login-eyebrow">A helping hand. A little peace of mind.</p>
         <h2 id="login-experience-title">Good care starts with <span>great people.</span></h2>
-        <p className="login-description">Welcome back. Your caregivers, bookings and conversations are just a sign-in away.</p>
+        <p className="login-description">Welcome back. Sign in to manage your care, work or team.</p>
       </div>
       <div className="login-visual">
         <img className="login-care-illustration" src="/images/sewak2-care-team.webp" width="900" height="600" alt="Nurse sharing a smile with an older adult in a care setting" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = "/images/care-for-every-generation.webp"; }} />

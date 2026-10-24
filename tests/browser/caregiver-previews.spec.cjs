@@ -52,10 +52,10 @@ for (const width of [320, 390, 768, 1440]) test(`real public and customer caregi
   await expect(customerPreview.locator('.home-caregiver')).toHaveCount(1);
   await expect(customerPreview.getByRole('link', { name: 'Find All Caregivers' })).toHaveAttribute('href', '/user');
   await fits(page, width); await capture(page, `customer-${width}`);
-  await customerPreview.getByRole('link', { name: 'View Profile', exact: true }).click();
+  await customerPreview.getByRole('button', { name: 'View profile', exact: true }).click();
   await expect(page).toHaveURL(/\/user\/caregivers\/e2e-caregiver$/);
   await page.goto('/user/home');
-  await customerPreview.getByRole('link', { name: 'Book Now', exact: true }).click();
+  await customerPreview.getByRole('button', { name: /Request availability/ }).click();
   await expect(page).toHaveURL(/\/user\/book\/e2e-caregiver$/);
   await expect(page.getByRole('heading', { name: 'Who needs care?', exact: true })).toBeVisible();
   expect(errors).toEqual([]);

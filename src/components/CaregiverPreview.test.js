@@ -42,19 +42,14 @@ test.each([[false, 'Meet Sewak Care Professionals', '/browse'], [true, 'Explore 
   expect(mockNavigate).toHaveBeenLastCalledWith(signedIn ? '/user/book/real' : '/caregivers/real');
 });
 
-test('customer homepage shows caregiver discovery before booking activity', async () => {
+test('customer homepage offers the shared request action without empty booking panels', async () => {
   apiRequest.mockImplementation((_path, { json }) => Promise.resolve({ items: json.path === 'publicCaregivers' ? [{ id: caregiver.id, data: caregiver }] : services.map(service => ({ id: service.id, data: service })), total: 1 }));
   render(<CustomerHomePage />);
   expect(await screen.findByRole('heading', { name: caregiver.name })).toBeVisible();
-  expect(screen.getByRole('heading', { name: 'Find & Book Care' })).toBeVisible();
-  expect(screen.getAllByRole('region')).toEqual([
-    screen.getByRole('region', { name: 'Find caregivers' }),
-    screen.getByRole('region', { name: 'Quick actions' }),
-    screen.getByRole('region', { name: 'Sewak care' }),
-    screen.getByRole('region', { name: 'Your booking activity' }),
-  ]);
-  expect(screen.queryByRole('button', { name: /Manage new bookings/i })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /Discover care nearby/i })).toBeEnabled();
+  expect(screen.queryByRole('region', { name: 'Your upcoming care' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Quick actions' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /Request availability/ }));
+  expect(mockNavigate).toHaveBeenCalledWith('/user/book/real');
 });
 
 test('preview handles empty and retryable network errors', async () => {

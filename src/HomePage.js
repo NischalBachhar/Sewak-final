@@ -34,8 +34,8 @@ export default function HomePage() {
     <main id="main-content">
       <HomeCaregiverMarketplace />
       <section className="marketplace-categories" aria-labelledby="care-categories-title"><div className="marketplace-section-heading"><div><p className="care-eyebrow">A helping hand, your way</p><h2 id="care-categories-title">Care for every part of life.</h2></div><Link to="/care-services">Explore all services →</Link></div><CareCategoryTiles /></section>
-      <Sewak2Stories />
-      <section id="services" className="home-section" aria-labelledby="services-title">
+      <Sewak2Stories compact />
+      <details id="services" className="home-service-catalog" open={hash === "#services" ? true : undefined}><summary>Browse the full service catalog{services.length > 0 ? ` · ${services.length} services` : ""}</summary><section className="home-section" aria-labelledby="services-title">
         <div className="home-section-heading"><div><p className="home-eyebrow">A helping hand, your way</p><h2 id="services-title">Support that fits your life.</h2></div><p>Choose the help you need, then compare caregivers, schedules and published rates.</p></div>
         {state === 'loading' && <p className="home-catalog-state" role="status">Loading available services…</p>}
         {state === 'error' && <div className="home-catalog-state" role="alert"><p>We couldn’t load services right now.</p><button className="home-button home-button--outline" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>}
@@ -43,6 +43,7 @@ export default function HomePage() {
         <div id="home-service-list" className="home-services">{(showAllServices ? services : services.slice(0, 6)).map(service => <article key={service.id} className="home-service"><span className="home-icon"><HomeServiceIcon service={service} /></span><p className="home-service__category">{service.category === 'household' ? 'Household support' : service.category === 'both' ? 'Care & household support' : 'Caregiver support'}</p><h3>{service.label || service.serviceName}</h3><Link to={"/?service=" + encodeURIComponent(service.id) + "#caregivers"} aria-label={`Find caregivers offering ${service.label || service.serviceName}`}>Explore caregivers <LoginIcon name="arrow" /></Link></article>)}</div>
         {services.length > 6 && <button className="home-button home-button--outline home-services-toggle" aria-expanded={showAllServices} aria-controls="home-service-list" onClick={() => setShowAllServices(value => !value)}>{showAllServices ? 'Show fewer services' : `View all ${services.length} services`}</button>}
       </section>
+      </details>
       <section id="how-it-works" className="home-how home-section" aria-labelledby="how-title">
         <div className="home-section-heading"><div><p className="home-eyebrow">A simpler way to arrange care</p><h2 id="how-title">A little help.<br /><em>A lot of possibility.</em></h2></div><p>Three steps from searching to arranging support.</p></div>
         <ol className="home-steps">{[['01', 'Find your care partner', 'Search by service and location to find someone who fits your needs.'], ['02', 'Request the support you need', 'Choose a service and schedule. Care is confirmed only after the caregiver accepts.'], ['03', 'Keep care in one place', 'Manage your bookings through your Sewak account.']].map(([number, title, copy]) => <li key={number}><span aria-hidden="true">{number}</span><h3>{title}</h3><p>{copy}</p></li>)}</ol>

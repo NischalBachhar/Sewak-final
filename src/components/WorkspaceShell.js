@@ -55,7 +55,7 @@ const MENU_LABELS = {
   bookings: "Bookings",
   services: "Services",
   blacklist: "Safety reports",
-  admins: "Administrator access",
+  admins: "Superadmin access",
   analytics: "Analytics",
 };
 
@@ -103,6 +103,10 @@ export default function WorkspaceShell({
         </div>
       </aside>
 
+      <nav className="workspace-mobile-navigation" aria-label={isAdmin ? "Mobile administration sections" : "Mobile caregiver sections"}>
+        <label className="workspace-section-picker"><span>{isAdmin ? 'Administration section' : 'Caregiver section'}</span><select value={activeTab} onChange={event => onSelect(event.target.value)}>{items.map(({id,label,count}) => <option key={id} value={id}>{label || MENU_LABELS[id] || id}{count > 0 ? ` (${count})` : ''}</option>)}</select></label>
+        {role === 'caregiver' && <a href="/caregiver/opportunities">Find care jobs →</a>}
+      </nav>
       <main id="main-content" className="sewak-workspace__content">
         <div className={"sewak-workspace__intro sewak2-workspace-intro sewak2-workspace-intro--" + role}>
           <div>
