@@ -1,0 +1,5 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+export default function PublicFooter() {
+  return <footer className="marketplace-footer"><div className="marketplace-footer__top"><div><Link className="marketplace-footer__brand" to="/">Sewak<span aria-hidden="true">✳</span></Link><p>Care for every stage of life.<br />Closer to home, across Nepal.</p></div><nav aria-label="Find support"><strong>Find your care</strong><Link to="/browse">Browse caregivers</Link><Link to="/care-services">Care services</Link><Link to="/pricing">Costs and payments</Link></nav><nav aria-label="Join Sewak"><strong>Grow with Sewak</strong><Link to="/auth?mode=register&role=caregiver">Become a caregiver</Link><Link to="/auth?mode=register&role=orgadmin">Register an organization</Link><Link to="/safety">Safety and verification</Link></nav></div><div className="marketplace-footer__bottom"><small>© {new Date().getFullYear()} Sewak. Care, close to home.</small><span>Care requests require caregiver acceptance.</span></div></footer>;
+}

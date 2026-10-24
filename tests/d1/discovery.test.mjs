@@ -142,3 +142,17 @@ test('twenty service assignments fit guarded D1 writes without dropping version 
   assert.equal((await commit(env,'caregiver','vendors/caregiver',{servicesOffered:[...ids].reverse()})).status,409);
   assert.deepEqual((await new Repository(env).data('vendors/caregiver')).servicesOffered,ids);
 });
+
+test('canonical service search includes equivalent legacy labels without crossing organization or active-service boundaries', async () => {
+  const env = environment(); const data = await seed(env);
+  await put(env, 'services/legacy-child', {label:'Child care',category:'caregiver',isActive:true});
+  await put(env, 'vendors/caregiver', {...data['vendors/caregiver'],servicesOffered:['legacy-child']});
+  env.DB.database.prepare('INSERT OR IGNORE INTO caregiver_services(caregiver_id,service_id) VALUES(?,?)').run('caregiver','legacy-child');
+  assert.equal((await search(env,{serviceId:'catalog_child_care_babysitting'})).data.total,1);
+  assert.equal((await search(env,{serviceId:'catalog_elderly_care'})).data.total,0);
+  await put(env, 'services/legacy-child', {label:'Child care',category:'caregiver',isActive:false});
+  assert.equal((await search(env,{serviceId:'catalog_child_care_babysitting'})).data.total,0);
+  await put(env, 'organizations/another-org', {organizationName:'Other organization',isApproved:true});
+  await put(env, 'services/legacy-child', {label:'Child care',category:'caregiver',isActive:true,organizationId:'another-org'});
+  assert.equal((await search(env,{serviceId:'catalog_child_care_babysitting'})).data.total,0);
+});

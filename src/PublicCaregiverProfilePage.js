@@ -1,4 +1,8 @@
 import { requestAvailability, caregiverBookingReason } from './caregiverDiscovery';
+import PublicHeader from './components/PublicHeader';
+import PublicFooter from './components/PublicFooter';
+import { kathmanduDate } from './bookingValidation';
+import { readCareIntent, saveCareIntent } from './bookingIntent';
 import ProfileImage from "./components/ProfileImage";
 import useSavedCare from './useSavedCare';
 import React, { useEffect, useMemo, useState } from "react";
@@ -14,6 +18,7 @@ import {
   EmptyState,
   ErrorState,
   SkeletonCard,
+  VerificationBadge,
 } from "./components/CareExperience";
 import "./CaregiverProfilePage.css";
 
@@ -43,6 +48,8 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
   const { caregiverId } = useParams();
   const navigate = useNavigate();
   const { saved, toggle, enabled } = useSavedCare();
+  const [preferredDate, setPreferredDate] = useState(() => readCareIntent(caregiverId).date || '');
+  const [preferredTime, setPreferredTime] = useState(() => readCareIntent(caregiverId).time || '');
   const [caregiver, setCaregiver] = useState(null);
   const [services, setServices] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -135,8 +142,12 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
     [caregiver, services],
   );
 
+  useEffect(() => { const intent = readCareIntent(caregiverId); setPreferredDate(intent.date || ''); setPreferredTime(intent.time || ''); }, [caregiverId]);
+  useEffect(() => { if (caregiver && window.location.hash === '#request-care') document.getElementById('request-care')?.scrollIntoView?.({ block: 'start' }); }, [caregiver]);
+
   const handleBook = () => {
     if (!caregiver || caregiverBookingReason(caregiver)) return;
+    saveCareIntent(caregiver.id, preferredDate, preferredTime);
     if (!signedIn) {
       localStorage.setItem("pendingBookingCaregiverId", caregiver.id);
       navigate("/auth");
@@ -183,12 +194,12 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
     .toUpperCase();
 
   return (
-    <main
+    <div className="marketplace-profile-shell">{!signedIn && <PublicHeader />}<main id="main-content"
       className={`caregiver-profile-page${
         signedIn ? " caregiver-profile-page--with-mobile-nav" : ""
       }`}
     >
-      <button className="caregiver-profile-page__back" type="button" onClick={() => navigate(-1)}>
+      <button className="caregiver-profile-page__back" type="button" onClick={() => navigate(signedIn ? "/user" : "/browse")}>
         Back to results
       </button>
 
@@ -208,6 +219,8 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
               {serviceLabels[0] || "Care support"}
               {caregiver.location ? ` · ${caregiver.location}` : ""}
             </p>
+            <p className="profile-experience">{caregiver.experience ? `${caregiver.experience}+ years experience` : "Experience not listed"} · {caregiver.jobsCompleted || 0} completed sessions</p>
+            <VerificationBadge state={caregiver.verificationSource === "audited_v1" && caregiver.verified ? "verified" : "not_verified"} label={caregiver.verificationSource === "audited_v1" && caregiver.verified ? "Verified by Sewak" : "Verification not complete"} compact />
             <p className={`caregiver-profile-availability${availabilityStatus.state !== 'accepting' ? " is-unavailable" : ""}`}>
               <span aria-hidden="true" />
               {availability}
@@ -236,7 +249,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
             disabled={Boolean(bookingReason)}
             aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}
           >
-            {signedIn ? "Book caregiver" : "Sign in to book"}
+            Request availability
           </button>
         </div>
       </section>
@@ -296,11 +309,20 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
         </div>
 
         <aside className="caregiver-profile-aside">
+          <section id="request-care" className="care-request-panel" aria-labelledby="request-care-title">
+            <p className="care-eyebrow">Your next step</p><h2 id="request-care-title">Request availability</h2>
+            <p className="care-request-panel__price">{formatNpr(caregiver.hourlyRate)}<small> / hour, starting rate</small></p>
+            <label>Preferred date (optional)<input type="date" min={kathmanduDate()} value={preferredDate} onChange={event => setPreferredDate(event.target.value)} /></label>
+            <label>Preferred start time (optional)<input type="time" value={preferredTime} onChange={event => setPreferredTime(event.target.value)} /></label>
+            <button type="button" className="care-primary-button" onClick={handleBook} disabled={Boolean(bookingReason)} aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}>Continue to request <span aria-hidden="true">→</span></button>
+            <p>Times are in Nepal time. {signedIn ? 'Review your care needs and quote next.' : 'Sign in or create an account to send your request.'} Your caregiver must accept before care is confirmed.</p>
+          </section>
+          <details className="profile-verification"><summary>Trust and verification details</summary>
           <CaregiverTrustSummary
             caregiverName={caregiver.name}
             verificationItems={[...getCaregiverVerification(caregiver), {key:'police',label:'Police Clearance Verified',state:caregiver.verificationSource==='audited_v1'?caregiver.policeClearanceVerificationStatus:'not_submitted'}]}
             heading="Trust and verification"
-            summary="A green status only appears when the matching record is approved by Sewak."
+            summary="See which records Sewak has reviewed. Incomplete checks are clearly marked."
             overallState={(caregiver.verificationSource === "audited_v1" && caregiver.verified) ? "verified" : "not_verified"}
             overallLabel={(caregiver.verificationSource === "audited_v1" && caregiver.verified) ? "Verified by Sewak" : "Verification not complete"}
             experienceYears={caregiver.experience}
@@ -308,6 +330,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
             rating={rating}
             verifiedReviewCount={verifiedReviewCount}
           />
+          </details>
           <CaregiverStats
             stats={[
               { id: "location", label: "Location", value: caregiver.location || "Not listed" },
@@ -329,9 +352,9 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
       <div className="caregiver-profile-sticky-book" aria-label="Book this caregiver">
         <span>{formatNpr(caregiver.hourlyRate)}/hr</span>
         <button type="button" onClick={handleBook} disabled={Boolean(bookingReason)} aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}>
-          {signedIn ? "Book now" : "Sign in to book"}
+          Request availability
         </button>
       </div>
-    </main>
+    </main>{!signedIn && <PublicFooter />}</div>
   );
 }

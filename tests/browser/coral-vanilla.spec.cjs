@@ -20,9 +20,9 @@ for (const width of [320, 375, 430, 768, 1024, 1366, 1920]) {
     const errors=[]; page.on('pageerror', error => errors.push(error.message));
     await page.goto('/');
     await expect(page.getByRole('heading',{name:'The right care. Right here.'})).toBeVisible();
-    await page.locator('.home-marketplace__intro').scrollIntoViewIfNeeded();
-    await expect(page.locator('.home-marketplace__hero-visual img')).toHaveJSProperty('complete',true);
-    expect(await page.locator('.home-marketplace__hero-visual img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+    await page.locator('.care-search-hero').scrollIntoViewIfNeeded();
+    await expect(page.locator('.care-search-hero .sewak-care-media img')).toHaveJSProperty('complete',true);
+    expect(await page.locator('.care-search-hero .sewak-care-media img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
     await expect(page.locator('.home-service').first()).toBeVisible();
     await fits(page,width);
     await page.screenshot({path:info.outputPath(`home-${width}.png`),fullPage:true});

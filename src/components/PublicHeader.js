@@ -14,12 +14,10 @@ export default function PublicHeader() {
           <span><strong>Sewak</strong><small>Care, closer to home.</small></span>
         </Link>
         <nav id="public-navigation" className={'public-nav' + (menuOpen ? ' is-open' : '')} aria-label="Public pages" onClick={() => setMenuOpen(false)}>
-          <NavLink to="/" end>Home</NavLink>
           <NavLink to="/browse">Find care</NavLink>
-          <Link to="/care-services">Care services</Link>
-          <Link to="/safety">Safety</Link>
-          <Link to="/pricing">Pricing</Link>
-          <Link to="/get-started">Find care jobs</Link>
+          <Link to="/auth?mode=register&role=caregiver">Find care jobs</Link>
+          <Link to="/auth?mode=register&role=orgadmin">For organizations</Link>
+          <details className="public-resources"><summary>Resources <span aria-hidden="true">⌄</span></summary><div><Link to="/care-services">Care services</Link><Link to="/safety">Safety and verification</Link><Link to="/pricing">Costs and payments</Link><Link to="/get-started">How to join</Link></div></details>
         </nav>
         <div className="public-header__actions">
           <Link className="public-login" to="/auth">Log in</Link>

@@ -51,19 +51,17 @@ test('public homepage begins with caregiver hiring before promotional hero or se
   expect(searchCaregivers).toHaveBeenCalledWith({}, { limit: 9 });
   expect(screen.getByText('Accepting requests')).toBeVisible();
   expect(screen.getByText('NPR 300/hour')).toBeVisible();
-  expect(screen.getByRole('button', { name: /Sign in to book/ })).toBeEnabled();
+  expect(screen.getByRole('button', { name: /Request availability/ })).toBeEnabled();
 });
 
-test('homepage searches real caregivers by category, service, location and name', async () => {
+test('homepage searches by service and city with advanced filters on browse', async () => {
   render(<HomeCaregiverMarketplace />);
   await screen.findByRole('heading', { name: 'Real Care Professional' });
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Caregiver or area' }), { target: { value: 'Real' } });
-  fireEvent.change(screen.getByRole('combobox', { name: 'Service' }), { target: { value: 'care' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Service' }), { target: { value: 'catalog_elderly_care' } });
   fireEvent.change(screen.getByRole('textbox', { name: 'City or locality' }), { target: { value: 'Lalitpur' } });
-  fireEvent.change(screen.getByRole('combobox', { name: 'Support type' }), { target: { value: 'caregiver' } });
   fireEvent.submit(screen.getByRole('search', { name: 'Find caregivers on Sewak' }));
   await waitFor(() => expect(searchCaregivers).toHaveBeenLastCalledWith(
-    { text: 'Real', serviceId: 'care', location: 'Lalitpur', category: 'caregiver' },
+    { serviceId: 'catalog_elderly_care', location: 'Lalitpur' },
     { limit: 9 },
   ));
   expect(screen.getByRole('heading', { name: 'Real Care Professional' })).toBeVisible();
@@ -72,15 +70,15 @@ test('homepage searches real caregivers by category, service, location and name'
 test('lower service cards search caregivers on the same homepage, not a separate find-care page', async () => {
   mockLocation = { search: '?service=care', hash: '#caregivers' };
   render(<HomePage />);
-  const serviceLink = await screen.findByRole('link', { name: 'Find caregivers offering Elderly Care' });
-  expect(serviceLink).toHaveAttribute('href', '/?service=care#caregivers');
+  const serviceLink = await screen.findByRole('link', { name: 'Find caregivers offering Elderly care' });
+  expect(serviceLink).toHaveAttribute('href', '/?service=catalog_elderly_care#caregivers');
   await waitFor(() => expect(searchCaregivers).toHaveBeenCalledWith({ serviceId: 'care' }, { limit: 9 }));
 });
 
-test('one caregiver is centered and visible, with a clear booking entry point', async () => {
+test('one caregiver uses the full results width, with a clear booking entry point', async () => {
   render(<HomeCaregiverMarketplace />);
   await screen.findByRole('heading', { name: 'Real Care Professional' });
-  expect(screen.getByTestId('home-caregiver-results')).toHaveClass('home-marketplace__grid--single');
+  expect(screen.getByTestId('home-caregiver-results')).toHaveClass('marketplace-caregiver-results--single');
   expect(screen.getByRole('button', { name: /View profile/i })).toBeEnabled();
   fireEvent.click(screen.getByRole('button', { name: /View profile/i }));
   expect(mockNavigate).toHaveBeenCalledWith('/caregivers/real-caregiver');
@@ -100,7 +98,7 @@ test('honest empty and retry states never invent caregiver profiles', async () =
   searchCaregivers.mockResolvedValueOnce(response([]));
   render(<HomeCaregiverMarketplace />);
   expect(await screen.findByText(/No caregivers are accepting requests right now/)).toBeVisible();
-  expect(screen.queryByRole('button', { name: /Sign in to book/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Request availability/ })).toBeNull();
 });
 
 test('failed public lookup provides a retryable error', async () => {

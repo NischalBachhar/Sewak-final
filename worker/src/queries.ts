@@ -1,5 +1,6 @@
 import { trustedVerification } from './verification-validation.ts';
 import { nonMedicalSql } from './catalog.ts';
+import { serviceFamily } from '../../src/serviceCatalog.js';
 import { traceD1 } from './d1-diagnostics.ts';
 import { decodeRecord } from './model.mjs';
 import { canRead, caregiverActive, organizationActive } from './policy.ts';
@@ -110,7 +111,11 @@ export async function queryRecords(repo: Repository, actor: Actor | null, input:
       badInput(['caregiver','household','vendor','both'].includes(search.category), 'Invalid category.');
       if (search.category !== 'both') add(search.category === 'caregiver' ? "t.category IN ('caregiver','both')" : "t.category IN ('vendor','household','both')");
     }
-    if (search.serviceId) add(`EXISTS(SELECT 1 FROM caregiver_services cs JOIN services s ON s.id=cs.service_id WHERE cs.caregiver_id=t.id AND cs.service_id=? AND COALESCE(s.is_active,1)=1 AND ${nonMedicalSql('s')} AND (s.organization_id IS NULL OR s.organization_id=t.organization_id))`, search.serviceId);
+    if (search.serviceId) {
+      const aliases = serviceFamily(search.serviceId)?.[2] || [];
+      const labelMatch = aliases.length ? ` OR lower(trim(COALESCE(s.label,s.service_name,''))) IN (${aliases.map(() => '?').join(',')})` : '';
+      add(`EXISTS(SELECT 1 FROM caregiver_services cs JOIN services s ON s.id=cs.service_id WHERE cs.caregiver_id=t.id AND (cs.service_id=?${labelMatch}) AND COALESCE(s.is_active,1)=1 AND ${nonMedicalSql('s')} AND (s.organization_id IS NULL OR s.organization_id=t.organization_id))`, search.serviceId, ...aliases);
+    }
     if (search.workType) { badInput(['parttime','fulltime'].includes(search.workType)); add("replace(t.work_type,'_','')=?",search.workType); }
     if (search.shift) { badInput(['morning','day','evening','night'].includes(search.shift)); add("EXISTS(SELECT 1 FROM json_each(COALESCE(t.shifts,'[]')) WHERE value=?)",search.shift); }
     for (const key of ['minimumExperience','minimumRating']) if (search[key] !== undefined && search[key] !== '') {

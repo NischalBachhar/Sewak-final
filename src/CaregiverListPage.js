@@ -5,6 +5,7 @@ import ProfileImage from "./components/ProfileImage";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { publicServiceChoices } from './serviceCatalog';
 import { hasVerifiedRating } from "./bookingModel";
 import { formatNpr } from "./config/brand";
 import { SkeletonCard } from "./components/CareExperience";
@@ -332,6 +333,8 @@ function CaregiverCard({ caregiver, services, onSelect, onViewProfile, requireLo
 export default function CaregiverListPage({
   onSelectCaregiver,
   preselectedWorkType = "",
+  preselectedService = "",
+  preselectedLocation = "",
   preselectedShift = "",
   userCategory = "",
   onChangeUserCategory,
@@ -350,10 +353,10 @@ export default function CaregiverListPage({
   const [nextCursor, setNextCursor] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [serviceFilter, setServiceFilter] = useState("");
+  const [serviceFilter, setServiceFilter] = useState(preselectedService);
   const [workTypeFilter, setWorkTypeFilter] = useState(preselectedWorkType || "");
   const [shiftFilter, setShiftFilter] = useState(preselectedShift || "");
-  const [locationFilter, setLocationFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState(preselectedLocation);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [minimumExperience, setMinimumExperience] = useState("");
   const [minimumRating, setMinimumRating] = useState("");
@@ -459,15 +462,18 @@ export default function CaregiverListPage({
     loadServices();
   }, []);
 
+  useEffect(() => { setServiceFilter(preselectedService); }, [preselectedService]);
+  useEffect(() => { setLocationFilter(preselectedLocation); }, [preselectedLocation]);
+
   // Service dropdown options depend on userCategory
-  const visibleServices = services.filter((s) => {
+  const visibleServices = publicServiceChoices(services).filter((s) => {
     if (!userCategory || userCategory === "both") return true;
     if (s.category === "both") return true;
     return (s.category === "vendor" ? "household" : s.category) === userCategory;
   });
 
   useEffect(() => {
-    if (serviceFilter && services.length && !services.some(service => service.id === serviceFilter && (!userCategory || userCategory === 'both' || service.category === 'both' || (service.category === 'vendor' ? 'household' : service.category) === userCategory))) setServiceFilter('');
+    if (serviceFilter && services.length && !publicServiceChoices(services).some(service => service.id === serviceFilter && (!userCategory || userCategory === 'both' || service.category === 'both' || (service.category === 'vendor' ? 'household' : service.category) === userCategory))) setServiceFilter('');
   }, [serviceFilter, services, userCategory]);
   const filtered = caregivers;
   const pagination = <div className="browse-card-actions" role="navigation" aria-label="Caregiver pages">
@@ -530,7 +536,7 @@ export default function CaregiverListPage({
   }
 
   if (isBrowse) {
-    const selectedService = services.find(
+    const selectedService = publicServiceChoices(services).find(
       (service) => normalizeServiceId(service.id) === normalizeServiceId(serviceFilter),
     );
     const activeFilters = [
@@ -605,10 +611,10 @@ export default function CaregiverListPage({
             </svg>
             <input
               type="search"
-              placeholder="Search by caregiver name or location"
+              placeholder="Search by caregiver name"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              aria-label="Search caregivers by name or location"
+              aria-label="Search caregivers by name"
             />
           </div>
 
@@ -732,7 +738,7 @@ export default function CaregiverListPage({
           )}
         </div>
 
-        {loading && <p role="status">Updating results?</p>}
+        {loading && <p role="status">Updating results…</p>}
         {filtered.length > 0 ? (
           <>
             <div className={"browse-caregiver-grid" + (filtered.length === 1 ? " browse-caregiver-grid--single" : filtered.length === 2 ? " browse-caregiver-grid--pair" : "")}>
@@ -810,7 +816,7 @@ export default function CaregiverListPage({
       <div style={{ marginBottom: 16 }}>
         <input
           type="text"
-          placeholder="🔍 Search caregivers by name or location..."
+          placeholder="🔍 Search caregivers by name..."
           className="search-input"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}

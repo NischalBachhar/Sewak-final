@@ -27,7 +27,7 @@ for (const width of [320, 390, 768, 1440]) test(`real public and customer caregi
   page.on('request', request => { if (request.url().endsWith('/api/query')) publicQueries.push(request.postDataJSON()); });
   await page.goto('/');
   const preview = page.getByRole('region', { name: 'Find and book a caregiver' });
-  await expect(preview.locator('.caregiver-preview-card')).toHaveCount(1);
+  await expect(preview.locator('.care-listing-card')).toHaveCount(1);
   await expect(preview).toContainText('Test Caregiver');
   await expect(preview).toContainText('General care support');
   await expect(preview).toContainText('Accepting requests');
@@ -37,12 +37,13 @@ for (const width of [320, 390, 768, 1440]) test(`real public and customer caregi
   expect(publicQueries.filter(q => q.path === 'publicServices')).toHaveLength(1);
   await fits(page, width); await capture(page, `public-${width}`);
   await page.evaluate(axe.source);
-  const accessibility = await page.evaluate(async () => (await window.axe.run(document.querySelector('.home-marketplace'), { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] } })).violations.map(({ id }) => id));
+  const accessibility = await page.evaluate(async () => (await window.axe.run(document.querySelector('.marketplace-home'), { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] } })).violations.map(({ id }) => id));
   expect(accessibility).toEqual([]);
   await preview.getByRole('button', { name: 'View profile' }).click();
   await expect(page).toHaveURL(/\/caregivers\/e2e-caregiver$/);
   await expect(page.getByRole('heading', { name: 'Test Caregiver', exact: true })).toBeVisible();
-  await page.goto('/'); await preview.getByRole('button', { name: /Sign in to book/ }).click();
+  await page.goto('/'); await preview.getByRole('button', { name: /Request availability/ }).click();
+  await page.getByRole('button',{name:'Continue to request'}).click();
   await expect(page).toHaveURL(/\/auth$/);
   expect(await page.evaluate(() => localStorage.getItem('pendingBookingCaregiverId'))).toBe('e2e-caregiver');
   await page.evaluate(() => localStorage.removeItem('pendingBookingCaregiverId'));
@@ -83,10 +84,10 @@ test('one or two Find Care results are balanced, and unavailable profiles disabl
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/browse');
   await expect(page.locator('.browse-result-count')).toHaveText('1 match');
-  const card = page.locator('.browse-caregiver-grid .browse-caregiver-card');
+  const card = page.locator('.browse-caregiver-grid .care-listing-card');
   const gridBox = await page.locator('.browse-caregiver-grid').boundingBox();
   const cardBox = await card.boundingBox();
-  expect(cardBox.width).toBeLessThanOrEqual(480);
+  expect(cardBox.width).toBeCloseTo(gridBox.width,0);
   expect(Math.abs((cardBox.x + cardBox.width / 2) - (gridBox.x + gridBox.width / 2))).toBeLessThan(2);
   await expect(page.getByText('Top-rated caregivers')).toHaveCount(0);
   await capture(page, 'find-care-single-1440');
@@ -94,21 +95,21 @@ test('one or two Find Care results are balanced, and unavailable profiles disabl
   try {
     await db.doc('vendors/e2e-preview-second').set({ ...original, name: 'Second Professional', organizationId: null, organizationName: '', servicesOffered: ['catalog_elderly_care'] });
     await page.reload(); await expect(page.locator('.browse-result-count')).toHaveText('2 matches');
-    await expect(page.locator('.browse-caregiver-grid--pair .browse-caregiver-card')).toHaveCount(2);
+    await expect(page.locator('.browse-caregiver-grid--pair .care-listing-card')).toHaveCount(2);
     await capture(page, 'find-care-pair-1440');
     await db.doc('vendors/e2e-caregiver').update({ isAvailable: false });
     await page.goto('/caregivers/e2e-caregiver');
     await expect(page.getByText('Not accepting requests', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Sign in to book' }).first()).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Continue to request' }).first()).toBeDisabled();
     await expect(page.getByText('This professional is not accepting booking requests.')).toBeVisible();
     await page.goto('/');
-    await expect(page.locator('.home-marketplace')).toContainText('Second Professional');
-    await expect(page.locator('.home-marketplace')).not.toContainText('Test Caregiver');
+    await expect(page.locator('.marketplace-home')).toContainText('Second Professional');
+    await expect(page.locator('.marketplace-home')).not.toContainText('Test Caregiver');
     const unknown = { ...original }; delete unknown.isAvailable;
     await db.doc('vendors/e2e-caregiver').set(unknown);
     await page.goto('/caregivers/e2e-caregiver');
     await expect(page.getByText('Availability not confirmed', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Sign in to book' }).first()).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Continue to request' }).first()).toBeDisabled();
     await db.doc('vendors/e2e-caregiver').update({ isAvailable: true, isSuspended: true });
     await page.goto('/caregivers/e2e-caregiver');
     await expect(page.getByRole('heading', { name: 'Caregiver profile unavailable' })).toBeVisible();
@@ -126,7 +127,7 @@ test('homepage lists available caregivers directly instead of truncating at thre
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.goto('/');
-      await expect(page.locator('.home-marketplace .caregiver-preview-card')).toHaveCount(4);
+      await expect(page.locator('.marketplace-home .care-listing-card')).toHaveCount(4);
       await fits(page, width);
       await capture(page, 'public-three-' + width);
     }

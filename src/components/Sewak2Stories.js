@@ -9,7 +9,7 @@ const moments = [
     tag: 'Senior care',
     heading: 'Support that feels human.',
     description: 'Find local help for older parents and loved ones, on a schedule that suits your family.',
-    href: '/browse?category=caregiver',
+    href: '/browse?service=catalog_elderly_care',
     image: '/images/sewak2-senior-care.webp',
     alt: 'Caregiver supporting an older woman with a walking frame',
   },
@@ -17,7 +17,7 @@ const moments = [
     tag: 'Child care',
     heading: 'A little help. More family time.',
     description: 'Explore childcare and family support from real Sewak profiles, all in one place.',
-    href: '/browse?category=caregiver',
+    href: '/browse?service=catalog_child_care_babysitting',
     image: '/images/sewak2-family-care.webp',
     alt: 'Mother reading a storybook with her daughter at home',
   },
@@ -50,7 +50,7 @@ export default function Sewak2Stories() {
       </Link>)}
     </div>
     <footer className="sewak2-stories__foot">
-      <span>Caregiver profiles, verification details and prices always come from Sewak's actual listings.</span>
+      <span>Find support that fits your family and your routine.</span>
       <a href="#services">Explore Services</a>
       <Link to="/get-started">Want to offer care? Join Sewak <span aria-hidden="true">→</span></Link>
     </footer>
