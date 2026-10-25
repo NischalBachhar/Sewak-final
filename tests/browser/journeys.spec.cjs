@@ -92,7 +92,7 @@ test('superadmin profile editor saves a validated profile and supports keyboard 
 test('not-found, direct-link refresh, private metadata and recovery action',async({page})=>{
  await page.goto('/missing-page');await expect(page.getByRole('heading',{name:'Page not found'})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:'Page not found'})).toBeVisible();
  const response=await page.goto('/auth');expect(response.headers()['x-robots-tag']).toContain('noindex');await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content','noindex,nofollow');
- await page.getByLabel('Email',{exact:true}).fill('missing@example.test');await page.getByRole('button',{name:'Forgot password?'}).click();await expect(page.getByText(/Contact your Sewak administrator/)).toBeVisible();
+ await page.getByLabel('Email',{exact:true}).fill('missing@example.test');await page.getByRole('button',{name:'Forgot password?'}).click();await expect(page.getByRole('heading',{name:'Reset your password'})).toBeVisible();await expect(page.getByLabel('Account email')).toHaveValue('missing@example.test');
 });
 
 test('report submission, duplicate retry, private moderator data and safe history agree',async({page})=>{

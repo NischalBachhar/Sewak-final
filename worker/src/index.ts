@@ -1,3 +1,4 @@
+import { deliverNotificationEmails } from './email.ts';
 import { verificationRoute, verificationMaintenance } from './verification.ts';
 import { careJobsRoute } from './care-jobs.ts';
 import { careMessagesRoute } from './care-messages.ts';
@@ -25,12 +26,12 @@ async function jsonBody(request: Request): Promise<Data> {
 }
 export function createWorker(authenticate: (request: Request, env: Env) => Promise<Identity | null> = authenticateSession) {
   return {
-    async scheduled(_controller: ScheduledController, env: Env, context: ExecutionContext) { context.waitUntil(Promise.all([verificationMaintenance(env),scheduledBookingReminders(env)])); },
-    async fetch(request: Request, env: Env): Promise<Response> {
+    async scheduled(_controller: ScheduledController, env: Env, context: ExecutionContext) { context.waitUntil(Promise.all([verificationMaintenance(env),scheduledBookingReminders(env).then(()=>deliverNotificationEmails(env))])); },
+    async fetch(request: Request, env: Env, context?:ExecutionContext): Promise<Response> {
       const url = new URL(request.url);
-      const authPath = /^\/(?:api\/)?auth\/(me|login|register|logout|bootstrap|activate|sessions|revoke-sessions|change-password|complete-registration)$/.test(url.pathname);
+      const authPath = /^\/(?:api\/)?auth\/(me|login|register|logout|bootstrap|activate|sessions|revoke-sessions|change-password|complete-registration|options|google\/start|google\/callback|forgot-password|reset-password|verify-email|send-verification)$/.test(url.pathname);
       if (!url.pathname.startsWith('/api/') && !authPath) return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Not found', { status: 404 });
-      const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Vary': 'Origin' });
+      const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Vary': 'Origin', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex, nofollow' });
       try {
         const origin = request.headers.get('Origin');
         if (origin && origin !== url.origin) {
@@ -48,7 +49,7 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
           return Response.json({ healthy: true, writesEnabled: env.APP_WRITES_ENABLED === 'true', auth: 'cloudflare-d1' },{headers});
         }
         if (url.pathname.startsWith('/api/migration/')) throw new ApiError(404,'not-found','Endpoint not found.');
-        const publicAuth = authPath && /\/(login|register|bootstrap|activate)$/.test(url.pathname);
+        const publicAuth = authPath && /\/(login|register|bootstrap|activate|options|forgot-password|reset-password|verify-email)$/.test(url.pathname);
         // Only these existing public projections are anonymous. Parse once and
         // retain queryRecords' field/visibility validation and private ACLs.
         const query = request.method === 'POST' && url.pathname === '/api/query' ? await jsonBody(request) : null;
@@ -56,7 +57,7 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
         const publicRead = query ? publicNames.includes(query.path) : request.method === 'GET' && /^\/api\/records\/(publicCaregivers|publicServices|publicReviews)\/[^/]+$/.test(url.pathname);
         const identity = publicAuth || publicRead ? null : await authenticate(request,env);
         enforceCsrf(request,identity);
-        if (authPath) return Response.json(await authRoute(request,env,headers,request.method==='POST'?await jsonBody(request):{},identity),{headers});
+        if (authPath) { const result=await authRoute(request,env,headers,request.method==='POST'?await jsonBody(request):{},identity,context); return result instanceof Response?result:Response.json(result,{headers}); }
         const repo = new Repository(env), actor = await repo.actor(identity);
         if(['/api/admin/accounts','/api/admin/audit'].includes(url.pathname)&&request.method==='GET'){
           return Response.json(await adminOperationsRoute(url,repo,actor),{headers});
@@ -109,6 +110,10 @@ export function createWorker(authenticate: (request: Request, env: Env) => Promi
         if (status === 503) headers.set('Retry-After','60');
         if (status === 429) headers.set('Retry-After','900');
         if (known && error.code === 'unauthenticated' && request.headers.has('Cookie')) headers.append('Set-Cookie','__Host-sewak_session=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0');
+        if (/\/auth\/google\/callback$/.test(url.pathname)) {
+          headers.set('Location','/auth?google='+(known&&error.code==='google-link-required'?'link-required':known&&error.code==='gmail-required'?'gmail-required':'failed'));
+          return new Response(null,{status:303,headers});
+        }
         return Response.json({ error: { code: known ? error.code : 'unavailable', message: known ? error.message : 'The service is temporarily unavailable. Please retry later.' } },{status,headers});
       }
     },

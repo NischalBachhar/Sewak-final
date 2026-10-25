@@ -4,7 +4,7 @@ import {migrationPlan,marketplaceMigrations} from '../../scripts/marketplace-mig
 import {assertMarketplaceReady} from '../../scripts/marketplace-release-readiness.mjs';
 
 test('marketplace migration plan preserves both 0010 files and accepts only additive new schemas',()=>{
- const plan=migrationPlan();assert.equal(plan.length,7);
+ const plan=migrationPlan();assert.equal(plan.length,8);
  assert.equal(plan.filter(m=>m.name.startsWith('0010_')).length,2);
  assert.ok(plan.every(m=>m.statements.length&&m.hash.length===64));
  const journal=plan.map(m=>({name:m.name,hash:m.hash,applied_at:'2026-10-19T00:00:00Z'}));

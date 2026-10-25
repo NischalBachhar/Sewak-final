@@ -40,3 +40,5 @@ Set `REACT_APP_CANONICAL_ORIGIN` to the reviewed public HTTPS origin before a re
 Account administration uses D1 roles, hashed one-time invitations, server revocation and opaque sessions. The first real owner is email-bound to `nischalbachhar9@gmail.com` and chooses a password through one-time setup. See [Cloudflare Auth](docs/CLOUDFLARE_AUTH.md), [mobile API](docs/MOBILE_API.md) and [OpenAPI](docs/openapi.json). Historical Firebase tooling is retired; do not run its key creation or old cutover instructions.
 
 Cash booking remains supported; Fonepay stays disabled pending its pre-existing provider integration. Cross-device care/booking updates refresh every 60 seconds while visible and on focus/reconnect. The migration runbook records deployment, verification, rollback and Firebase-retirement status. Development for future mobile clients should target this Cloudflare backend.
+
+Gmail sign-in, email verification, password recovery and optional care emails: [configuration and rollout](docs/GMAIL_ACCOUNT_ACCESS.md). Provider credentials and the additive migration are required before activation.

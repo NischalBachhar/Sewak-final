@@ -2,6 +2,7 @@ import React, { lazy, useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { signOut } from "./authClient";
 import AccountSetupPage from "./AccountSetupPage";
+import AccountEmailPage from "./AccountEmailPage";
 import useCustomerBookings from "./useCustomerBookings";
 import NotFound from "./components/NotFound";
 import { useAuth } from "./AuthContext";
@@ -209,6 +210,7 @@ function App() {
     return location.pathname === "/browse" ? <BrowsePage /> : <Navigate to="/browse" replace />;
   }
 
+  if (window.location.pathname === "/account/email") return <AccountEmailPage />;
   if (window.location.pathname === "/account/setup") return <AccountSetupPage />;
   if (registrationPending || userDoc?.registrationIncomplete || (!user && window.location.pathname === "/auth")) return <AuthPage />;
 

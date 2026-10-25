@@ -1,4 +1,9 @@
 export interface Env {
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
+  APP_ORIGIN?: string;
   DB: D1Database;
   MEDIA_DB: D1Database;
   EVIDENCE_DB?: D1Database;

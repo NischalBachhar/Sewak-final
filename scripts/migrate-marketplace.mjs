@@ -1,5 +1,6 @@
 // Explicit production operator. Default is read-only; never provisions or renames resources.
 import assert from 'node:assert/strict';
+import {applicationColumns,snapshotRecords} from './migration-snapshot.mjs';
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {cloudflare} from './cloudflare-operator.mjs';
@@ -40,15 +41,8 @@ for(const binding of ['DB','MEDIA_DB','EVIDENCE_DB']){
  }
 }
 // Record hashes rather than personal data; compare every preexisting application table.
-const snapshot=async()=>{
- const result={};
- for(const table of tables.filter(t=>!t.startsWith('_')&&!['sewak_schema_migrations','d1_migrations','sqlite_sequence','cf_sessions','cf_auth_limits'].includes(t)).sort()){
-   assert.match(table,/^[a-z_]+$/);
-   const data=await rows('SELECT * FROM '+table+' ORDER BY rowid');
-   result[table]={count:data.length,sha256:createHash('sha256').update(JSON.stringify(data)).digest('hex')};
- }
- return result;
-};
+const columns=await applicationColumns(rows,tables);
+const snapshot=()=>snapshotRecords(rows,columns);
 const before=await snapshot(),applied=[];
 for(const migration of plan.filter(m=>!m.applied)){
  // Journal entry and additive schema share a single atomic D1 transaction.

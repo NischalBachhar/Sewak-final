@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from './apiClient';
 import { useAuth } from './AuthContext';
+import { continueWithGoogle, sendVerification } from './authClient';
 import './CareInspired.css';
 
 export default function CareNotificationsPage() {
@@ -15,13 +16,15 @@ export default function CareNotificationsPage() {
   const [reminders,setReminders] = useState(true);
   const [notice,setNotice] = useState('');
   const [filter,setFilter] = useState('all');
+  const [emails,setEmails] = useState(false);
+  const [delivery,setDelivery] = useState({});
   const refresh=useCallback(()=>setVersion(value=>value+1),[]);
   useEffect(()=>{
     let active=true;
     setLoading(true);
     setError('');
     apiRequest('/api/care-notifications').then(result=>{
-      if(active){setItems(result.items||[]);setUnread(result.unread||0);setReminders(result.preferences?.bookingReminders!==false);setLoading(false);}
+      if(active){setItems(result.items||[]);setUnread(result.unread||0);setReminders(result.preferences?.bookingReminders!==false);setEmails(result.preferences?.emailUpdates===true);setDelivery(result.delivery||{});setLoading(false);}
     }).catch(err=>{if(active){setError(err.message);setLoading(false);}});
     return ()=>{active=false;};
   },[version]);
@@ -46,6 +49,19 @@ export default function CareNotificationsPage() {
       setReminders(enabled);setNotice('Reminder preference saved.');
     }catch(err){setReminders(previous);setError(err.message);}finally{setBusy('');}
   }
+  async function saveEmails(event){
+    const enabled=event.target.checked;
+    if(busy)return;
+    setBusy('email');setError('');setNotice('');
+    try{await apiRequest('/api/care-notifications',{method:'POST',json:{action:'preferences',emailUpdates:enabled}});setEmails(enabled);setNotice('Email preference saved.');}
+    catch(err){setError(err.message);}finally{setBusy('');}
+  }
+  async function accountAction(action){
+    if(busy)return;
+    setBusy(action);setError('');setNotice('');
+    try{if(action==='google')await continueWithGoogle();else{const result=await sendVerification();setNotice(result.message);}}
+    catch(err){setError(err.message);}finally{setBusy('');}
+  }
   const visibleItems = filter === 'unread' ? items.filter(item=>!item.readAt) : items;
   const home=userRole==='caregiver'?'/caregiver':userRole==='orgadmin'?'/organization':userRole==='superadmin'?'/superadmin':'/user/home';
   return <main id="main-content" className="care-notices" aria-labelledby="care-notices-title">
@@ -56,7 +72,12 @@ export default function CareNotificationsPage() {
     <section className="care-notices__panel" aria-labelledby="notification-preferences-title">
       <h2 id="notification-preferences-title">Notification preferences</h2>
       <label><input type="checkbox" checked={reminders} onChange={saveReminders} disabled={loading||!!busy}/> Remind me about upcoming care appointments</label>
-      <p>Updates appear in Sewak. Booking decisions and private message alerts remain available. Email and Web Push delivery are not enabled.</p>
+      <p>Updates appear in Sewak. Email can also notify you about booking requests, confirmations, reminders and account approvals.</p>
+      <label><input type="checkbox" checked={emails} onChange={saveEmails} disabled={loading||!!busy||(!emails&&(!delivery.emailConfigured||!delivery.emailVerified))}/> Send care updates to my email</label>
+      {!loading && <p>{!delivery.emailConfigured ? 'Email delivery is not configured yet.' : !delivery.emailVerified ? 'Verify your account email to enable email updates.' : 'Your email is verified. Email updates are optional and usually sent within 15 minutes.'}</p>}
+      {!loading&&delivery.emailConfigured&&!delivery.emailVerified&&<button type="button" disabled={!!busy} onClick={()=>accountAction('verify')}>Send verification email</button>}
+      {!loading&&delivery.googleAvailable&&!delivery.googleConnected&&<p><button type="button" disabled={!!busy} onClick={()=>accountAction('google')}>Connect Google</button> Use the Gmail address registered with Sewak.</p>}
+      {delivery.googleConnected&&<p>Google is connected. You can sign in with your Gmail account.</p>}
       {notice&&<p role="status">{notice}</p>}
     </section>
     <section className="care-notices__panel" aria-label="Notification activity">
