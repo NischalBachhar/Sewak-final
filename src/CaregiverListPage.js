@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { publicServiceChoices } from './serviceCatalog';
 import { hasVerifiedRating } from "./bookingModel";
 import { formatNpr } from "./config/brand";
+import { careSearchPath } from './careSearchNavigation';
 import { SkeletonCard } from "./components/CareExperience";
 
 const SHIFTS = ["morning", "day", "evening", "night"];
@@ -336,6 +337,10 @@ export default function CaregiverListPage({
   preselectedService = "",
   preselectedLocation = "",
   preselectedShift = "",
+  preselectedText = "",
+  preselectedExperience = "",
+  preselectedRating = "",
+  preselectedVerified = false,
   userCategory = "",
   onChangeUserCategory,
   onChangeWorkType,
@@ -352,14 +357,14 @@ export default function CaregiverListPage({
   const [cursor, setCursor] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(preselectedText);
   const [serviceFilter, setServiceFilter] = useState(preselectedService);
   const [workTypeFilter, setWorkTypeFilter] = useState(preselectedWorkType || "");
   const [shiftFilter, setShiftFilter] = useState(preselectedShift || "");
   const [locationFilter, setLocationFilter] = useState(preselectedLocation);
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [minimumExperience, setMinimumExperience] = useState("");
-  const [minimumRating, setMinimumRating] = useState("");
+  const [verifiedOnly, setVerifiedOnly] = useState(preselectedVerified);
+  const [minimumExperience, setMinimumExperience] = useState(preselectedExperience);
+  const [minimumRating, setMinimumRating] = useState(preselectedRating);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [services, setServices] = useState([]);
   const filterToggleRef = useRef(null);
@@ -438,8 +443,8 @@ export default function CaregiverListPage({
     let active = true;
     const changed = lastSearch.current !== searchKey;
     if (changed) { lastSearch.current = searchKey; setCursor(null); }
+    setLoading(true); setError('');
     const timer = setTimeout(async () => {
-      setLoading(true); setError('');
       try {
         const result = await searchCaregivers(JSON.parse(searchKey), { limit: 12, ...(!changed && cursor ? { cursor } : {}) });
         if (active) { setCaregivers(result.items.map(item => ({ id: item.id, ...item.data }))); setTotal(result.total); setNextCursor(result.nextCursor); }
@@ -464,6 +469,10 @@ export default function CaregiverListPage({
 
   useEffect(() => { setServiceFilter(preselectedService); }, [preselectedService]);
   useEffect(() => { setLocationFilter(preselectedLocation); }, [preselectedLocation]);
+  useEffect(() => { setSearchTerm(preselectedText); }, [preselectedText]);
+  useEffect(() => { setMinimumExperience(preselectedExperience); }, [preselectedExperience]);
+  useEffect(() => { setMinimumRating(preselectedRating); }, [preselectedRating]);
+  useEffect(() => { setVerifiedOnly(preselectedVerified); }, [preselectedVerified]);
 
   // Service dropdown options depend on userCategory
   const visibleServices = publicServiceChoices(services).filter((s) => {
@@ -585,7 +594,7 @@ export default function CaregiverListPage({
             <div className="browse-list__title-row">
               <h2>Caregivers ready to help</h2>
               <span className="browse-result-count">
-                {total} {total === 1 ? "match" : "matches"}
+                {loading ? 'Searching…' : `${total} ${total === 1 ? 'match' : 'matches'}`}
               </span>
             </div>
           </div>
@@ -739,7 +748,9 @@ export default function CaregiverListPage({
         </div>
 
         {loading && <p role="status">Updating results…</p>}
-        {filtered.length > 0 ? (
+        {loading && !filtered.length ? <div className="browse-caregiver-grid" aria-busy="true" aria-label="Loading caregiver profiles">
+          {[0, 1].map(index => <SkeletonCard key={index} variant="caregiver" label="Loading caregiver profile" />)}
+        </div> : filtered.length > 0 ? (
           <>
             <div className={"browse-caregiver-grid" + (filtered.length === 1 ? " browse-caregiver-grid--single" : filtered.length === 2 ? " browse-caregiver-grid--pair" : "")}>
               {[...featured, ...regular].map((caregiver) => (
@@ -750,6 +761,7 @@ export default function CaregiverListPage({
                   onSelect={onSelectCaregiver}
                   onViewProfile={(profile) => navigate(`${requireLogin ? "" : "/user"}/caregivers/${encodeURIComponent(profile.id)}`)}
                   requireLogin={requireLogin}
+                  searchReturnTo={requireLogin ? careSearchPath('/browse', JSON.parse(searchKey), 'browse-caregiver-results') : undefined}
                 />
               ))}
             </div>

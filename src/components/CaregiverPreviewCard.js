@@ -9,7 +9,7 @@ import ProfileImage from './ProfileImage';
 import RequestAvailability from './RequestAvailability';
 import { VerificationBadge } from './CareExperience';
 
-export default function CaregiverPreviewCard({ caregiver, services = [], onSelect, onViewProfile, requireLogin, compact = false }) {
+export default function CaregiverPreviewCard({ caregiver, services = [], onSelect, onViewProfile, requireLogin, compact = false, searchReturnTo }) {
   const navigate = useNavigate();
   const reason = caregiverBookingReason(caregiver);
   const reasonId = useId();
@@ -20,10 +20,16 @@ export default function CaregiverPreviewCard({ caregiver, services = [], onSelec
     const service = services.find(item => [item.id, item.label, item.serviceName].some(value => value?.toLowerCase() === String(id).toLowerCase()));
     return (serviceFamily(id) || serviceFamily(service?.label || service?.serviceName))?.[1] || service?.label || service?.serviceName || String(id).replace(/^catalog_/, '').replace(/_/g, ' ');
   }))];
-  const viewProfile = () => onViewProfile?.(caregiver);
+  const openPublicProfile = (request = false) => {
+    if (searchReturnTo) navigate(searchReturnTo, { replace: true });
+    const profilePath = '/caregivers/' + encodeURIComponent(caregiver.id) + (request ? '?request=1#request-care' : '');
+    if (searchReturnTo) navigate(profilePath, { state: { careSearchReturnTo: searchReturnTo } });
+    else navigate(profilePath);
+  };
+  const viewProfile = () => requireLogin && searchReturnTo ? openPublicProfile() : onViewProfile?.(caregiver);
   const request = () => {
     if (reason) return;
-    if (requireLogin) navigate('/caregivers/' + encodeURIComponent(caregiver.id) + '?request=1#request-care');
+    if (requireLogin) openPublicProfile(true);
     else onSelect?.(caregiver);
   };
   return <article className={'care-listing-card' + (compact ? ' care-listing-card--compact' : '')}>
