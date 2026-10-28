@@ -7,7 +7,8 @@ import ProfileImage from "./components/ProfileImage";
 import useSavedCare from './useSavedCare';
 import React, { useEffect, useMemo, useState } from "react";
 import { collection, doc, getDoc, getDocs, query, where } from "./d1Client";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { careSearchReturnPath } from './careSearchNavigation';
 import { db } from "./d1Client";
 
 import { formatNpr } from "./config/brand";
@@ -47,6 +48,8 @@ const publicProfileLoadError = (loadError) => {
 export default function PublicCaregiverProfilePage({ signedIn = false }) {
   const { caregiverId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = careSearchReturnPath(location.state?.careSearchReturnTo, signedIn);
   const { saved, toggle, enabled } = useSavedCare();
   const [preferredDate, setPreferredDate] = useState(() => readCareIntent(caregiverId).date || '');
   const [preferredTime, setPreferredTime] = useState(() => readCareIntent(caregiverId).time || '');
@@ -56,6 +59,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
   const [servicesUnavailable, setServicesUnavailable] = useState(false);
   const [reviewsUnavailable, setReviewsUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [detailsLoading, setDetailsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -69,6 +73,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
       setReviews([]);
       setServicesUnavailable(false);
       setReviewsUnavailable(false);
+      setDetailsLoading(true);
       try {
         const caregiverSnap = await getDoc(
           doc(db, "publicCaregivers", caregiverId),
@@ -77,6 +82,11 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
         if (!caregiverSnap.exists()) {
           throw new Error("This caregiver profile is not available.");
         }
+        if (!active) return;
+        // Show the real profile, rate and request panel as soon as they arrive.
+        // Optional service labels and reviews should not hold up booking.
+        setCaregiver({ id: caregiverSnap.id, ...caregiverSnap.data() });
+        setLoading(false);
 
         // The main profile is a standalone, PII-free public projection. Do
         // not hide it just because optional service labels or review cards
@@ -92,7 +102,6 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
         ]);
 
         if (!active) return;
-        setCaregiver({ id: caregiverSnap.id, ...caregiverSnap.data() });
         if (servicesResult.status === "fulfilled") {
           setServices(
             servicesResult.value.docs.map((item) => ({
@@ -122,7 +131,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
       } catch (loadError) {
         if (active) setError(publicProfileLoadError(loadError));
       } finally {
-        if (active) setLoading(false);
+        if (active) { setLoading(false); setDetailsLoading(false); }
       }
     }
 
@@ -143,7 +152,16 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
   );
 
   useEffect(() => { const intent = readCareIntent(caregiverId); setPreferredDate(intent.date || ''); setPreferredTime(intent.time || ''); }, [caregiverId]);
-  useEffect(() => { if (caregiver && window.location.hash === '#request-care') document.getElementById('request-care')?.scrollIntoView?.({ block: 'start' }); }, [caregiver]);
+  const showRequestPanel = () => {
+    document.getElementById('request-care-title')?.focus?.({ preventScroll: true });
+    document.getElementById('request-care')?.scrollIntoView?.({ block: 'start', behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
+  useEffect(() => {
+    if (caregiver && location.hash === '#request-care') {
+      document.getElementById('request-care-title')?.focus?.({ preventScroll: true });
+      document.getElementById('request-care')?.scrollIntoView?.({ block: 'start' });
+    }
+  }, [caregiver, location.hash]);
 
   const handleBook = () => {
     if (!caregiver || caregiverBookingReason(caregiver)) return;
@@ -158,23 +176,23 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
 
   if (loading) {
     return (
-      <main className="caregiver-profile-page caregiver-profile-page--loading" aria-busy="true">
+      <div className="marketplace-profile-shell">{!signedIn && <PublicHeader />}<main id="main-content" className="caregiver-profile-page caregiver-profile-page--loading" aria-busy="true">
         <SkeletonCard />
         <SkeletonCard />
-      </main>
+      </main>{!signedIn && <PublicFooter />}</div>
     );
   }
 
   if (error || !caregiver) {
     return (
-      <main className="caregiver-profile-page">
+      <div className="marketplace-profile-shell">{!signedIn && <PublicHeader />}<main id="main-content" className="caregiver-profile-page">
         <ErrorState
           title="Caregiver profile unavailable"
           description={error || "This profile could not be found."}
           actionLabel="Browse caregivers"
-          onAction={() => navigate("/browse")}
+          onAction={() => navigate(returnTo)}
         />
-      </main>
+      </main>{!signedIn && <PublicFooter />}</div>
     );
   }
 
@@ -199,7 +217,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
         signedIn ? " caregiver-profile-page--with-mobile-nav" : ""
       }`}
     >
-      <button className="caregiver-profile-page__back" type="button" onClick={() => navigate(signedIn ? "/user" : "/browse")}>
+      <button className="caregiver-profile-page__back" type="button" onClick={() => navigate(returnTo, { replace: true })}>
         Back to results
       </button>
 
@@ -216,7 +234,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
             <p className="caregiver-profile-eyebrow">Caregiver profile</p>
             <h1 id="caregiver-profile-title">{caregiver.name || "Caregiver"}</h1>
             <p className="caregiver-profile-specialty">
-              {serviceLabels[0] || "Care support"}
+              {detailsLoading ? 'Care support' : serviceLabels[0] || "Care support"}
               {caregiver.location ? ` · ${caregiver.location}` : ""}
             </p>
             <p className="profile-experience">{caregiver.experience ? `${caregiver.experience}+ years experience` : "Experience not listed"} · {caregiver.jobsCompleted || 0} completed sessions</p>
@@ -229,7 +247,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
         </div>
 
         <div className="caregiver-profile-hero__summary">
-          {rating ? (
+          {detailsLoading ? <p className="caregiver-profile-rating caregiver-profile-rating--muted" role="status">Loading verified reviews…</p> : rating ? (
             <p className="caregiver-profile-rating" aria-label={`${rating} out of 5 from ${verifiedReviewCount} verified reviews`}>
               <strong>★ {rating}</strong>
               <span>{verifiedReviewCount} verified {verifiedReviewCount === 1 ? "review" : "reviews"}</span>
@@ -245,7 +263,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
           <button
             className="caregiver-profile-book"
             type="button"
-            onClick={handleBook}
+            onClick={showRequestPanel}
             disabled={Boolean(bookingReason)}
             aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}
           >
@@ -266,7 +284,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
           <section className="caregiver-profile-section" aria-labelledby="skills-heading">
             <p className="caregiver-profile-eyebrow">Skills</p>
             <h2 id="skills-heading">Care and support offered</h2>
-            {servicesUnavailable ? (
+            {detailsLoading ? <p role="status">Loading care and support details…</p> : servicesUnavailable ? (
               <p className="caregiver-profile-muted">
                 Service details are temporarily unavailable. Confirm the care
                 needed before booking.
@@ -283,7 +301,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
           <section className="caregiver-profile-section" aria-labelledby="reviews-heading">
             <p className="caregiver-profile-eyebrow">Verified reviews</p>
             <h2 id="reviews-heading">Feedback from completed bookings</h2>
-            {reviewsUnavailable ? (
+            {detailsLoading ? <p role="status">Loading verified reviews…</p> : reviewsUnavailable ? (
               <p className="caregiver-profile-muted">
                 Verified review details are temporarily unavailable. Please try
                 again shortly.
@@ -309,14 +327,14 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
         </div>
 
         <aside className="caregiver-profile-aside">
-          <section id="request-care" className="care-request-panel" aria-labelledby="request-care-title">
-            <p className="care-eyebrow">Your next step</p><h2 id="request-care-title">Request availability</h2>
+          <form id="request-care" className="care-request-panel" aria-labelledby="request-care-title" onSubmit={event => { event.preventDefault(); handleBook(); }}>
+            <p className="care-eyebrow">Your next step</p><h2 id="request-care-title" tabIndex={-1}>Request availability</h2>
             <p className="care-request-panel__price">{formatNpr(caregiver.hourlyRate)}<small> / hour, starting rate</small></p>
             <label>Preferred date (optional)<input type="date" min={kathmanduDate()} value={preferredDate} onChange={event => setPreferredDate(event.target.value)} /></label>
             <label>Preferred start time (optional)<input type="time" value={preferredTime} onChange={event => setPreferredTime(event.target.value)} /></label>
-            <button type="button" className="care-primary-button" onClick={handleBook} disabled={Boolean(bookingReason)} aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}>Continue to request <span aria-hidden="true">→</span></button>
+            <button type="submit" className="care-primary-button" disabled={Boolean(bookingReason)} aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}>Continue to request <span aria-hidden="true">→</span></button>
             <p>Times are in Nepal time. {signedIn ? 'Review your care needs and quote next.' : 'Sign in or create an account to send your request.'} Your caregiver must accept before care is confirmed.</p>
-          </section>
+          </form>
           <details className="profile-verification"><summary>Trust and verification details</summary>
           <CaregiverTrustSummary
             caregiverName={caregiver.name}
@@ -351,7 +369,7 @@ export default function PublicCaregiverProfilePage({ signedIn = false }) {
 
       <div className="caregiver-profile-sticky-book" aria-label="Book this caregiver">
         <span>{formatNpr(caregiver.hourlyRate)}/hr</span>
-        <button type="button" onClick={handleBook} disabled={Boolean(bookingReason)} aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}>
+        <button type="button" onClick={showRequestPanel} disabled={Boolean(bookingReason)} aria-describedby={bookingReason ? 'caregiver-booking-reason' : undefined}>
           Request availability
         </button>
       </div>

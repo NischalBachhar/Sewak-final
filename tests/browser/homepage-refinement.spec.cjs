@@ -78,7 +78,14 @@ test('Homepage filters genuine profiles without visiting another search page', a
   await expect(marketplace).toContainText('Test Caregiver');
   expect(queries.some(query => query.search?.serviceId === 'e2e-care'
     && query.search?.location === 'Hetauda')).toBe(true);
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/\?service=e2e-care&location=Hetauda#home-caregiver-results-heading$/);
+  await marketplace.getByRole('button', { name: 'View profile' }).click();
+  await page.getByRole('button', { name: 'Back to results' }).click();
+  await expect(marketplace.getByRole('combobox', { name: 'Service' })).toHaveValue('e2e-care');
+  await expect(marketplace.getByRole('textbox', { name: 'City or locality' })).toHaveValue('Hetauda');
+  await marketplace.getByRole('link', { name: /All filters/ }).click();
+  await expect(page.getByRole('combobox', { name: 'Service', exact: true })).toHaveValue('e2e-care');
+  await expect(page.getByRole('textbox', { name: 'Location', exact: true })).toHaveValue('Hetauda');
 });
 
 test('Homepage booking action preserves selected caregiver through sign-in', async ({ page }) => {
