@@ -117,6 +117,14 @@ test('honest empty and retry states never invent caregiver profiles', async () =
   expect(screen.queryByRole('button', { name: /Request availability/ })).toBeNull();
 });
 
+test('homepage loading has one accessible status announcement', async () => {
+  searchCaregivers.mockReturnValue(new Promise(() => {}));
+  render(<HomeCaregiverMarketplace />);
+  await waitFor(() => expect(loadPublicCareServices).toHaveBeenCalled());
+  expect(screen.getAllByRole('status')).toHaveLength(1);
+  expect(screen.getByRole('status')).toHaveTextContent('Finding caregivers who accept requests');
+});
+
 test('failed public lookup provides a retryable error', async () => {
   searchCaregivers.mockRejectedValueOnce(new Error('offline'));
   render(<HomeCaregiverMarketplace />);

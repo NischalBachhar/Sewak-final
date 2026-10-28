@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import CaregiverListPage from './CaregiverListPage';
 import { loadPublicCareServices, searchCaregivers } from './caregiverDiscovery';
 
@@ -37,4 +37,19 @@ test('returning to browse restores all saved preferences in the next real query'
   }, { limit: 12 }));
   expect(await screen.findByText('No caregivers match this search')).toBeVisible();
   expect(screen.getByRole('searchbox', { name: 'Search caregivers by name' })).toHaveValue('Maya');
+});
+
+test('clearing an empty search keeps the filter form and expanded preferences mounted during loading', async () => {
+  searchCaregivers.mockResolvedValue({ items: [], total: 0, nextCursor: null });
+  render(<CaregiverListPage variant="browse" requireLogin preselectedLocation="Hetauda" />);
+  await screen.findByText('No caregivers match this search');
+  fireEvent.click(screen.getByText('More filters'));
+  const search = screen.getByRole('searchbox', { name: 'Search caregivers by name' });
+  const rating = screen.getByRole('combobox', { name: 'Verified rating', exact: true });
+  searchCaregivers.mockReturnValue(new Promise(() => {}));
+  fireEvent.click(screen.getByRole('button', { name: 'Clear all', exact: true }));
+  expect(screen.getByRole('searchbox', { name: 'Search caregivers by name' })).toBe(search);
+  expect(screen.getByRole('combobox', { name: 'Verified rating', exact: true })).toBe(rating);
+  expect(screen.getByText('Searching…')).toBeVisible();
+  expect(screen.queryByText('No caregivers match this search')).toBeNull();
 });

@@ -493,27 +493,9 @@ export default function CaregiverListPage({
   const featured = filtered.filter((c) => hasVerifiedRating(c) && Number(c.rating) >= 4.5);
   const regular = filtered.filter((c) => !featured.includes(c));
 
-  if (loading && !caregivers.length && !filterSheetOpen && !searchTerm && !serviceFilter && !locationFilter && !minimumRating && !minimumExperience && !workTypeFilter && !userCategory) {
-    if (isBrowse) {
-      return (
-        <section
-          className="browse-list"
-          aria-busy="true"
-          aria-label="Loading caregiver profiles"
-        >
-          <div className="browse-caregiver-grid">
-            {[0, 1, 2, 3].map((index) => (
-              <SkeletonCard
-                key={index}
-                variant="caregiver"
-                label="Loading caregiver profile"
-              />
-            ))}
-          </div>
-        </section>
-      );
-    }
-
+  // Keep browse controls mounted while results load, including after Clear all.
+  // Replacing the entire form loses focus and closes native details elements.
+  if (!isBrowse && loading && !caregivers.length && !filterSheetOpen && !searchTerm && !serviceFilter && !locationFilter && !minimumRating && !minimumExperience && !workTypeFilter && !userCategory) {
     return (
       <div aria-busy="true" aria-label="Loading caregiver profiles">
         <SkeletonCard variant="caregiver" label="Loading caregiver profile" />

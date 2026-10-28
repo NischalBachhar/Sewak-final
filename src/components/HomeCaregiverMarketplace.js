@@ -5,6 +5,7 @@ import CaregiverPreviewCard from './CaregiverPreviewCard';
 import { CareHeroMedia } from './CareHeroMedia';
 import { publicServiceChoices } from '../serviceCatalog';
 import { careSearchPath, readCareSearch } from '../careSearchNavigation';
+import { SkeletonCard } from './CareExperience';
 
 // This is the homepage's primary experience, not a promotional carousel.
 // Queries use the same server-authorized public projection and booking routes as Find Care.
@@ -143,7 +144,7 @@ export default function HomeCaregiverMarketplace() {
       <div className="marketplace-results-heading" id="home-caregiver-results-heading">
         <div>
           <h2 tabIndex={-1}>Meet your care partner</h2>
-          <p role="status" aria-atomic="true">{loadingFirst ? 'Loading real caregiver profiles…' :
+          <p role="status" aria-atomic="true">{loadingFirst ? 'Finding caregivers who accept requests…' :
             result.status === 'error' ? 'Unable to show current results.' :
               totalLabel + ' match' + (result.total === 1 ? 'es' : '') + ' your search.'}</p>
         </div>
@@ -153,7 +154,7 @@ export default function HomeCaregiverMarketplace() {
       {filtered && <div className="marketplace-active-filters" role="group" aria-label="Active search filters">{activeFilters.map(({ key, label }) => <button key={key} type="button" onClick={() => removeFilter(key)} aria-label={'Remove filter: ' + label}>{label}<span aria-hidden="true">×</span></button>)}</div>}
       <p className="marketplace-availability-note">Send a request to check your dates. Care is confirmed after the caregiver accepts.</p>
 
-      {loadingFirst && <div className="home-marketplace__state" role="status">Finding caregivers who accept requests…</div>}
+      {loadingFirst && <div className="marketplace-caregiver-results" aria-hidden="true"><SkeletonCard variant="caregiver" label="Loading caregiver profile" /></div>}
       {result.status === 'error' && <div className="home-marketplace__state" role="status">
         <p>{result.error}</p>
         <button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button>
