@@ -1,6 +1,6 @@
 import SignupRegistrationForm from './components/SignupRegistrationForm';
 import React, { useEffect, useRef, useState } from "react";
-import { auth, signIn, register } from "./authClient";
+import { auth, signIn, register, authOptions, continueWithGoogle, requestPasswordReset } from "./authClient";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { completeRegistration } from "./registrationService";
@@ -52,7 +52,7 @@ export default function AuthPage() {
   const [params] = useSearchParams();
   const { beginRegistration, finishRegistration, registrationPending, userDoc } = useAuth();
   const [mode, setMode] = useState(params.get("mode") === "register" || registrationPending || userDoc?.registrationIncomplete ? "register" : "login");
-  const [fullName, setFullName] = useState("");
+  const [fullName, setFullName] = useState(auth.currentUser?.displayName || "");
   const [email, setEmail] = useState(auth.currentUser?.email || "");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -63,6 +63,16 @@ export default function AuthPage() {
   const submitting = useRef(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [options, setOptions] = useState({});
+  const [recovering, setRecovering] = useState(false);
+  const googleIssue = params.get('google');
+  useEffect(() => {
+    let active = true;
+    authOptions().then(value => { if (active) setOptions(value); }).catch(() => {});
+    const issue = googleIssue;
+    if (issue) setError(issue === 'link-required' ? 'Sign in with your Sewak password, then connect Google in notification preferences.' : issue === 'gmail-required' ? 'Choose a verified Gmail account to continue.' : issue === 'cancelled' ? 'Google sign-in was cancelled. You can try again.' : 'Google sign-in could not be completed. Please try again.');
+    return () => { active = false; };
+  }, [googleIssue]);
   useEffect(() => { if (userDoc?.registrationIncomplete) setMode("register"); }, [userDoc?.registrationIncomplete]);
 
   const handleSubmit = async (e) => {
@@ -107,7 +117,20 @@ export default function AuthPage() {
     }
   };
 
-  const forgotPassword = () => { setError(''); setSuccess('Contact your Sewak administrator for account recovery. Automated reset email is not configured.'); };
+  async function forgotPassword(event) {
+    event.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true; setLoading(true); setError(''); setSuccess('');
+    try { const result = await requestPasswordReset(email.trim()); setSuccess(result.message); }
+    catch (err) { setError(err.message); }
+    finally { submitting.current = false; setLoading(false); }
+  }
+  async function googleSignIn() {
+    if (submitting.current) return;
+    submitting.current = true; setLoading(true); setError('');
+    try { if (mode === 'register') sessionStorage.setItem('sewak.registrationRole', selectedRole); await continueWithGoogle(); }
+    catch (err) { setError(err.message); submitting.current = false; setLoading(false); }
+  }
 
   return (
     <div className={`auth-shell marketplace-auth ${mode === "login" ? "auth-shell--login" : "auth-shell--signup"}`}>
@@ -116,9 +139,9 @@ export default function AuthPage() {
       <main id="main-content" className="auth-card">
         {mode === "login" && <div className="login-card-mark" aria-hidden="true"><LoginIcon name="heart" /></div>}
         {mode === "register" && <div className="signup-card-eyebrow"><span aria-hidden="true" />LET’S MAKE CARE EASIER</div>}
-        <h1>{mode === "login" ? "Welcome back" : "Create your account"}</h1>
+        <h1>{recovering ? "Reset your password" : mode === "login" ? "Welcome back" : "Create your account"}</h1>
         <p>
-          {mode === "login"
+          {recovering ? "Enter your account email. We’ll send a secure link to your inbox." : mode === "login"
             ? "Continue to your Sewak workspace."
             : "Join Sewak and make finding trusted care easier."}
         </p>
@@ -127,7 +150,13 @@ export default function AuthPage() {
         {error && <div id="auth-error" className="error-message" role="alert">{error}</div>}
         {success && <div className="success-message" role="status">{success}</div>}
 
-        {mode === "register" ? <SignupRegistrationForm
+        {!recovering && !auth.currentUser && options.google && <><button type="button" className="auth-google-button" disabled={loading} onClick={googleSignIn}><svg aria-hidden="true" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6C44.4 38.02 46.98 31.89 46.98 24.55Z"/><path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.6.27-3.13.76-4.59l-7.98-6.19A23.87 23.87 0 0 0 0 24c0 3.87.93 7.52 2.56 10.78l7.97-6.19Z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"/></svg>Continue with Google</button><p className="auth-provider-note">Use your Gmail account. Sewak never sees your Google password.</p><div className="auth-divider">or continue with email</div></>}
+        {recovering ? <form className="form" onSubmit={forgotPassword}>
+          <label htmlFor="recovery-email">Account email</label><input id="recovery-email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required maxLength={254} placeholder="you@gmail.com" />
+          <button className="btn btn-primary auth-submit" disabled={loading} type="submit">{loading ? 'Sending…' : 'Send reset link'}</button>
+          <p>For Google-only accounts, use Continue with Google. Recover your Google password through Google.</p>
+          <button className="link-button" type="button" disabled={loading} onClick={() => { setRecovering(false); setError(''); setSuccess(''); }}>Back to sign in</button>
+        </form> : mode === "register" ? <SignupRegistrationForm
           initialRoleSelected={["user", "orgadmin", "caregiver"].includes(params.get("role")) || registrationPending || Boolean(userDoc?.registrationIncomplete)}
           values={{ fullName, email, password, selectedRole, organizationName, organization }}
           onChange={(key, value) => ({ fullName: setFullName, email: setEmail, password: setPassword, selectedRole: setSelectedRole, organizationName: setOrganizationName, organization: setOrganization })[key](value)}
@@ -149,8 +178,8 @@ export default function AuthPage() {
           <button type="submit" className="btn btn-primary auth-submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}<span className={loading ? 'login-spinner' : 'login-submit-arrow'} aria-hidden="true">{!loading && <LoginIcon name="arrow" />}</span></button>
         </form>}
 
-        {mode === "login" && <button type="button" className="link-button login-recovery" disabled={loading} onClick={forgotPassword}>Forgot password?</button>}
-        <div className="auth-toggle">
+        {!recovering && mode === "login" && <button type="button" className="link-button login-recovery" disabled={loading} onClick={() => { setRecovering(true); setError(''); setSuccess(''); }}>Forgot password?</button>}
+        {!recovering && <div className="auth-toggle">
           {mode === "login" ? (
             <p>
               New here?{" "}
@@ -182,7 +211,7 @@ export default function AuthPage() {
               </button>
             </p>
           )}
-        </div>
+        </div>}
         {mode === "register" && <div className="signup-footer-note"><SignupIcon name="lock" />Care begins with a little trust.</div>}
         <a className="auth-home-link" href="/">Back to Sewak home</a>
       </main>

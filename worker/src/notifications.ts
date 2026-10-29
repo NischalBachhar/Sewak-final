@@ -1,3 +1,5 @@
+import { emailReady } from './email.ts';
+import { googleReady } from './google-auth.ts';
 import type { Write, Saved } from './repository.ts';
 import { Repository, requireActive } from './repository.ts';
 import { badInput, onlyKeys, requireThat, type Actor, type Data, type Env } from './types.ts';
@@ -84,25 +86,35 @@ export function notificationStatements(env:Env,writes:Write[],reads:Map<string,S
 export async function notificationsRoute(request:Request,repo:Repository,actor:Actor|null,input:Data={}) {
   const user=requireActive(actor),db=repo.env.DB;
   if(request.method==='GET') {
-    const [items, count, preferences]=await Promise.all([
+    const [items, count, preferences, credentials]=await Promise.all([
       db.prepare('SELECT id,event_type AS eventType,context_id AS contextId,title,body,link,created_at AS createdAt,read_at AS readAt FROM care_notifications WHERE recipient_id=? ORDER BY created_at DESC,id DESC LIMIT 60')
         .bind(user.uid).all<Data>(),
       db.prepare('SELECT COUNT(*) AS unread FROM care_notifications WHERE recipient_id=? AND read_at IS NULL').bind(user.uid).first<Data>(),
-      db.prepare('SELECT booking_reminders FROM care_notification_preferences WHERE user_id=?').bind(user.uid).first<Data>(),
+      db.prepare('SELECT booking_reminders,email_updates FROM care_notification_preferences WHERE user_id=?').bind(user.uid).first<Data>(),
+      db.prepare('SELECT email_verified_at,google_sub FROM cf_credentials WHERE user_id=?').bind(user.uid).first<Data>(),
     ]);
-    return {items:items.results,unread:Number(count?.unread||0),preferences:{bookingReminders:preferences?.booking_reminders!==0},delivery:{inApp:true,email:false,webPush:false}};
+    return {items:items.results,unread:Number(count?.unread||0),preferences:{bookingReminders:preferences?.booking_reminders!==0,emailUpdates:preferences?.email_updates===1},delivery:{inApp:true,email:emailReady(repo.env)&&Boolean(credentials?.email_verified_at)&&preferences?.email_updates===1,emailConfigured:emailReady(repo.env),emailVerified:Boolean(credentials?.email_verified_at),googleConnected:Boolean(credentials?.google_sub),googleAvailable:googleReady(repo.env),webPush:false}};
   }
   requireThat(request.method==='POST','Unsupported notification action.',405,'method-not-allowed');
   requireThat(repo.env.APP_WRITES_ENABLED==='true','Notifications are read-only during maintenance.',503,'maintenance');
-  onlyKeys(input,['action','id','bookingReminders']);
+  onlyKeys(input,['action','id','bookingReminders','emailUpdates']);
   if(input.action==='preferences'){
-    badInput(input.id===undefined&&typeof input.bookingReminders==='boolean','Choose a reminder preference.');
-    await repo.commit([],[db.prepare(`INSERT INTO care_notification_preferences(user_id,booking_reminders,updated_at)
-      VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET booking_reminders=excluded.booking_reminders,updated_at=excluded.updated_at`)
-      .bind(user.uid,Number(input.bookingReminders),now())]);
-    return {updated:true,preferences:{bookingReminders:input.bookingReminders}};
+    badInput(input.id===undefined&&(typeof input.bookingReminders==='boolean'||typeof input.emailUpdates==='boolean')
+      &&(input.bookingReminders===undefined||typeof input.bookingReminders==='boolean')&&(input.emailUpdates===undefined||typeof input.emailUpdates==='boolean'),'Choose a notification preference.');
+    if(input.emailUpdates===true){
+      requireThat(emailReady(repo.env),'Email updates are not configured yet.',503,'email-unavailable');
+      const c=await db.prepare('SELECT email_verified_at FROM cf_credentials WHERE user_id=? AND disabled=0').bind(user.uid).first<Data>();
+      requireThat(c?.email_verified_at,'Verify your email before enabling email updates.',400,'email-unverified');
+    }
+    const reminders=input.bookingReminders===undefined?null:Number(input.bookingReminders),emails=input.emailUpdates===undefined?null:Number(input.emailUpdates),updated=now();
+    await repo.commit([],[db.prepare(`INSERT INTO care_notification_preferences(user_id,booking_reminders,email_updates,email_enabled_at,updated_at)
+      VALUES(?,COALESCE(?,1),COALESCE(?,0),?,?) ON CONFLICT(user_id) DO UPDATE SET
+      booking_reminders=COALESCE(?,booking_reminders),email_enabled_at=CASE WHEN ?=1 AND email_updates=0 THEN excluded.updated_at WHEN ?=0 THEN NULL ELSE email_enabled_at END,
+      email_updates=COALESCE(?,email_updates),updated_at=excluded.updated_at`)
+      .bind(user.uid,reminders,emails,emails===1?updated:null,updated,reminders,emails,emails,emails)]);
+    return {updated:true,preferences:{...(reminders!==null?{bookingReminders:input.bookingReminders}:{}),...(emails!==null?{emailUpdates:input.emailUpdates}:{})}};
   }
-  badInput(input.bookingReminders===undefined,'Unsupported notification fields.');
+  badInput(input.bookingReminders===undefined&&input.emailUpdates===undefined,'Unsupported notification fields.');
   badInput(['read','read-all'].includes(input.action),'Choose a notification action.');
   if(input.action==='read')badInput(typeof input.id==='string'&&input.id.length>=1&&input.id.length<=250,'Invalid notification ID.');
   else badInput(input.id===undefined,'Unsupported notification selection.');

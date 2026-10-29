@@ -1,3 +1,5 @@
+import { appOrigin, emailReady, sendEmail } from './email.ts';
+import { googleReady, googleIdentity } from './google-auth.ts';
 import { registrationKeys, registrationWrites } from './onboarding.ts';
 import { ApiError, badInput, onlyKeys, requireThat, textField, type Data, type Env, type Identity } from './types.ts';
 import { Repository, requireActor, validAccountRole, type Write } from './repository.ts';
@@ -59,15 +61,106 @@ export async function revokeUserSessions(env:Env,uid:string){await env.DB.prepar
 export function newAccountProfile(uid:string,email:string,name:string,role='user'):Data{return {uid,email,name,role,roleSource:'d1',isApproved:role==='superadmin',isSuspended:false,isBlacklisted:false,profileComplete:false,createdAt:new Date().toISOString()};}
 export async function invitationStatement(env:Env,uid:string,createdBy:string,purpose='activate',version=1){const token=opaque(),id=crypto.randomUUID();return {token,statement:env.DB.prepare('INSERT INTO cf_invitations(id,user_id,token_hash,expires_at,created_by,purpose,credential_version) VALUES(?,?,?,?,?,?,?)').bind(id,uid,await digest(token),epoch()+86400,createdBy,purpose,version)};}
 
-export async function authRoute(request:Request,env:Env,headers:Headers,body:Data,identity:Identity|null){
+async function accountEmail(env:Env,c:Data,purpose:'verify'|'reset') {
+  const token=opaque(),hash=await digest(token),expires=epoch()+(purpose==='reset'?1800:86400);
+  await env.DB.prepare('INSERT INTO cf_email_tokens(token_hash,user_id,purpose,credential_version,expires_at) VALUES(?,?,?,?,?)')
+    .bind(hash,c.user_id,purpose,c.credential_version,expires).run();
+  const link=appOrigin(env)+'/account/email?mode='+purpose+'#token='+token;
+  try{await sendEmail(env,c.email,purpose==='reset'?'Reset your Sewak password':'Verify your Sewak email',
+    (purpose==='reset'?'Use this link within 30 minutes to choose a new Sewak password.':'Confirm your email within 24 hours to enable Sewak email updates.')+'\n\n'+link+'\n\nIf you did not request this, you can ignore this email.', 'auth-'+hash);}
+  catch(error){await env.DB.prepare('DELETE FROM cf_email_tokens WHERE token_hash=?').bind(hash).run();throw error;}
+}
+function googleCookie(headers:Headers,value:string,max:number){headers.append('Set-Cookie',`__Host-sewak_google=${value}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${max}`);}
+
+export async function authRoute(request:Request,env:Env,headers:Headers,body:Data,identity:Identity|null,context?:ExecutionContext){
   const path=new URL(request.url).pathname.replace(/^\/api/,'');
   const repo=new Repository(env);const actor=await repo.actor(identity);
+  if(path==='/auth/options'&&request.method==='GET')return {google:googleReady(env),email:emailReady(env)};
+  if(path==='/auth/google/callback'&&request.method==='GET'){
+    requireThat(googleReady(env),'Google sign-in is not configured.',503,'unavailable');
+    const url=new URL(request.url);requireThat(url.origin===appOrigin(env),'Invalid sign-in origin.',403,'csrf-rejected');
+    googleCookie(headers,'',0);
+    const state=url.searchParams.get('state')||'',cookies=(request.headers.get('Cookie')||'').split(';').map(x=>x.trim()).filter(x=>x.startsWith('__Host-sewak_google='));
+    requireThat(/^swk_[A-Za-z0-9_-]{43}$/.test(state)&&cookies.length===1&&cookies[0].slice('__Host-sewak_google='.length)===state,'Google sign-in expired. Please try again.',400,'google-failed');
+    const pending=await env.DB.prepare('DELETE FROM cf_google_states WHERE token_hash=? AND audience=? AND expires_at>? RETURNING *').bind(await digest(state),audience(env),epoch()).first<Data>();
+    requireThat(pending,'Google sign-in expired. Please try again.',400,'google-failed');
+    if(url.searchParams.has('error')){headers.set('Location',appOrigin(env)+'/auth?google=cancelled');return new Response(null,{status:303,headers});}
+    const code=url.searchParams.get('code')||'';badInput(code.length>0&&code.length<=4096,'Invalid Google response.');
+    const google=await googleIdentity(env,code,pending.verifier,pending.nonce);
+    await authLimit(request,env,'google',google.email);
+    let c=await env.DB.prepare('SELECT * FROM cf_credentials WHERE google_sub=? OR email=?').bind(google.sub,google.email).all<Data>();
+    requireThat(c.results.length<=1,'This Google account cannot be connected.',409,'account-exists');
+    let credentials=c.results[0],profile:Data,session;
+    if(credentials){
+      requireThat(!pending.link_user_id||(actor?.uid===pending.link_user_id&&credentials.user_id===pending.link_user_id),'Choose the same Gmail address as your Sewak account.',400,'google-link-required');
+      requireThat(!credentials.disabled&&credentials.email===google.email,'This account cannot sign in.',403,'permission-denied');
+      requireThat(credentials.google_sub===google.sub || (actor?.uid===credentials.user_id&&pending.link_user_id===credentials.user_id&&pending.credential_version===credentials.credential_version&&credentials.password_hash),
+        'Sign in with your Sewak password first, then connect Google in notification preferences.',409,'google-link-required');
+      profile=(await repo.data('users/'+credentials.user_id))!;
+      requireThat(profile&&validAccountRole(profile.role)&&!profile.isSuspended&&!profile.isBlacklisted,'This account cannot sign in.',403,'permission-denied');
+      if(profile.role==='caregiver'&&profile.organizationId){const org=await repo.data('organizations/'+profile.organizationId);requireThat(org&&!org.isSuspended&&!org.isBlacklisted,'This account cannot sign in.',403,'permission-denied');}
+      session=await newSession(env,credentials.user_id,credentials.credential_version,'cookie');
+      await repo.commit([], [env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,EXISTS(SELECT 1 FROM cf_credentials WHERE user_id=? AND credential_version=? AND disabled=0 AND (google_sub IS NULL OR google_sub=?)))').bind('google:'+session.id,credentials.user_id,credentials.credential_version,google.sub),
+        env.DB.prepare('UPDATE cf_credentials SET google_sub=?,email_verified_at=COALESCE(email_verified_at,?) WHERE user_id=?').bind(google.sub,epoch(),credentials.user_id),session.statement,
+        env.DB.prepare('DELETE FROM commit_guards WHERE id=?').bind('google:'+session.id),
+        env.DB.prepare('DELETE FROM cf_sessions WHERE user_id=? AND id IN (SELECT id FROM cf_sessions WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT -1 OFFSET 10)').bind(credentials.user_id,credentials.user_id)]);
+    }else{
+      await authLimit(request,env,'register',google.email);
+      requireThat(!pending.link_user_id,'Choose the same Gmail address as your Sewak account.',400,'google-link-required');
+      requireThat(!await env.DB.prepare('SELECT 1 FROM cf_bootstrap WHERE email=?').bind(google.email).first(),'Use your account setup invitation first.',409,'account-exists');
+      const uid='usr_'+crypto.randomUUID();profile=newAccountProfile(uid,google.email,google.name);
+      credentials={user_id:uid,email:google.email,credential_version:1};session=await newSession(env,uid,1,'cookie');
+      await repo.commit([{path:'users/'+uid,data:profile}], [env.DB.prepare('INSERT INTO cf_credentials(user_id,email,created_at,email_verified_at,google_sub) VALUES(?,?,?,?,?)').bind(uid,google.email,epoch(),epoch(),google.sub),session.statement]);
+    }
+    setCookie(headers,session.token);headers.set('Location',appOrigin(env)+'/');return new Response(null,{status:303,headers});
+  }
   if(path==='/auth/me'&&request.method==='GET'){
     if(!actor)return {user:null,csrfToken:null};
     return {user:userResult(actor.uid,actor.email,actor.profile!),csrfToken:identity!.transport==='cookie'?identity!.csrfToken:null,session:{id:identity!.sessionId,transport:identity!.transport}};
   }
   if(path==='/auth/sessions'&&request.method==='GET'){const user=requireActor(actor);return {sessions:(await env.DB.prepare('SELECT id,transport,created_at,last_seen_at,expires_at FROM cf_sessions WHERE user_id=? AND audience=? AND expires_at>? AND last_seen_at>? ORDER BY created_at DESC').bind(user.uid,audience(env),epoch(),epoch()-IDLE).all()).results};}
   badInput(request.method==='POST','Unsupported authentication method.');
+  if(path==='/auth/google/start'){
+    onlyKeys(body,[]);mode(request,body);requireThat(request.headers.get('Origin')===appOrigin(env),'Use the Sewak website.',403,'csrf-rejected');
+    requireThat(googleReady(env),'Google sign-in is not configured yet.',503,'unavailable');await authLimit(request,env,'google-start');
+    await env.DB.prepare('DELETE FROM cf_google_states WHERE expires_at<?').bind(epoch()).run();
+    const state=opaque(),verifier=opaque(),nonce=opaque(),challenge=btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(verifier))))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    const c=actor?await env.DB.prepare('SELECT credential_version FROM cf_credentials WHERE user_id=?').bind(actor.uid).first<Data>():null;
+    await env.DB.prepare('INSERT INTO cf_google_states(token_hash,verifier,nonce,audience,expires_at,link_user_id,credential_version) VALUES(?,?,?,?,?,?,?)')
+      .bind(await digest(state),verifier,nonce,audience(env),epoch()+600,actor?.uid||null,c?.credential_version||null).run();
+    googleCookie(headers,state,600);
+    const query=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID!,redirect_uri:appOrigin(env)+'/api/auth/google/callback',response_type:'code',scope:'openid email profile',state,nonce,code_challenge:challenge,code_challenge_method:'S256',prompt:'select_account'});
+    return {url:'https://accounts.google.com/o/oauth2/v2/auth?'+query};
+  }
+  if(path==='/auth/forgot-password'){
+    onlyKeys(body,['email']);mode(request,body);const email=normalizedEmail(body.email);await authLimit(request,env,'forgot-password',email);
+    requireThat(emailReady(env),'Email recovery is temporarily unavailable. Please try again later.',503,'email-unavailable');
+    const c=await env.DB.prepare('SELECT * FROM cf_credentials WHERE email=? AND disabled=0 AND password_hash IS NOT NULL').bind(email).first<Data>();
+    const deliver=async()=>{if(c){const profile=await repo.data('users/'+c.user_id);if(profile&&!profile.isSuspended&&!profile.isBlacklisted){try{await accountEmail(env,c,'reset');}catch{ console.warn('Sewak recovery email could not be submitted'); }}}};
+    // Do not expose provider network latency as an account-existence oracle.
+    if(context)context.waitUntil(deliver());else await deliver();
+    return {message:'If this address has an eligible Sewak account, a password reset link will arrive shortly. Check your inbox and spam folder.'};
+  }
+  if(path==='/auth/reset-password'||path==='/auth/verify-email'){
+    const reset=path.endsWith('/reset-password');onlyKeys(body,reset?['token','password']:['token']);mode(request,body);
+    badInput(typeof body.token==='string'&&/^swk_[A-Za-z0-9_-]{43}$/.test(body.token),'This link is invalid or expired.');if(reset)passwordInput(body.password);
+    await authLimit(request,env,reset?'reset-password':'verify-email');const hash=await digest(body.token),purpose=reset?'reset':'verify';
+    const token=await env.DB.prepare('SELECT t.*,c.email,c.disabled,c.credential_version AS current_version FROM cf_email_tokens t JOIN cf_credentials c ON c.user_id=t.user_id WHERE t.token_hash=? AND t.purpose=?').bind(hash,purpose).first<Data>();
+    requireThat(token&&!token.used_at&&token.expires_at>epoch()&&!token.disabled&&token.credential_version===token.current_version,'This link is invalid or expired. Request a new one.',400,'invalid-email-token');
+    const profile=await repo.data('users/'+token.user_id);requireThat(profile&&!profile.isSuspended&&!profile.isBlacklisted,'This link is unavailable.',400,'invalid-email-token');
+    const password=reset?await makePassword(env,body.password):null,guard='email:'+crypto.randomUUID();
+    await repo.commit([], [env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,EXISTS(SELECT 1 FROM cf_email_tokens t JOIN cf_credentials c ON c.user_id=t.user_id WHERE t.token_hash=? AND t.used_at IS NULL AND t.expires_at>? AND t.credential_version=c.credential_version AND c.disabled=0))').bind(guard,hash,epoch()),
+      env.DB.prepare(reset?'UPDATE cf_credentials SET password_hash=?,credential_version=credential_version+1,password_changed_at=?,email_verified_at=COALESCE(email_verified_at,?) WHERE user_id=?':'UPDATE cf_credentials SET email_verified_at=COALESCE(email_verified_at,?) WHERE user_id=?').bind(...(reset?[password,epoch(),epoch(),token.user_id]:[epoch(),token.user_id])),
+      env.DB.prepare('UPDATE cf_email_tokens SET used_at=? WHERE user_id=? AND purpose=? AND used_at IS NULL').bind(epoch(),token.user_id,purpose),
+      ...(reset?[env.DB.prepare('DELETE FROM cf_sessions WHERE user_id=?').bind(token.user_id),env.DB.prepare('UPDATE cf_invitations SET used_at=? WHERE user_id=? AND used_at IS NULL').bind(epoch(),token.user_id)]:[]),env.DB.prepare('DELETE FROM commit_guards WHERE id=?').bind(guard)]);
+    if(reset)setCookie(headers,'',0);
+    return reset?{changed:true,signedOut:true}:{verified:true};
+  }
+  if(path==='/auth/send-verification'){
+    onlyKeys(body,[]);const user=requireActor(actor);await authLimit(request,env,'send-verification',user.email);
+    const c=await env.DB.prepare('SELECT * FROM cf_credentials WHERE user_id=? AND disabled=0').bind(user.uid).first<Data>();requireThat(c,'Sign in again.',401,'unauthenticated');
+    if(!c.email_verified_at)await accountEmail(env,c,'verify');return {message:c.email_verified_at?'Your email is already verified.':'Check your inbox for a verification link.'};
+  }
   if(path==='/auth/login'){
     onlyKeys(body,['email','password','sessionMode']);const transport=mode(request,body),email=normalizedEmail(body.email);badInput(typeof body.password==='string'&&body.password.length<=128,'Invalid credentials.');await authLimit(request,env,'login',email);
     const c=await traceD1('auth.login.credentials',()=>env.DB.prepare('SELECT * FROM cf_credentials WHERE email=?').bind(email).first<Data>());const valid=await traceD1('auth.login.hasher',()=>checkPassword(env,body.password,c?.password_hash||dummyPasswordHash));
@@ -89,6 +182,7 @@ export async function authRoute(request:Request,env:Env,headers:Headers,body:Dat
     const statements: D1PreparedStatement[]=[];if(bootstrap){statements.push(env.DB.prepare('INSERT INTO commit_guards(id,valid) VALUES(?,EXISTS(SELECT 1 FROM cf_bootstrap WHERE id=1 AND used_at IS NULL AND expires_at>? AND token_hash=?) AND NOT EXISTS(SELECT 1 FROM cf_credentials c JOIN users u ON u.id=c.user_id WHERE u.role=\'superadmin\' AND c.disabled=0))').bind('bootstrap:'+uid,epoch(),setup!.token_hash));statements.push(env.DB.prepare('UPDATE cf_bootstrap SET used_at=? WHERE id=1 AND used_at IS NULL').bind(epoch()));}
     statements.push(env.DB.prepare('INSERT INTO cf_credentials(user_id,email,password_hash,created_at) VALUES(?,?,?,?)').bind(uid,email,hash,epoch()),session.statement);if(bootstrap)statements.push(env.DB.prepare('DELETE FROM commit_guards WHERE id=?').bind('bootstrap:'+uid));
     try{await traceD1('auth.register.commit',()=>repo.commit(writes,statements));}catch(e){if(e instanceof ApiError&&e.code==='already-exists')throw new ApiError(409,'account-exists','Unable to create this account. Try signing in.');throw e;}
+    if(!bootstrap&&emailReady(env)){const deliver=async()=>{try{await accountEmail(env,{user_id:uid,email,credential_version:1},'verify');}catch{ console.warn('Sewak verification email could not be submitted'); }};if(context)context.waitUntil(deliver());else await deliver();}
     return sessionResponse(env,headers,uid,email,profile,session,transport);
   }
   if(path==='/auth/activate'){

@@ -89,8 +89,8 @@ export default function SignupRegistrationForm({ values, onChange, onSubmit, loa
     {Object.keys(errors).length > 0 && <p className="signup-validation-summary" role="alert">Check the highlighted fields to continue.</p>}
     <fieldset className="signup-step-fields" hidden={step !== 1} disabled={loading || step !== 1} aria-label="Account information">
       {input('fullName', 'Full name', 'user', { autoComplete: 'name', maxLength: 120, placeholder: 'Your full name' })}
-      {input('email', 'Email', 'mail', { type: 'email', autoComplete: 'email', maxLength: 254, placeholder: 'your@email.com' })}
-      {input('password', 'Password', 'lock', { type: passwordVisible ? 'text' : 'password', autoComplete: 'new-password', minLength: 12, maxLength: 128, required: passwordRequired, placeholder: 'At least 12 characters' })}
+      {input('email', 'Email', 'mail', { type: 'email', autoComplete: 'email', maxLength: 254, placeholder: 'you@gmail.com', readOnly: !passwordRequired })}
+      {passwordRequired && input('password', 'Password', 'lock', { type: passwordVisible ? 'text' : 'password', autoComplete: 'new-password', minLength: 12, maxLength: 128, required: true, placeholder: 'At least 12 characters' })}
 
     </fieldset>
     {org && <fieldset className="signup-step-fields" hidden={step !== 2} disabled={loading || step !== 2} aria-label="Organization details">

@@ -46,3 +46,18 @@ export async function activateAccount(token, password) { return startSession('ac
 export async function bootstrapAccount({ email, password, name, bootstrapToken }) { return startSession('bootstrap', { email, password, name, bootstrapToken }); }
 export async function revokeSessions(input = { all: true }) { const result = await request('revoke-sessions', input); if (result.signedOut) { ++generation; publish(null); initial = null; } return result; }
 export const listSessions = () => request('sessions');
+export const authOptions = () => request('options');
+export const requestPasswordReset = email => request('forgot-password', { email });
+export const sendVerification = () => request('send-verification', {});
+export const verifyEmail = token => request('verify-email', { token });
+export async function resetPassword(token, password) {
+  const result = await request('reset-password', { token, password });
+  ++generation; publish(null); initial = null;
+  return result;
+}
+export async function continueWithGoogle() {
+  const result = await request('google/start', {});
+  const url = new URL(result.url);
+  if (url.origin !== 'https://accounts.google.com') throw new Error('Google sign-in is unavailable.');
+  window.location.assign(url.href);
+}

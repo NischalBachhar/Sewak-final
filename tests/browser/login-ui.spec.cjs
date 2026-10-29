@@ -26,8 +26,11 @@ for (const width of [360, 390, 768, 1024, 1440]) {
     await page.screenshot({ path: testInfo.outputPath(`login-${width}.png`), fullPage: true });
     expect(await page.locator('.login-care-illustration').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
     await page.getByRole('button', { name: 'Forgot password?' }).click();
-    await expect(page.getByRole('status')).toContainText('Contact your Sewak administrator');
+    await expect(page.getByRole('heading', {name:'Reset your password'})).toBeVisible();
+    await expect(page.getByLabel('Account email')).toBeVisible();
+    await page.getByRole('button', { name: 'Back to sign in' }).click();
     await page.getByRole('button', { name: 'Create an account' }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(page.getByLabel('Full name')).toBeVisible();
     await expect(page.locator('.auth-shell--login')).toHaveCount(0);
     await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password');

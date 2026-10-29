@@ -16,6 +16,7 @@ run_worker_first = ["/api/*", "/auth/*"]
 
 [vars]
 AUTH_AUDIENCE = "sewak-production"
+APP_ORIGIN = "https://sewak-final.nischalbachhar9.workers.dev"
 APP_WRITES_ENABLED = "true"
 VERIFICATION_RETENTION_DAYS = "365"
 VERIFICATION_BACKGROUND_DAYS = "365"
